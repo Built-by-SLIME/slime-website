@@ -1,0 +1,69 @@
+import { useState } from 'react'
+
+export default function FAQ() {
+  const [openIndex, setOpenIndex] = useState<number | null>(0)
+
+  const faqs = [
+    {
+      question: "WHAT IS SLIME?",
+      answer: "SLIME is a collection of 5,000 unique NFTs living on the Hedera hashgraph. Each SLIME is procedurally generated with over 77 possible traits, making every single one completely unique."
+    },
+    {
+      question: "HOW DO I GET A SLIME NFT?",
+      answer: "You can mint a SLIME directly from our website during the public sale, or purchase one on secondary marketplaces. Connect your Hedera wallet and follow the minting process."
+    },
+    {
+      question: "WHAT ARE THE BENEFITS OF OWNING A SLIME?",
+      answer: "SLIME holders get exclusive access to merch drops, community events, staking rewards, and governance rights in the SLIME DAO. Plus, you'll own a unique piece of digital art!"
+    },
+    {
+      question: "WHEN IS THE MINT DATE?",
+      answer: "The public mint is scheduled for Q1 2024. Join our Discord and follow us on X to stay updated on the exact date and time."
+    },
+    {
+      question: "WHAT IS THE MINT PRICE?",
+      answer: "The mint price will be announced closer to the launch date in HBAR. Whitelist members will receive a discounted price."
+    },
+    {
+      question: "HOW DO I JOIN THE WHITELIST?",
+      answer: "Stay active in our Discord community, participate in events, and follow our social media channels. We regularly announce whitelist opportunities for engaged community members."
+    }
+  ]
+
+  return (
+    <section id="faq" className="py-20 px-8 bg-[#2a2a2a]">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-4xl md:text-5xl font-black text-center mb-4">FAQS</h2>
+        <p className="text-gray-400 text-center mb-12 text-sm md:text-base">Everything you need to know about SLIME</p>
+
+        <div className="space-y-3">
+          {faqs.map((faq, index) => (
+            <div
+              key={index}
+              className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green/50 transition"
+            >
+              <button
+                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                className="w-full px-6 md:px-8 py-5 md:py-6 flex justify-between items-center text-left"
+              >
+                <h3 className="text-base md:text-lg font-bold pr-4">{faq.question}</h3>
+                <div className={`text-slime-green text-2xl transition-transform flex-shrink-0 ${
+                  openIndex === index ? 'rotate-45' : ''
+                }`}>
+                  +
+                </div>
+              </button>
+
+              {openIndex === index && (
+                <div className="px-6 md:px-8 pb-5 md:pb-6">
+                  <p className="text-gray-400 leading-relaxed text-sm md:text-base">{faq.answer}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+

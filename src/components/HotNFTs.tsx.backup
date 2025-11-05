@@ -1,0 +1,74 @@
+export default function HotNFTs() {
+  const nfts = [
+    {
+      id: 1,
+      name: "SLIME #1337",
+      image: "/Assets/NFT1.png",
+      price: "250 HBAR",
+      rarity: "LEGENDARY"
+    },
+    {
+      id: 2,
+      name: "SLIME #420",
+      image: "/Assets/NFT2.png",
+      price: "180 HBAR",
+      rarity: "RARE"
+    },
+    {
+      id: 3,
+      name: "SLIME #6969",
+      image: "/Assets/NFT3.png",
+      price: "320 HBAR",
+      rarity: "EPIC"
+    },
+    {
+      id: 4,
+      name: "SLIME #777",
+      image: "/Assets/NFT4.png",
+      price: "210 HBAR",
+      rarity: "RARE"
+    }
+  ]
+
+  return (
+    <section id="nfts" className="py-20 px-8 bg-[#2a2a2a]">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-4xl md:text-5xl font-black text-center mb-4">LISTED NFTS</h2>
+        <p className="text-gray-400 text-center mb-12 text-sm md:text-base">Check out the most sought-after SLIMEs</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {nfts.map((nft) => (
+            <div
+              key={nft.id}
+              className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all transform hover:scale-105 cursor-pointer"
+            >
+              <div className="aspect-square bg-[#252525] p-6">
+                <img
+                  src={nft.image}
+                  alt={nft.name}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="p-5 space-y-3">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-lg font-bold">{nft.name}</h3>
+                  <span className="text-xs bg-slime-green/20 text-slime-green px-2 py-1 rounded font-medium">
+                    {nft.rarity}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-gray-500 text-sm">Floor Price</span>
+                  <span className="text-slime-green font-bold text-sm">{nft.price}</span>
+                </div>
+                <button className="w-full bg-slime-green text-black py-2.5 rounded-md font-bold text-sm hover:bg-[#00cc33] transition">
+                  BUY NOW
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
