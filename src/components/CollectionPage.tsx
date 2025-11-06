@@ -99,7 +99,12 @@ export default function CollectionPage() {
       }}></div>
 
       {/* Header - Transparent background with dot grid showing through */}
-      <nav className="relative flex justify-end px-6 py-5 z-50" style={{ paddingRight: '60px' }}>
+      <nav className="relative flex justify-between px-6 py-5 z-50" style={{ paddingLeft: '76.5px', paddingRight: '60px' }}>
+        <div className="flex items-center" style={{ marginTop: '4px' }}>
+          <Link to="/home">
+            <img src="/Assets/SPLAT.png" alt="SLIME" className="h-auto w-12" />
+          </Link>
+        </div>
         <div className="flex items-center gap-10" style={{ marginTop: '4px' }}>
           <div className="hidden md:flex gap-10 text-sm font-medium">
             <a href="https://altlantis.market/live/QQaupimisf3YogPk2hdq" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">MINT</a>

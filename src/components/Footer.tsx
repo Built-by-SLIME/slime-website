@@ -3,11 +3,8 @@ export default function Footer() {
     <footer className="bg-[#2a2a2a] border-t border-slime-green/20">
       <div className="max-w-7xl mx-auto px-8 py-12">
         <div className="mb-8">
-          {/* Logo & Description */}
+          {/* Description */}
           <div className="max-w-2xl">
-            <div className="flex items-center mb-4">
-              <img src="/Assets/SLIME.head.logo.png" alt="SLIME" className="h-12 w-12" />
-            </div>
             <p className="text-gray-400 mb-4 text-sm">
               From the garden to the alley. A collection of 5,000 unique NFTs living on the Hedera hashgraph.
             </p>
