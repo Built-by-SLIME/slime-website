@@ -2,9 +2,9 @@ export default function Footer() {
   return (
     <footer className="bg-[#2a2a2a] border-t border-slime-green/20">
       <div className="max-w-7xl mx-auto px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="mb-8">
           {/* Logo & Description */}
-          <div className="col-span-1 md:col-span-2">
+          <div className="max-w-2xl">
             <div className="flex items-center mb-4">
               <img src="/Assets/SLIME.head.logo.png" alt="SLIME" className="h-12 w-12" />
             </div>
@@ -28,28 +28,6 @@ export default function Footer() {
                 </svg>
               </a>
             </div>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="font-bold text-lg mb-4">QUICK LINKS</h3>
-            <ul className="space-y-2">
-              <li><a href="#about" className="text-gray-400 hover:text-slime-green transition">About</a></li>
-              <li><a href="#nfts" className="text-gray-400 hover:text-slime-green transition">NFTs</a></li>
-              <li><a href="#roadmap" className="text-gray-400 hover:text-slime-green transition">Roadmap</a></li>
-              <li><a href="#faq" className="text-gray-400 hover:text-slime-green transition">FAQ</a></li>
-            </ul>
-          </div>
-
-          {/* Community */}
-          <div>
-            <h3 className="font-bold text-lg mb-4">COMMUNITY</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-slime-green transition">Discord</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-slime-green transition">Twitter</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-slime-green transition">OpenSea</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-slime-green transition">Instagram</a></li>
-            </ul>
           </div>
         </div>
 

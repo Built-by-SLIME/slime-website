@@ -10,10 +10,7 @@ export default function Hero() {
       }}></div>
 
       {/* Navigation */}
-      <nav className="relative flex justify-between px-6 py-5 z-10" style={{ paddingLeft: '76.5px', paddingRight: '60px' }}>
-        <div className="flex items-center" style={{ marginTop: '4px' }}>
-          <img src="/Assets/SPLAT.png" alt="SLIME" className="h-auto w-12" />
-        </div>
+      <nav className="relative flex justify-end px-6 py-5 z-10" style={{ paddingRight: '60px' }}>
         <div className="flex items-center gap-10" style={{ marginTop: '4px' }}>
           <div className="hidden md:flex gap-10 text-sm font-medium">
             <a href="https://altlantis.market/live/QQaupimisf3YogPk2hdq" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">MINT</a>
