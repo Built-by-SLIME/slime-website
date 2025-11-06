@@ -16,7 +16,10 @@ export default function WhatIsSlime() {
           <div className="space-y-6">
             <h2 className="text-4xl md:text-5xl font-black">WHAT IS SLIME?</h2>
             <p className="text-gray-400 text-base md:text-lg leading-relaxed">
-              SLIME is a development collective focused on shipping production-grade FOSS to Hedera. We scout raw talent, mentor them in public, and pay in HBAR the moment code ships. Hold a SLIME NFT to stake for equal-split HBAR rewards (treasury adds 100 extra SLIME per epoch, takes zero cut). Staking also unlocks the RFC Board - live tasks with fat HBAR pools. Build a solution, submit a PR, let the DAO vote. Win? Your code ships, your wallet fills, your rep levels up. No gatekeepers. Just open code, open bounties, and open rewards.
+              One part development group, one part community DAO, one part NFT project - SLIME exists to train new builders, ship open-source solutions, and partner with every corner of Hedera to lift the whole ecosystem higher, together.
+            </p>
+            <p className="text-gray-400 text-base md:text-lg leading-relaxed">
+              Hold a SLIME NFT to stake for your equal slice of HBAR rewards (treasury adds 100+ SLIME per epoch, takes zero cut). No gatekeepers, no middlemen—just open code, open collaboration, and shared upside for everyone who holds SLIME.
             </p>
             <div className="grid grid-cols-3 gap-6 pt-6">
               <div className="text-center">
