@@ -1,6 +1,6 @@
 export default function WhatIsSlime() {
   return (
-    <section id="about" className="pt-64 pb-20 px-8 bg-[#2a2a2a]">
+    <section id="about" className="pt-16 md:pt-64 pb-20 px-8 bg-[#2a2a2a]">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           {/* Left - Image */}
