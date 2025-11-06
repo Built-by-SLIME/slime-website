@@ -136,7 +136,7 @@ export default function Hero() {
         </div>
 
         {/* Center - Text Content - Centered in viewport */}
-        <div className="h-full flex items-center justify-center pt-32">
+        <div className="h-full flex items-center justify-center pt-8 md:pt-32">
           <div className="text-center z-10 max-w-5xl px-4">
             <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-none tracking-tight mb-6" style={{ fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace" }}>
               SHAPE THE FUTURE OF HEDERA.<br />
