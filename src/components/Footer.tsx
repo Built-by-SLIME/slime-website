@@ -4,7 +4,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-8 py-12">
         <div className="mb-8">
           {/* Description */}
-          <div className="max-w-2xl">
+          <div className="flex flex-col items-center text-center">
             <p className="text-gray-400 mb-4 text-sm">
               Shape the future of Hedera. Join SLIME.
             </p>
@@ -29,14 +29,10 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-slime-green/20 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="pt-8 border-t border-slime-green/20 flex justify-center items-center">
           <p className="text-gray-400 text-sm">
-            © 2024 SLIME. All rights reserved.
+            © {new Date().getFullYear()} SLIME. All rights reserved. Built by SLIME 💚
           </p>
-          <div className="flex gap-6 text-sm">
-            <a href="#" className="text-gray-400 hover:text-slime-green transition">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-slime-green transition">Terms of Service</a>
-          </div>
         </div>
       </div>
     </footer>
