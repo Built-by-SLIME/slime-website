@@ -19,7 +19,7 @@ export default function WhatIsSlime() {
               One part development group, one part community DAO, one part NFT project - SLIME exists to train new builders, ship open-source solutions, and partner with every corner of Hedera to lift the whole ecosystem higher, together.
             </p>
             <p className="text-gray-400 text-base md:text-lg leading-relaxed">
-              Hold a SLIME NFT to stake for your equal slice of HBAR rewards (treasury adds 100+ SLIME per epoch, takes zero cut). No gatekeepers, no middlemen—just open code, open collaboration, and shared upside for everyone who holds SLIME.
+              Hold a SLIME NFT to stake for your equal slice of HBAR rewards (treasury adds 100+ SLIME per epoch, takes zero cut). No gatekeepers, no middlemen - just open code, open collaboration, and shared upside for everyone who holds SLIME.
             </p>
             <div className="grid grid-cols-3 gap-6 pt-6">
               <div className="text-center">
