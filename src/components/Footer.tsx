@@ -31,7 +31,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-slime-green/20 flex justify-center items-center">
           <p className="text-gray-400 text-xs">
-            © {new Date().getFullYear()} SLIME | All rights reserved | Built with 💚 by SLIME
+            © {new Date().getFullYear()} SLIME All rights reserved
           </p>
         </div>
       </div>
