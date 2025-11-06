@@ -200,6 +200,17 @@ export default function MerchPage() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 bg-[#2a2a2a] z-40 flex flex-col items-center justify-center">
+            {/* Close Button */}
+            <button
+              className="absolute top-6 right-6 text-gray-300 hover:text-slime-green transition"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close menu"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
             <div className="flex flex-col items-center gap-8 text-center">
               <a
                 href="https://altlantis.market/live/QQaupimisf3YogPk2hdq"
