@@ -6,7 +6,7 @@ export default function Footer() {
           {/* Description */}
           <div className="max-w-2xl">
             <p className="text-gray-400 mb-4 text-sm">
-              From the garden to the alley. A collection of 5,000 unique NFTs living on the Hedera hashgraph.
+              Shape the future of Hedera. Join SLIME.
             </p>
             <div className="flex gap-4">
               <a href="#" className="text-gray-400 hover:text-slime-green transition">
