@@ -127,7 +127,7 @@ export default function HotNFTs() {
     <section id="nfts" className="py-20 px-8 bg-[#2a2a2a]">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-4xl md:text-5xl font-black text-center mb-4">LISTED NFTS</h2>
-        <p className="text-gray-400 text-center mb-12 text-sm md:text-base">Top 4 SLIME on SentX</p>
+        <p className="text-gray-400 text-center mb-12 text-sm md:text-base">Top SLIME on SentX</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {nfts.map((nft) => (
