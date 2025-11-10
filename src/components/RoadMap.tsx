@@ -42,7 +42,7 @@ export default function RoadMap() {
     <section id="roadmap" className="py-20 px-8 bg-[#2a2a2a]">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-4xl md:text-5xl font-black text-center mb-4">ROADMAP</h2>
-        <p className="text-gray-400 text-center mb-16 text-sm md:text-base">Our journey from garden to greatness</p>
+        <p className="text-gray-400 text-center mb-16 text-sm md:text-base">What's next for SLIME</p>
 
         <div className="relative">
           {/* Timeline Line */}
