@@ -1,7 +1,7 @@
 // Printify API Service Utility
 // This runs on the server-side only (Vercel serverless functions)
 
-import type { PrintifyProduct, PrintifyOrder, PrintifyOrderRequest } from '../../src/types/printify'
+import type { PrintifyProduct, PrintifyOrder, PrintifyOrderRequest } from '../types'
 
 const PRINTIFY_API_BASE = 'https://api.printify.com/v1'
 
