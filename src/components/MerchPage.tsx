@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Footer from './Footer'
+import type { PrintifyProduct } from '../types/printify'
 
 interface Product {
   id: string
@@ -8,7 +9,7 @@ interface Product {
   price: number
   image: string
   variants: Array<{
-    id: string
+    id: number
     title: string
     price: number
   }>
@@ -30,6 +31,9 @@ export default function MerchPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showCheckout, setShowCheckout] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState<CheckoutForm>({
     name: '',
     email: '',
@@ -42,45 +46,52 @@ export default function MerchPage() {
     paymentMethod: 'card'
   })
 
-  // Mock products - will be replaced with Printify API data
-  const products: Product[] = [
-    {
-      id: '1',
-      title: 'SLIME T-Shirt',
-      description: 'Premium cotton tee with SLIME logo',
-      price: 29.99,
-      image: '/Assets/SPLAT.png', // Placeholder - will use actual product images
-      variants: [
-        { id: 's', title: 'Small', price: 29.99 },
-        { id: 'm', title: 'Medium', price: 29.99 },
-        { id: 'l', title: 'Large', price: 29.99 },
-        { id: 'xl', title: 'X-Large', price: 29.99 }
-      ]
-    },
-    {
-      id: '2',
-      title: 'SLIME Hoodie',
-      description: 'Cozy hoodie with embroidered SLIME',
-      price: 49.99,
-      image: '/Assets/SPLAT.png', // Placeholder
-      variants: [
-        { id: 's', title: 'Small', price: 49.99 },
-        { id: 'm', title: 'Medium', price: 49.99 },
-        { id: 'l', title: 'Large', price: 49.99 },
-        { id: 'xl', title: 'X-Large', price: 49.99 }
-      ]
-    },
-    {
-      id: '3',
-      title: 'SLIME Hat',
-      description: 'Snapback cap with SLIME patch',
-      price: 24.99,
-      image: '/Assets/SPLAT.png', // Placeholder
-      variants: [
-        { id: 'onesize', title: 'One Size', price: 24.99 }
-      ]
+  // Fetch products from Printify API
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/products')
+        const result = await response.json()
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch products')
+        }
+
+        // Transform Printify products to our Product interface
+        const transformedProducts: Product[] = result.data.map((p: PrintifyProduct) => {
+          // Get the first default image or fallback
+          const defaultImage = p.images.find(img => img.is_default)?.src || p.images[0]?.src || '/Assets/SPLAT.png'
+
+          // Get base price from first variant
+          const basePrice = p.variants.length > 0 ? p.variants[0].price / 100 : 0
+
+          return {
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            price: basePrice,
+            image: defaultImage,
+            variants: p.variants.map(v => ({
+              id: v.id,
+              title: v.title,
+              price: v.price / 100 // Convert cents to dollars
+            }))
+          }
+        })
+
+        setProducts(transformedProducts)
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load products')
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchProducts()
+  }, [])
 
   const handleBuyNow = (product: Product) => {
     setSelectedProduct(product)
@@ -94,31 +105,87 @@ export default function MerchPage() {
     })
   }
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // For now, just log the order - you'll process manually
-    console.log('Order submitted:', {
-      product: selectedProduct,
-      formData
-    })
 
-    // Show success message
-    alert(`Order received! ${formData.paymentMethod === 'crypto' ? 'Please send HBAR payment to the address shown below.' : 'Payment processing will be handled manually.'}`)
-    
-    // Reset
-    setShowCheckout(false)
-    setFormData({
-      name: '',
-      email: '',
-      address: '',
-      city: '',
-      state: '',
-      zip: '',
-      country: 'United States',
-      size: '',
-      paymentMethod: 'card'
-    })
+    if (!selectedProduct) return
+
+    try {
+      // Split name into first and last name
+      const nameParts = formData.name.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || firstName
+
+      // Find the selected variant
+      const selectedVariant = selectedProduct.variants.find(v => v.id.toString() === formData.size)
+      if (!selectedVariant) {
+        alert('Please select a size')
+        return
+      }
+
+      // Create order data for Printify API
+      const orderData = {
+        line_items: [
+          {
+            product_id: selectedProduct.id,
+            variant_id: selectedVariant.id,
+            quantity: 1
+          }
+        ],
+        shipping_method: 1, // Standard shipping
+        send_shipping_notification: true,
+        address_to: {
+          first_name: firstName,
+          last_name: lastName,
+          email: formData.email,
+          phone: '', // Optional - could add phone field to form
+          country: formData.country === 'United States' ? 'US' : formData.country,
+          region: formData.state,
+          address1: formData.address,
+          city: formData.city,
+          zip: formData.zip
+        }
+      }
+
+      // Submit order to API
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData)
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create order')
+      }
+
+      // Show success message
+      alert(`Order created successfully! Order ID: ${result.data.id}\n\n${
+        formData.paymentMethod === 'crypto'
+          ? 'You will receive an email with HBAR payment instructions.'
+          : 'You will receive an email with payment instructions.'
+      }`)
+
+      // Reset
+      setShowCheckout(false)
+      setFormData({
+        name: '',
+        email: '',
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: 'United States',
+        size: '',
+        paymentMethod: 'card'
+      })
+    } catch (error) {
+      console.error('Error submitting order:', error)
+      alert(`Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   const calculateHBARPrice = (usdPrice: number) => {
@@ -263,40 +330,57 @@ export default function MerchPage() {
       {/* Products Grid */}
       <section className="py-10 px-8 pb-20 bg-[#2a2a2a]">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all"
-              >
-                <div className="aspect-square bg-[#252525] p-8 flex items-center justify-center">
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div className="p-6 space-y-4">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2">{product.title}</h3>
-                    <p className="text-gray-400 text-sm">{product.description}</p>
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-slime-green"></div>
+              <p className="mt-4 text-gray-400">Loading products...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <p className="text-red-500 mb-4">Error: {error}</p>
+              <p className="text-gray-400 text-sm">Please make sure you have configured your Printify API credentials.</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-400">No products available yet.</p>
+              <p className="text-gray-500 text-sm mt-2">Create products in your Printify dashboard to see them here.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all"
+                >
+                  <div className="aspect-square bg-[#252525] p-8 flex items-center justify-center">
+                    <img
+                      src={product.image}
+                      alt={product.title}
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                  <div className="flex justify-between items-center pt-2">
+                  <div className="p-6 space-y-4">
                     <div>
-                      <div className="text-2xl font-black text-slime-green">${product.price}</div>
-                      <div className="text-xs text-gray-500">~{calculateHBARPrice(product.price)} HBAR</div>
+                      <h3 className="text-2xl font-bold mb-2">{product.title}</h3>
+                      <p className="text-gray-400 text-sm">{product.description}</p>
                     </div>
-                    <button
-                      onClick={() => handleBuyNow(product)}
-                      className="bg-slime-green text-black px-6 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
-                    >
-                      BUY NOW
-                    </button>
+                    <div className="flex justify-between items-center pt-2">
+                      <div>
+                        <div className="text-2xl font-black text-slime-green">${product.price.toFixed(2)}</div>
+                        <div className="text-xs text-gray-500">~{calculateHBARPrice(product.price)} HBAR</div>
+                      </div>
+                      <button
+                        onClick={() => handleBuyNow(product)}
+                        className="bg-slime-green text-black px-6 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
+                      >
+                        BUY NOW
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
