@@ -66,10 +66,19 @@ export default function MerchPage() {
           // Get base price from first variant
           const basePrice = p.variants.length > 0 ? p.variants[0].price / 100 : 0
 
+          // Strip HTML tags from description and limit length
+          const stripHtml = (html: string) => {
+            const tmp = document.createElement('div')
+            tmp.innerHTML = html
+            const text = tmp.textContent || tmp.innerText || ''
+            // Limit to 150 characters
+            return text.length > 150 ? text.substring(0, 150) + '...' : text
+          }
+
           return {
             id: p.id,
             title: p.title,
-            description: p.description,
+            description: stripHtml(p.description),
             price: basePrice,
             image: defaultImage,
             variants: p.variants.map(v => ({
@@ -350,7 +359,7 @@ export default function MerchPage() {
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all"
+                  className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all flex flex-col h-full"
                 >
                   <div className="aspect-square bg-[#252525] p-8 flex items-center justify-center">
                     <img
@@ -359,12 +368,12 @@ export default function MerchPage() {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <div className="p-6 space-y-4">
-                    <div>
+                  <div className="p-6 flex flex-col flex-grow">
+                    <div className="flex-grow mb-4">
                       <h3 className="text-2xl font-bold mb-2">{product.title}</h3>
-                      <p className="text-gray-400 text-sm">{product.description}</p>
+                      <p className="text-gray-400 text-sm line-clamp-3">{product.description}</p>
                     </div>
-                    <div className="flex justify-between items-center pt-2">
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-700">
                       <div>
                         <div className="text-2xl font-black text-slime-green">${product.price.toFixed(2)}</div>
                         <div className="text-xs text-gray-500">~{calculateHBARPrice(product.price)} HBAR</div>
