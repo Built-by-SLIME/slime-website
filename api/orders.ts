@@ -2,8 +2,8 @@
 // Creates orders in Printify API
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getPrintifyService } from './lib/printify'
-import type { PrintifyOrderRequest } from '../src/types/printify'
+import { getPrintifyService } from './printify-service'
+import type { PrintifyOrderRequest } from './types'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only allow POST requests
