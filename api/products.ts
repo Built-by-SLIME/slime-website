@@ -11,8 +11,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Debug: Check if environment variables are set
+    const hasToken = !!process.env.PRINTIFY_API_TOKEN
+    const hasShopId = !!process.env.PRINTIFY_SHOP_ID
+
+    console.log('Environment check:', { hasToken, hasShopId })
+
+    if (!hasToken || !hasShopId) {
+      return res.status(500).json({
+        success: false,
+        error: 'Missing Printify configuration',
+        message: 'PRINTIFY_API_TOKEN or PRINTIFY_SHOP_ID not set in environment variables',
+        debug: { hasToken, hasShopId }
+      })
+    }
+
     const printify = getPrintifyService()
-    
+
     // Get page and limit from query params
     const page = parseInt(req.query.page as string) || 1
     const limit = parseInt(req.query.limit as string) || 50
@@ -31,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error) {
     console.error('Error fetching products from Printify:', error)
-    
+
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch products',
