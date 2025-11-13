@@ -1,0 +1,81 @@
+// Vercel Serverless Function: GET /api/products
+// Fetches products from Printify API
+
+const PRINTIFY_API_BASE = 'https://api.printify.com/v1'
+
+async function fetchPrintifyProducts(apiToken, shopId, page = 1, limit = 50) {
+  const url = `${PRINTIFY_API_BASE}/shops/${shopId}/products.json?page=${page}&limit=${limit}`
+  
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'SLIME-Website/1.0',
+    },
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Printify API error (${response.status}): ${errorText}`)
+  }
+
+  return response.json()
+}
+
+export default async function handler(req, res) {
+  // Only allow GET requests
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  try {
+    // Check if environment variables are set
+    const apiToken = process.env.PRINTIFY_API_TOKEN
+    const shopId = process.env.PRINTIFY_SHOP_ID
+    
+    console.log('Environment check:', { 
+      hasToken: !!apiToken, 
+      hasShopId: !!shopId,
+      nodeVersion: process.version 
+    })
+    
+    if (!apiToken || !shopId) {
+      return res.status(500).json({
+        success: false,
+        error: 'Missing Printify configuration',
+        message: 'PRINTIFY_API_TOKEN or PRINTIFY_SHOP_ID not set in environment variables',
+        debug: { 
+          hasToken: !!apiToken, 
+          hasShopId: !!shopId 
+        }
+      })
+    }
+
+    // Get page and limit from query params
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 50
+
+    // Fetch products from Printify
+    const productsData = await fetchPrintifyProducts(apiToken, shopId, page, limit)
+
+    // Return products
+    return res.status(200).json({
+      success: true,
+      data: productsData.data,
+      pagination: {
+        current_page: productsData.current_page,
+        total: productsData.total,
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching products from Printify:', error)
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch products',
+      message: error.message || 'Unknown error',
+      stack: error.stack
+    })
+  }
+}
+
