@@ -131,6 +131,7 @@ export default function MerchPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hbarPrice, setHbarPrice] = useState<number | null>(null)
   const [formData, setFormData] = useState<CheckoutForm>({
     name: '',
     email: '',
@@ -142,6 +143,30 @@ export default function MerchPage() {
     size: '',
     paymentMethod: 'card'
   })
+
+  // Fetch live HBAR price
+  useEffect(() => {
+    async function fetchHbarPrice() {
+      try {
+        // Using CoinGecko API to get HBAR price in USD
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=hedera-hashgraph&vs_currencies=usd')
+        const data = await response.json()
+        const price = data['hedera-hashgraph']?.usd
+        if (price) {
+          setHbarPrice(price)
+        }
+      } catch (error) {
+        console.error('Failed to fetch HBAR price:', error)
+        // Fallback to a default price if API fails
+        setHbarPrice(0.17) // Approximate fallback
+      }
+    }
+
+    fetchHbarPrice()
+    // Refresh price every 5 minutes
+    const interval = setInterval(fetchHbarPrice, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Fetch products from Printify API
   useEffect(() => {
@@ -340,9 +365,12 @@ export default function MerchPage() {
   }
 
   const calculateHBARPrice = (usdPrice: number) => {
-    // Mock conversion rate - you'll want to use real-time rates
-    const hbarRate = 0.05 // $0.05 per HBAR
-    return Math.ceil(usdPrice / hbarRate)
+    if (!hbarPrice) {
+      return '...' // Loading state
+    }
+    // Calculate HBAR amount and round UP to cover transfer/exchange fees
+    const hbarAmount = Math.ceil(usdPrice / hbarPrice)
+    return hbarAmount.toString()
   }
 
   return (
