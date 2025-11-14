@@ -616,11 +616,44 @@ export default function MerchPage() {
                   className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
                 >
                   <option value="">Select size</option>
-                  {selectedProduct.variants.map((variant) => (
-                    <option key={variant.id} value={variant.id}>
-                      {variant.title}
-                    </option>
-                  ))}
+                  {selectedProduct.variants
+                    .slice()
+                    .sort((a, b) => {
+                      // Define size order
+                      const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', 'One size']
+
+                      // Extract size from variant title (format: "Size / Color" or just "Size")
+                      const getSizeAndColor = (title: string) => {
+                        const parts = title.split(' / ')
+                        return {
+                          size: parts[0]?.trim() || '',
+                          color: parts[1]?.trim() || ''
+                        }
+                      }
+
+                      const variantA = getSizeAndColor(a.title)
+                      const variantB = getSizeAndColor(b.title)
+
+                      // Find size indices
+                      const sizeIndexA = sizeOrder.findIndex(s => variantA.size.includes(s))
+                      const sizeIndexB = sizeOrder.findIndex(s => variantB.size.includes(s))
+
+                      // Sort by size first
+                      if (sizeIndexA !== sizeIndexB) {
+                        // If size not found, put it at the end
+                        if (sizeIndexA === -1) return 1
+                        if (sizeIndexB === -1) return -1
+                        return sizeIndexA - sizeIndexB
+                      }
+
+                      // If same size, sort by color alphabetically
+                      return variantA.color.localeCompare(variantB.color)
+                    })
+                    .map((variant) => (
+                      <option key={variant.id} value={variant.id}>
+                        {variant.title}
+                      </option>
+                    ))}
                 </select>
               </div>
 
