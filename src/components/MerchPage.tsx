@@ -256,7 +256,46 @@ export default function MerchPage() {
           }
         })
 
-        setProducts(transformedProducts)
+        // Define custom sort order
+        const sortOrder = [
+          'snapback',
+          'slime face beanie',
+          'slime cuffed beanie',
+          'slime face t-shirt',
+          'slime t-shirt',
+          'zip-up',
+          'pullover',
+          'champion',
+          'slime face sticker',
+          'slime sticker',
+          '501',
+          'kiss cut',
+          'thong'
+        ]
+
+        // Sort products based on custom order
+        const sortedProducts = transformedProducts.sort((a, b) => {
+          const titleA = a.title.toLowerCase()
+          const titleB = b.title.toLowerCase()
+
+          // Find the index in sortOrder for each product
+          const indexA = sortOrder.findIndex(keyword => titleA.includes(keyword))
+          const indexB = sortOrder.findIndex(keyword => titleB.includes(keyword))
+
+          // If both found, sort by their order
+          if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB
+          }
+
+          // If only one found, it comes first
+          if (indexA !== -1) return -1
+          if (indexB !== -1) return 1
+
+          // If neither found, maintain original order
+          return 0
+        })
+
+        setProducts(sortedProducts)
         setError(null)
       } catch (err) {
         console.error('Error fetching products:', err)
