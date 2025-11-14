@@ -63,9 +63,10 @@ export default function MerchPage() {
           // Get the first default image or fallback
           const defaultImage = p.images.find(img => img.is_default)?.src || p.images[0]?.src || '/Assets/SPLAT.png'
 
-          // Get lowest price from all variants
-          const basePrice = p.variants.length > 0
-            ? Math.min(...p.variants.map(v => v.price)) / 100
+          // Filter to only enabled variants, then get lowest price
+          const enabledVariants = p.variants.filter((v: any) => v.is_enabled)
+          const basePrice = enabledVariants.length > 0
+            ? Math.min(...enabledVariants.map((v: any) => v.price)) / 100
             : 0
 
           // Strip HTML tags from description and limit length
@@ -83,7 +84,7 @@ export default function MerchPage() {
             description: stripHtml(p.description),
             price: basePrice,
             image: defaultImage,
-            variants: p.variants.map(v => ({
+            variants: enabledVariants.map((v: any) => ({
               id: v.id,
               title: v.title,
               price: v.price / 100 // Convert cents to dollars
