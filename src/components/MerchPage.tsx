@@ -54,11 +54,11 @@ function ProductCard({
 
   return (
     <div className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all flex flex-col h-full">
-      <div className="aspect-square bg-[#252525] p-8 flex items-center justify-center relative group">
+      <div className="aspect-square bg-[#252525] p-4 md:p-8 flex items-center justify-center relative group overflow-hidden">
         <img
           src={product.images[currentImageIndex]}
           alt={product.title}
-          className="w-full h-full object-contain"
+          className="max-w-full max-h-full object-contain"
         />
 
         {/* Image navigation - only show if multiple images */}
@@ -537,7 +537,7 @@ export default function MerchPage() {
         )}
 
         {/* Hero Section */}
-        <div className="relative py-20 px-8">
+        <div className="relative py-20 px-4 md:px-8">
           <div className="max-w-7xl mx-auto text-center">
             <h1 className="text-5xl md:text-6xl font-black mb-4">SLIME MERCH</h1>
             <p className="text-gray-400 text-lg mb-8">Rep the collective. Wear the SLIME.</p>
@@ -546,7 +546,7 @@ export default function MerchPage() {
       </section>
 
       {/* Products Grid */}
-      <section className="py-10 px-8 pb-20 bg-[#2a2a2a]">
+      <section className="py-10 px-4 md:px-8 pb-20 bg-[#2a2a2a]">
         <div className="max-w-7xl mx-auto">
           {loading ? (
             <div className="text-center py-20">
@@ -564,7 +564,7 @@ export default function MerchPage() {
               <p className="text-gray-500 text-sm mt-2">Create products in your Printify dashboard to see them here.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
