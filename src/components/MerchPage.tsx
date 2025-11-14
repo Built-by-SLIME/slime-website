@@ -500,7 +500,6 @@ export default function MerchPage() {
                   calculateHBARPrice={calculateHBARPrice}
                 />
               ))}
-              ))}
             </div>
           )}
         </div>
