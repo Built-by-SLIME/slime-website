@@ -8,6 +8,7 @@ interface Product {
   description: string
   price: number
   image: string
+  images: string[] // Array of images for different colors
   variants: Array<{
     id: number
     title: string
@@ -25,6 +26,102 @@ interface CheckoutForm {
   country: string
   size: string
   paymentMethod: 'card' | 'crypto'
+}
+
+// Product Card Component with image carousel
+function ProductCard({
+  product,
+  onBuyNow,
+  calculateHBARPrice
+}: {
+  product: Product
+  onBuyNow: (product: Product) => void
+  calculateHBARPrice: (price: number) => string
+}) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === product.images.length - 1 ? 0 : prev + 1
+    )
+  }
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? product.images.length - 1 : prev - 1
+    )
+  }
+
+  return (
+    <div className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all flex flex-col h-full">
+      <div className="aspect-square bg-[#252525] p-8 flex items-center justify-center relative group">
+        <img
+          src={product.images[currentImageIndex]}
+          alt={product.title}
+          className="w-full h-full object-contain"
+        />
+
+        {/* Image navigation - only show if multiple images */}
+        {product.images.length > 1 && (
+          <>
+            <button
+              onClick={prevImage}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Previous image"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Next image"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Image dots indicator */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              {product.images.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    idx === currentImageIndex
+                      ? 'bg-slime-green w-4'
+                      : 'bg-gray-500 hover:bg-gray-400'
+                  }`}
+                  aria-label={`View image ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="p-6 flex flex-col flex-grow">
+        <div className="flex-grow mb-4">
+          <h3 className="text-2xl font-bold mb-2">{product.title}</h3>
+          <p className="text-gray-400 text-sm line-clamp-3">{product.description}</p>
+        </div>
+        <div className="flex justify-between items-center pt-2 border-t border-gray-700">
+          <div>
+            <div className="text-xs text-gray-400 mb-1">From</div>
+            <div className="text-2xl font-black text-slime-green">${product.price.toFixed(2)}</div>
+            <div className="text-xs text-gray-500">~{calculateHBARPrice(product.price)} HBAR</div>
+          </div>
+          <button
+            onClick={() => onBuyNow(product)}
+            className="bg-slime-green text-black px-6 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
+          >
+            BUY NOW
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function MerchPage() {
@@ -60,14 +157,49 @@ export default function MerchPage() {
 
         // Transform Printify products to our Product interface
         const transformedProducts: Product[] = result.data.map((p: PrintifyProduct) => {
-          // Get the first default image or fallback
-          const defaultImage = p.images.find(img => img.is_default)?.src || p.images[0]?.src || '/Assets/SPLAT.png'
-
           // Filter to only enabled variants, then get lowest price
           const enabledVariants = p.variants.filter((v: any) => v.is_enabled)
           const basePrice = enabledVariants.length > 0
             ? Math.min(...enabledVariants.map((v: any) => v.price)) / 100
             : 0
+
+          // Get unique colors from enabled variants
+          const colorOption = p.options?.find((opt: any) => opt.type === 'color')
+          const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id))
+
+          // Collect images for each unique color from enabled variants
+          const colorImages: string[] = []
+          const seenColors = new Set<number>()
+
+          if (colorOption) {
+            // For each enabled variant, find its color and corresponding image
+            enabledVariants.forEach((variant: any) => {
+              const colorId = variant.options?.find((opt: number) =>
+                colorOption.values.some((c: any) => c.id === opt)
+              )
+
+              if (colorId && !seenColors.has(colorId)) {
+                seenColors.add(colorId)
+
+                // Find a front image that includes this variant
+                const frontImage = p.images.find((img: any) =>
+                  img.position === 'front' &&
+                  img.variant_ids.includes(variant.id)
+                )
+
+                if (frontImage) {
+                  colorImages.push(frontImage.src)
+                }
+              }
+            })
+          }
+
+          // Fallback to default image if no color images found
+          const defaultImage = p.images.find((img: any) => img.is_default)?.src ||
+                              p.images[0]?.src ||
+                              '/Assets/SPLAT.png'
+
+          const finalImages = colorImages.length > 0 ? colorImages : [defaultImage]
 
           // Strip HTML tags from description and limit length
           const stripHtml = (html: string) => {
@@ -83,7 +215,8 @@ export default function MerchPage() {
             title: p.title,
             description: stripHtml(p.description),
             price: basePrice,
-            image: defaultImage,
+            image: finalImages[0], // Primary image
+            images: finalImages, // All color variant images
             variants: enabledVariants.map((v: any) => ({
               id: v.id,
               title: v.title,
@@ -360,37 +493,13 @@ export default function MerchPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {products.map((product) => (
-                <div
+                <ProductCard
                   key={product.id}
-                  className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all flex flex-col h-full"
-                >
-                  <div className="aspect-square bg-[#252525] p-8 flex items-center justify-center">
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div className="p-6 flex flex-col flex-grow">
-                    <div className="flex-grow mb-4">
-                      <h3 className="text-2xl font-bold mb-2">{product.title}</h3>
-                      <p className="text-gray-400 text-sm line-clamp-3">{product.description}</p>
-                    </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-700">
-                      <div>
-                        <div className="text-xs text-gray-400 mb-1">From</div>
-                        <div className="text-2xl font-black text-slime-green">${product.price.toFixed(2)}</div>
-                        <div className="text-xs text-gray-500">~{calculateHBARPrice(product.price)} HBAR</div>
-                      </div>
-                      <button
-                        onClick={() => handleBuyNow(product)}
-                        className="bg-slime-green text-black px-6 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
-                      >
-                        BUY NOW
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                  product={product}
+                  onBuyNow={handleBuyNow}
+                  calculateHBARPrice={calculateHBARPrice}
+                />
+              ))}
               ))}
             </div>
           )}
