@@ -181,14 +181,20 @@ export default function MerchPage() {
               if (colorId && !seenColors.has(colorId)) {
                 seenColors.add(colorId)
 
-                // Find a front image that includes this variant
-                const frontImage = p.images.find((img: any) =>
-                  img.position === 'front' &&
+                // Find the best image for this variant
+                // Priority: 1) default image, 2) selected for publishing, 3) front position, 4) any image
+                const variantImages = p.images.filter((img: any) =>
                   img.variant_ids.includes(variant.id)
                 )
 
-                if (frontImage) {
-                  colorImages.push(frontImage.src)
+                const bestImage =
+                  variantImages.find((img: any) => img.is_default) ||
+                  variantImages.find((img: any) => img.is_selected_for_publishing) ||
+                  variantImages.find((img: any) => img.position === 'front') ||
+                  variantImages[0]
+
+                if (bestImage) {
+                  colorImages.push(bestImage.src)
                 }
               }
             })
