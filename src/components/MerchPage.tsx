@@ -63,8 +63,10 @@ export default function MerchPage() {
           // Get the first default image or fallback
           const defaultImage = p.images.find(img => img.is_default)?.src || p.images[0]?.src || '/Assets/SPLAT.png'
 
-          // Get base price from first variant
-          const basePrice = p.variants.length > 0 ? p.variants[0].price / 100 : 0
+          // Get lowest price from all variants
+          const basePrice = p.variants.length > 0
+            ? Math.min(...p.variants.map(v => v.price)) / 100
+            : 0
 
           // Strip HTML tags from description and limit length
           const stripHtml = (html: string) => {
@@ -375,6 +377,7 @@ export default function MerchPage() {
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-gray-700">
                       <div>
+                        <div className="text-xs text-gray-400 mb-1">From</div>
                         <div className="text-2xl font-black text-slime-green">${product.price.toFixed(2)}</div>
                         <div className="text-xs text-gray-500">~{calculateHBARPrice(product.price)} HBAR</div>
                       </div>
