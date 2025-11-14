@@ -58,13 +58,16 @@ export default async function handler(req, res) {
     // Fetch products from Printify
     const productsData = await fetchPrintifyProducts(apiToken, shopId, page, limit)
 
+    // Filter out products that are not visible
+    const visibleProducts = productsData.data.filter(product => product.visible === true)
+
     // Return products
     return res.status(200).json({
       success: true,
-      data: productsData.data,
+      data: visibleProducts,
       pagination: {
         current_page: productsData.current_page,
-        total: productsData.total,
+        total: visibleProducts.length,
       }
     })
   } catch (error) {
