@@ -440,8 +440,7 @@ export default function MerchPage() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-10" style={{ marginTop: '4px' }}>
             <div className="flex gap-10 text-sm font-medium">
-              <a href="https://altlantis.market/live/QQaupimisf3YogPk2hdq" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">MINT</a>
-              {/* <a href="/merch" className="text-slime-green">MERCH</a> */}
+              <a href="/merch" className="text-slime-green">MERCH</a>
               <a href="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</a>
             </div>
             {/* Social Icons */}
@@ -498,13 +497,11 @@ export default function MerchPage() {
 
             <div className="flex flex-col items-center gap-8 text-center">
               <a
-                href="https://altlantis.market/live/QQaupimisf3YogPk2hdq"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
+                href="/merch"
+                className="text-slime-green transition text-2xl font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                MINT
+                MERCH
               </a>
               <a
                 href="/collection"

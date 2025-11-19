@@ -115,8 +115,7 @@ export default function CollectionPage() {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-10" style={{ marginTop: '4px' }}>
           <div className="flex gap-10 text-sm font-medium">
-            <a href="https://altlantis.market/live/QQaupimisf3YogPk2hdq" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">MINT</a>
-            {/* <Link to="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</Link> */}
+            <Link to="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</Link>
             <Link to="/collection" className="text-slime-green transition">COLLECTION</Link>
           </div>
           {/* Social Icons */}
@@ -172,15 +171,13 @@ export default function CollectionPage() {
           </button>
 
           <div className="flex flex-col items-center gap-8 text-center">
-            <a
-              href="https://altlantis.market/live/QQaupimisf3YogPk2hdq"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/merch"
               className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
-              MINT
-            </a>
+              MERCH
+            </Link>
             <Link
               to="/collection"
               className="text-slime-green transition text-2xl font-medium"
