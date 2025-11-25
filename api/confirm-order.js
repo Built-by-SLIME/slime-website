@@ -10,7 +10,9 @@ const PRINTIFY_API_BASE = 'https://api.printify.com/v1'
 async function createAndSendPrintifyOrder(apiToken, shopId, orderData) {
   // Step 1: Create the order
   const createUrl = `${PRINTIFY_API_BASE}/shops/${shopId}/orders.json`
-  
+
+  console.log('Creating Printify order with data:', JSON.stringify(orderData, null, 2))
+
   const createResponse = await fetch(createUrl, {
     method: 'POST',
     headers: {
@@ -21,8 +23,11 @@ async function createAndSendPrintifyOrder(apiToken, shopId, orderData) {
     body: JSON.stringify(orderData),
   })
 
+  console.log('Create order response status:', createResponse.status)
+
   if (!createResponse.ok) {
     const errorText = await createResponse.text()
+    console.error('Create order error:', errorText)
     throw new Error(`Printify create order error (${createResponse.status}): ${errorText}`)
   }
 
@@ -30,11 +35,20 @@ async function createAndSendPrintifyOrder(apiToken, shopId, orderData) {
   console.log('Created order response:', JSON.stringify(createdOrder, null, 2))
   const orderId = createdOrder.id
   console.log('Extracted order ID:', orderId)
+  console.log('Order ID type:', typeof orderId)
 
+  // IMPORTANT: According to Printify docs, orders created via API start in "pending" status
+  // and CANNOT be sent to production immediately. We need to return the order without
+  // sending to production, as Printify will handle fulfillment automatically.
+
+  console.log('Order created successfully. Printify will handle fulfillment.')
+  return createdOrder
+
+  /* REMOVED: Attempting to send to production immediately causes error 8502
   // Step 2: Send order to production
   const sendUrl = `${PRINTIFY_API_BASE}/shops/${shopId}/orders/${orderId}/send_to_production.json`
   console.log('Send to production URL:', sendUrl)
-  
+
   const sendResponse = await fetch(sendUrl, {
     method: 'POST',
     headers: {
@@ -50,6 +64,7 @@ async function createAndSendPrintifyOrder(apiToken, shopId, orderData) {
   }
 
   return createdOrder
+  */
 }
 
 export default async function handler(req, res) {
