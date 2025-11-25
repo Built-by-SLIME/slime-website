@@ -540,7 +540,14 @@ export default function MerchPage() {
   }
 
   const handleStripePaymentSuccess = async () => {
-    if (!selectedProduct || !paymentIntentId) return
+    console.log('Payment success handler called!')
+    console.log('selectedProduct:', selectedProduct)
+    console.log('paymentIntentId:', paymentIntentId)
+
+    if (!selectedProduct || !paymentIntentId) {
+      console.error('Missing required data:', { selectedProduct, paymentIntentId })
+      return
+    }
 
     try {
       // Split name into first and last name
@@ -553,6 +560,8 @@ export default function MerchPage() {
       if (!selectedVariant) {
         throw new Error('Selected variant not found')
       }
+
+      console.log('Creating order with variant:', selectedVariant)
 
       // Create order data for Printify API
       const orderData = {
@@ -579,6 +588,8 @@ export default function MerchPage() {
       }
 
       // Confirm order and send to Printify production
+      console.log('Calling /api/confirm-order with:', { paymentIntentId, orderData })
+
       const response = await fetch('/api/confirm-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -588,7 +599,9 @@ export default function MerchPage() {
         })
       })
 
+      console.log('Confirm order response status:', response.status)
       const result = await response.json()
+      console.log('Confirm order result:', result)
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to confirm order')
