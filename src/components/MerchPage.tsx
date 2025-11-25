@@ -421,6 +421,8 @@ export default function MerchPage() {
       if (formData.paymentMethod === 'card') {
         // STRIPE PAYMENT FLOW
         // Create payment intent
+        console.log('Creating payment intent with amount:', selectedVariant.price, 'cents')
+
         const paymentResponse = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -432,9 +434,10 @@ export default function MerchPage() {
         })
 
         const paymentResult = await paymentResponse.json()
+        console.log('Payment intent result:', paymentResult)
 
         if (!paymentResult.success) {
-          throw new Error(paymentResult.error || 'Failed to create payment intent')
+          throw new Error(paymentResult.message || paymentResult.error || 'Failed to create payment intent')
         }
 
         setClientSecret(paymentResult.clientSecret)
