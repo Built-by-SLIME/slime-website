@@ -27,10 +27,13 @@ async function createAndSendPrintifyOrder(apiToken, shopId, orderData) {
   }
 
   const createdOrder = await createResponse.json()
+  console.log('Created order response:', JSON.stringify(createdOrder, null, 2))
   const orderId = createdOrder.id
+  console.log('Extracted order ID:', orderId)
 
   // Step 2: Send order to production
   const sendUrl = `${PRINTIFY_API_BASE}/shops/${shopId}/orders/${orderId}/send_to_production.json`
+  console.log('Send to production URL:', sendUrl)
   
   const sendResponse = await fetch(sendUrl, {
     method: 'POST',
