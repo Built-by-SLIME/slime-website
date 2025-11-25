@@ -421,13 +421,14 @@ export default function MerchPage() {
       if (formData.paymentMethod === 'card') {
         // STRIPE PAYMENT FLOW
         // Create payment intent
-        console.log('Creating payment intent with amount:', selectedVariant.price, 'cents')
+        const amountInCents = Math.round(selectedVariant.price * 100) // Convert dollars to cents
+        console.log('Creating payment intent with amount:', amountInCents, 'cents (from $' + selectedVariant.price + ')')
 
         const paymentResponse = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            amount: selectedVariant.price, // Price is already in cents from Printify
+            amount: amountInCents, // Stripe requires cents
             productTitle: selectedProduct.title,
             customerEmail: formData.email
           })
@@ -492,8 +493,8 @@ export default function MerchPage() {
             customerEmail: formData.email,
             productTitle: selectedProduct.title,
             variantTitle: selectedVariant.title,
-            price: selectedVariant.price / 100,
-            hbarAmount: calculateHBARPrice(selectedVariant.price / 100),
+            price: selectedVariant.price, // Already in dollars
+            hbarAmount: calculateHBARPrice(selectedVariant.price), // Already in dollars
             shippingAddress: orderData.address_to
           })
         })
