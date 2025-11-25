@@ -91,6 +91,98 @@ function StripePaymentForm({
   )
 }
 
+// Success Modal Component
+interface SuccessModalProps {
+  isOpen: boolean
+  onClose: () => void
+  orderDetails: {
+    orderId: string
+    amount: number
+    productTitle: string
+    email: string
+  }
+}
+
+const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose, orderDetails }) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#1a1a1a] border-2 border-slime-green rounded-lg max-w-md w-full p-8 relative">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-white transition"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Success icon */}
+        <div className="flex justify-center mb-6">
+          <div className="w-16 h-16 bg-slime-green rounded-full flex items-center justify-center">
+            <svg className="w-10 h-10 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Success message */}
+        <h2 className="text-2xl font-bold text-center mb-2">PAYMENT SUCCESSFUL!</h2>
+        <p className="text-gray-400 text-center mb-6">Your order has been received</p>
+
+        {/* Order details */}
+        <div className="bg-[#252525] rounded-lg p-4 mb-6 space-y-3">
+          <div className="flex justify-between">
+            <span className="text-gray-400">Order ID:</span>
+            <span className="font-mono text-slime-green">{orderDetails.orderId}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Amount Paid:</span>
+            <span className="font-bold">${orderDetails.amount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Product:</span>
+            <span className="text-right">{orderDetails.productTitle}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Email:</span>
+            <span className="text-right text-sm">{orderDetails.email}</span>
+          </div>
+        </div>
+
+        {/* What's next */}
+        <div className="bg-[#252525] rounded-lg p-4 mb-6">
+          <h3 className="font-bold mb-2 text-slime-green">WHAT'S NEXT?</h3>
+          <ul className="text-sm text-gray-300 space-y-2">
+            <li className="flex items-start">
+              <span className="text-slime-green mr-2">•</span>
+              <span>You'll receive an order confirmation email shortly</span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-slime-green mr-2">•</span>
+              <span>Your order will be processed within 24-48 hours</span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-slime-green mr-2">•</span>
+              <span>You'll receive shipping updates via email</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="w-full bg-slime-green text-black py-3 rounded-md font-bold text-lg hover:bg-[#00cc33] transition"
+        >
+          CONTINUE SHOPPING
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // Product Card Component with image carousel
 function ProductCard({
   product,
@@ -210,6 +302,13 @@ export default function MerchPage() {
   const [orderMemo, setOrderMemo] = useState<string>('')
   const [isProcessingOrder, setIsProcessingOrder] = useState(false)
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [orderDetails, setOrderDetails] = useState<{
+    orderId: string
+    amount: number
+    productTitle: string
+    email: string
+  } | null>(null)
 
   // Fetch live HBAR price
   useEffect(() => {
@@ -605,13 +704,21 @@ export default function MerchPage() {
         throw new Error(result.error || 'Failed to confirm order')
       }
 
-      // Show success message
-      alert(`Payment successful! Your order has been sent to production.\n\nOrder ID: ${result.data.orderId}\n\nYou will receive shipping updates via email.`)
+      // Set order details and show success modal
+      setOrderDetails({
+        orderId: result.data.orderId,
+        amount: selectedVariant.price,
+        productTitle: selectedProduct.title,
+        email: formData.email
+      })
+      setShowSuccessModal(true)
 
-      // Reset
+      // Close checkout
       setShowCheckout(false)
       setClientSecret(null)
       setPaymentIntentId(null)
+
+      // Reset form data
       setFormData({
         name: '',
         email: '',
@@ -625,7 +732,7 @@ export default function MerchPage() {
       })
     } catch (error) {
       console.error('Error confirming order:', error)
-      alert(`Payment succeeded but order creation failed: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease contact support.`)
+      alert(`Payment succeeded but order creation failed: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease contact support at orders@builtbyslime.org`)
     }
   }
 
@@ -1062,6 +1169,18 @@ export default function MerchPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && orderDetails && (
+        <SuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false)
+            setOrderDetails(null)
+          }}
+          orderDetails={orderDetails}
+        />
       )}
 
       {/* Footer */}

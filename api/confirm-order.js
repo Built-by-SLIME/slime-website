@@ -2,10 +2,93 @@
 // Confirms Stripe payment and creates + sends Printify order to production
 
 import Stripe from 'stripe'
+import { Resend } from 'resend'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 const PRINTIFY_API_BASE = 'https://api.printify.com/v1'
+
+async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
+  try {
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'orders@builtbyslime.org'
+
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #0f172a; color: #39ff14; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f8f9fa; padding: 30px 20px; border-radius: 0 0 8px 8px; }
+            .section { background: white; padding: 20px; margin: 20px 0; border-radius: 6px; border-left: 4px solid #39ff14; }
+            .label { font-weight: bold; color: #0f172a; }
+            .value { color: #555; }
+            .order-id { background: #39ff14; color: #0f172a; padding: 15px; font-size: 20px; font-weight: bold; text-align: center; border-radius: 6px; margin: 15px 0; font-family: monospace; }
+            .success-icon { font-size: 48px; margin-bottom: 10px; }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            ul { padding-left: 20px; }
+            li { margin: 10px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="success-icon">✅</div>
+              <h1>ORDER CONFIRMED!</h1>
+              <p style="margin: 0; color: #ccc;">Thank you for your purchase</p>
+            </div>
+            <div class="content">
+              <div class="section">
+                <h2>📋 Order Details</h2>
+                <p><span class="label">Order ID:</span></p>
+                <div class="order-id">${orderDetails.orderId}</div>
+                <p><span class="label">Product:</span> <span class="value">${orderDetails.productTitle}</span></p>
+                <p><span class="label">Amount Paid:</span> <span class="value">$${orderDetails.amount.toFixed(2)} USD</span></p>
+                <p><span class="label">Payment Method:</span> <span class="value">Credit Card</span></p>
+              </div>
+
+              <div class="section">
+                <h2>📦 What's Next?</h2>
+                <ul>
+                  <li><strong>Processing:</strong> Your order will be processed within 24-48 hours</li>
+                  <li><strong>Production:</strong> Your item will be printed and prepared for shipping</li>
+                  <li><strong>Shipping:</strong> You'll receive tracking information via email once shipped</li>
+                  <li><strong>Delivery:</strong> Estimated delivery is 5-7 business days after shipping</li>
+                </ul>
+              </div>
+
+              <div class="section">
+                <h2>📧 Questions?</h2>
+                <p>If you have any questions about your order, please contact us at:</p>
+                <p><strong>orders@builtbyslime.org</strong></p>
+                <p>Please include your Order ID: <strong>${orderDetails.orderId}</strong></p>
+              </div>
+
+              <div class="footer">
+                <p>This is an automated confirmation email from SLIME</p>
+                <p>Built by SLIME | <a href="https://builtbyslime.org" style="color: #39ff14;">builtbyslime.org</a></p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: customerEmail,
+      subject: `✅ Order Confirmed - ${orderDetails.orderId}`,
+      html: emailHtml,
+    })
+
+    console.log('Customer confirmation email sent to:', customerEmail)
+  } catch (error) {
+    console.error('Error sending customer confirmation email:', error)
+    // Don't throw - we don't want to fail the order if email fails
+  }
+}
 
 async function createAndSendPrintifyOrder(apiToken, shopId, orderData) {
   // Step 1: Create the order
@@ -115,8 +198,19 @@ export default async function handler(req, res) {
       })
     }
 
-    // Create order in Printify and send to production
+    // Create order in Printify
     const order = await createAndSendPrintifyOrder(apiToken, shopId, orderData)
+
+    // Send customer confirmation email
+    const customerEmail = orderData.address_to.email
+    const productTitle = paymentIntent.metadata.productTitle || 'SLIME Merch'
+    const amount = paymentIntent.amount / 100 // Convert cents to dollars
+
+    await sendCustomerConfirmationEmail(customerEmail, {
+      orderId: order.id,
+      productTitle: productTitle,
+      amount: amount
+    })
 
     // Return success
     return res.status(201).json({
@@ -124,9 +218,9 @@ export default async function handler(req, res) {
       data: {
         orderId: order.id,
         paymentIntentId: paymentIntentId,
-        status: 'sent_to_production'
+        status: 'pending_manual_submission'
       },
-      message: 'Order created and sent to production successfully!'
+      message: 'Order created successfully! You will receive a confirmation email shortly.'
     })
   } catch (error) {
     console.error('Error confirming order:', error)
