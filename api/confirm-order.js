@@ -31,14 +31,15 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #0f172a; color: #39ff14; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .header { background: #00ff40; color: #222222; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
             .content { background: #f8f9fa; padding: 30px 20px; border-radius: 0 0 8px 8px; }
-            .section { background: white; padding: 20px; margin: 20px 0; border-radius: 6px; border-left: 4px solid #39ff14; }
+            .section { background: white; padding: 20px; margin: 20px 0; border-radius: 6px; border-left: 4px solid #00ff40; }
             .label { font-weight: bold; color: #0f172a; }
             .value { color: #555; }
-            .order-id { background: #39ff14; color: #0f172a; padding: 15px; font-size: 20px; font-weight: bold; text-align: center; border-radius: 6px; margin: 15px 0; font-family: monospace; }
+            .order-id { background: #00ff40; color: #0f172a; padding: 15px; font-size: 20px; font-weight: bold; text-align: center; border-radius: 6px; margin: 15px 0; font-family: monospace; }
             .logo { width: 120px; height: 120px; margin: 0 auto 15px; display: block; }
             .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            .discord-button { display: inline-block; background: #5865F2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0; }
             ul { padding-left: 20px; }
             li { margin: 10px 0; }
           </style>
@@ -47,8 +48,8 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
           <div class="container">
             <div class="header">
               <img src="https://builtbyslime.org/slime-logo.png" alt="SLIME Logo" class="logo" />
-              <h1>ORDER CONFIRMED!</h1>
-              <p style="margin: 0; color: #ccc;">Thank you for your purchase</p>
+              <h1 style="color: #222222;">ORDER CONFIRMED!</h1>
+              <p style="margin: 0; color: #222222;">Thank you for your purchase</p>
             </div>
             <div class="content">
               <div class="section">
@@ -71,10 +72,12 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
               </div>
 
               <div class="section">
-                <h2>📧 Questions?</h2>
-                <p>If you have any questions about your order, please contact us at:</p>
-                <p><strong>orders@builtbyslime.org</strong></p>
-                <p>Please include your Order ID: <strong>${orderDetails.orderId}</strong></p>
+                <h2>💬 Questions?</h2>
+                <p>If you have any questions about your order, join our Discord community!</p>
+                <p style="text-align: center;">
+                  <a href="https://discord.gg/8X9PvNFyzK" class="discord-button">Join SLIME Discord</a>
+                </p>
+                <p style="font-size: 12px; color: #666;">Please have your Order ID ready: <strong>${orderDetails.orderId}</strong></p>
               </div>
 
               <div class="footer">
