@@ -397,9 +397,7 @@ export default function MerchPage() {
     })
   }
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const handleSubmitOrder = async () => {
     if (!selectedProduct) return
 
     setIsProcessingOrder(true)
@@ -814,7 +812,7 @@ export default function MerchPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmitOrder} className="p-6 space-y-6">
+            <div className="p-6 space-y-6">
               {/* Product Summary */}
               <div className="bg-[#252525] rounded-lg p-4 border border-gray-700">
                 <div className="flex gap-4">
@@ -1042,7 +1040,8 @@ export default function MerchPage() {
               {/* Submit Button */}
               {formData.paymentMethod === 'card' && !clientSecret && (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmitOrder}
                   disabled={isProcessingOrder}
                   className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -1052,14 +1051,15 @@ export default function MerchPage() {
 
               {formData.paymentMethod === 'crypto' && (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmitOrder}
                   disabled={isProcessingOrder}
                   className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isProcessingOrder ? 'PROCESSING...' : 'SUBMIT ORDER (PAY WITH HBAR)'}
                 </button>
               )}
-            </form>
+            </div>
           </div>
         </div>
       )}
