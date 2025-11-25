@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import Footer from './Footer'
 import type { PrintifyProduct } from '../types/printify'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
 
 interface Product {
   id: string
@@ -26,6 +31,64 @@ interface CheckoutForm {
   country: string
   size: string
   paymentMethod: 'card' | 'crypto'
+}
+
+// Stripe Payment Form Component
+function StripePaymentForm({
+  clientSecret,
+  onSuccess,
+  onError
+}: {
+  clientSecret: string
+  onSuccess: () => void
+  onError: (error: string) => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!stripe || !elements) {
+      return
+    }
+
+    setIsProcessing(true)
+
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + '/merch?payment=success',
+        },
+        redirect: 'if_required'
+      })
+
+      if (error) {
+        onError(error.message || 'Payment failed')
+      } else {
+        onSuccess()
+      }
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Payment failed')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      <button
+        type="submit"
+        disabled={!stripe || isProcessing}
+        className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isProcessing ? 'PROCESSING...' : 'PAY NOW'}
+      </button>
+    </form>
+  )
 }
 
 // Product Card Component with image carousel
@@ -143,6 +206,10 @@ export default function MerchPage() {
     size: '',
     paymentMethod: 'card'
   })
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [orderMemo, setOrderMemo] = useState<string>('')
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false)
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
 
   // Fetch live HBAR price
   useEffect(() => {
@@ -308,9 +375,19 @@ export default function MerchPage() {
     fetchProducts()
   }, [])
 
+  // Generate unique order memo
+  const generateOrderMemo = () => {
+    const timestamp = Date.now().toString().slice(-6)
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+    return `SLIME-${timestamp}${random}`
+  }
+
   const handleBuyNow = (product: Product) => {
     setSelectedProduct(product)
     setShowCheckout(true)
+    setClientSecret(null)
+    setPaymentIntentId(null)
+    setOrderMemo(generateOrderMemo())
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -325,6 +402,8 @@ export default function MerchPage() {
 
     if (!selectedProduct) return
 
+    setIsProcessingOrder(true)
+
     try {
       // Split name into first and last name
       const nameParts = formData.name.trim().split(' ')
@@ -335,7 +414,140 @@ export default function MerchPage() {
       const selectedVariant = selectedProduct.variants.find(v => v.id.toString() === formData.size)
       if (!selectedVariant) {
         alert('Please select a size')
+        setIsProcessingOrder(false)
         return
+      }
+
+      if (formData.paymentMethod === 'card') {
+        // STRIPE PAYMENT FLOW
+        // Create payment intent
+        const paymentResponse = await fetch('/api/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: selectedVariant.price / 100, // Convert cents to dollars
+            productTitle: selectedProduct.title,
+            customerEmail: formData.email
+          })
+        })
+
+        const paymentResult = await paymentResponse.json()
+
+        if (!paymentResult.success) {
+          throw new Error(paymentResult.error || 'Failed to create payment intent')
+        }
+
+        setClientSecret(paymentResult.clientSecret)
+        setPaymentIntentId(paymentResult.paymentIntentId)
+        setIsProcessingOrder(false)
+      } else {
+        // HBAR PAYMENT FLOW
+        // Create order data for Printify API
+        const orderData = {
+          line_items: [
+            {
+              product_id: selectedProduct.id,
+              variant_id: selectedVariant.id,
+              quantity: 1
+            }
+          ],
+          shipping_method: 1,
+          send_shipping_notification: true,
+          address_to: {
+            first_name: firstName,
+            last_name: lastName,
+            email: formData.email,
+            phone: '',
+            country: formData.country === 'United States' ? 'US' : formData.country,
+            region: formData.state,
+            address1: formData.address,
+            city: formData.city,
+            zip: formData.zip
+          }
+        }
+
+        // Create draft order in Printify
+        const orderResponse = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData)
+        })
+
+        const orderResult = await orderResponse.json()
+
+        if (!orderResult.success) {
+          throw new Error(orderResult.error || 'Failed to create order')
+        }
+
+        // Send email notification
+        const emailResponse = await fetch('/api/send-order-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderMemo,
+            customerName: formData.name,
+            customerEmail: formData.email,
+            productTitle: selectedProduct.title,
+            variantTitle: selectedVariant.title,
+            price: selectedVariant.price / 100,
+            hbarAmount: calculateHBARPrice(selectedVariant.price / 100),
+            shippingAddress: orderData.address_to
+          })
+        })
+
+        const emailResult = await emailResponse.json()
+
+        if (!emailResult.success) {
+          console.error('Failed to send email notification:', emailResult.error)
+        }
+
+        // Show success message
+        alert(`Order created successfully!\n\nOrder ID: ${orderMemo}\n\nPlease send ${calculateHBARPrice(selectedVariant.price / 100)} HBAR to:\n${process.env.HBAR_TREASURY_WALLET || '0.0.9463056'}\n\nIMPORTANT: Include memo "${orderMemo}" with your payment!\n\nYou will also receive an email with payment instructions.`)
+
+        // Reset
+        setShowCheckout(false)
+        setFormData({
+          name: '',
+          email: '',
+          address: '',
+          city: '',
+          state: '',
+          zip: '',
+          country: 'United States',
+          size: '',
+          paymentMethod: 'card'
+        })
+        setIsProcessingOrder(false)
+      }
+    } catch (error) {
+      console.error('Error submitting order:', error)
+      alert(`Failed to process order: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setIsProcessingOrder(false)
+    }
+  }
+
+  const calculateHBARPrice = (usdPrice: number) => {
+    if (!hbarPrice) {
+      return '...' // Loading state
+    }
+    // Calculate HBAR amount and round UP to cover transfer/exchange fees
+    const hbarAmount = Math.ceil(usdPrice / hbarPrice)
+    return hbarAmount.toString()
+  }
+
+  const handleStripePaymentSuccess = async () => {
+    if (!selectedProduct || !paymentIntentId) return
+
+    try {
+      // Split name into first and last name
+      const nameParts = formData.name.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || firstName
+
+      // Find the selected variant
+      const selectedVariant = selectedProduct.variants.find(v => v.id.toString() === formData.size)
+      if (!selectedVariant) {
+        throw new Error('Selected variant not found')
       }
 
       // Create order data for Printify API
@@ -347,13 +559,13 @@ export default function MerchPage() {
             quantity: 1
           }
         ],
-        shipping_method: 1, // Standard shipping
+        shipping_method: 1,
         send_shipping_notification: true,
         address_to: {
           first_name: firstName,
           last_name: lastName,
           email: formData.email,
-          phone: '', // Optional - could add phone field to form
+          phone: '',
           country: formData.country === 'United States' ? 'US' : formData.country,
           region: formData.state,
           address1: formData.address,
@@ -362,30 +574,29 @@ export default function MerchPage() {
         }
       }
 
-      // Submit order to API
-      const response = await fetch('/api/orders', {
+      // Confirm order and send to Printify production
+      const response = await fetch('/api/confirm-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIntentId,
+          orderData
+        })
       })
 
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to create order')
+        throw new Error(result.error || 'Failed to confirm order')
       }
 
       // Show success message
-      alert(`Order created successfully! Order ID: ${result.data.id}\n\n${
-        formData.paymentMethod === 'crypto'
-          ? 'You will receive an email with HBAR payment instructions.'
-          : 'You will receive an email with payment instructions.'
-      }`)
+      alert(`Payment successful! Your order has been sent to production.\n\nOrder ID: ${result.data.orderId}\n\nYou will receive shipping updates via email.`)
 
       // Reset
       setShowCheckout(false)
+      setClientSecret(null)
+      setPaymentIntentId(null)
       setFormData({
         name: '',
         email: '',
@@ -398,18 +609,15 @@ export default function MerchPage() {
         paymentMethod: 'card'
       })
     } catch (error) {
-      console.error('Error submitting order:', error)
-      alert(`Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.error('Error confirming order:', error)
+      alert(`Payment succeeded but order creation failed: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease contact support.`)
     }
   }
 
-  const calculateHBARPrice = (usdPrice: number) => {
-    if (!hbarPrice) {
-      return '...' // Loading state
-    }
-    // Calculate HBAR amount and round UP to cover transfer/exchange fees
-    const hbarAmount = Math.ceil(usdPrice / hbarPrice)
-    return hbarAmount.toString()
+  const handleStripePaymentError = (error: string) => {
+    alert(`Payment failed: ${error}`)
+    setClientSecret(null)
+    setPaymentIntentId(null)
   }
 
   return (
@@ -774,27 +982,66 @@ export default function MerchPage() {
                 </div>
               </div>
 
+              {/* Stripe Payment Form */}
+              {formData.paymentMethod === 'card' && clientSecret && (
+                <div className="bg-[#252525] border border-gray-700 rounded-lg p-4">
+                  <h4 className="font-bold mb-4">PAYMENT DETAILS</h4>
+                  <Elements stripe={stripePromise} options={{ clientSecret }}>
+                    <StripePaymentForm
+                      clientSecret={clientSecret}
+                      onSuccess={handleStripePaymentSuccess}
+                      onError={handleStripePaymentError}
+                    />
+                  </Elements>
+                </div>
+              )}
+
               {/* Crypto Payment Instructions */}
               {formData.paymentMethod === 'crypto' && (
                 <div className="bg-slime-green/10 border border-slime-green rounded-lg p-4">
-                  <h4 className="font-bold text-slime-green mb-2">HBAR PAYMENT INSTRUCTIONS</h4>
-                  <p className="text-sm text-gray-300 mb-3">
-                    After submitting this order, you'll receive an email with our HBAR wallet address and order details.
-                    Send exactly <span className="font-bold text-slime-green">{calculateHBARPrice(selectedProduct.price)} HBAR</span> to complete your purchase.
-                  </p>
+                  <h4 className="font-bold text-slime-green mb-3">HBAR PAYMENT INSTRUCTIONS</h4>
+                  <div className="space-y-2 mb-3">
+                    <p className="text-sm text-gray-300">
+                      <span className="font-bold">Order ID / MEMO:</span> <span className="text-slime-green font-mono">{orderMemo}</span>
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      <span className="font-bold">Amount:</span> <span className="text-slime-green">{calculateHBARPrice(selectedProduct.price)} HBAR</span>
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      <span className="font-bold">Wallet:</span> <span className="text-slime-green font-mono">{import.meta.env.VITE_HBAR_TREASURY_WALLET || '0.0.9463056'}</span>
+                    </p>
+                  </div>
+                  <div className="bg-yellow-500/10 border border-yellow-500 rounded p-3 mb-3">
+                    <p className="text-sm text-yellow-200">
+                      ⚠️ <span className="font-bold">IMPORTANT:</span> You MUST include the memo <span className="font-mono font-bold">{orderMemo}</span> when sending your HBAR payment!
+                    </p>
+                  </div>
                   <p className="text-xs text-gray-400">
-                    Orders will be processed manually once payment is confirmed on the Hedera network.
+                    After submitting, you'll receive an email with complete payment instructions. Orders are processed manually once payment is confirmed on HashScan.
                   </p>
                 </div>
               )}
 
               {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition"
-              >
-                {formData.paymentMethod === 'crypto' ? 'SUBMIT ORDER (PAY WITH HBAR)' : 'SUBMIT ORDER'}
-              </button>
+              {formData.paymentMethod === 'card' && !clientSecret && (
+                <button
+                  type="submit"
+                  disabled={isProcessingOrder}
+                  className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessingOrder ? 'PROCESSING...' : 'CONTINUE TO PAYMENT'}
+                </button>
+              )}
+
+              {formData.paymentMethod === 'crypto' && (
+                <button
+                  type="submit"
+                  disabled={isProcessingOrder}
+                  className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessingOrder ? 'PROCESSING...' : 'SUBMIT ORDER (PAY WITH HBAR)'}
+                </button>
+              )}
             </form>
           </div>
         </div>

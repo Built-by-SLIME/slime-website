@@ -11,10 +11,14 @@
     "test:printify": "tsx scripts/test-printify.ts"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^5.4.0",
+    "@stripe/stripe-js": "^8.5.2",
     "@vercel/node": "^5.5.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.5"
+    "react-router-dom": "^7.9.5",
+    "resend": "^6.5.2",
+    "stripe": "^20.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
