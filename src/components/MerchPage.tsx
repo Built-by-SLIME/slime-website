@@ -425,7 +425,7 @@ export default function MerchPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            amount: selectedVariant.price / 100, // Convert cents to dollars
+            amount: selectedVariant.price, // Price is already in cents from Printify
             productTitle: selectedProduct.title,
             customerEmail: formData.email
           })

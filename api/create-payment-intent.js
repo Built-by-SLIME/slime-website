@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
     // Create a PaymentIntent with the order amount and currency
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert dollars to cents
+      amount: Math.round(amount), // Amount is already in cents from Printify
       currency: 'usd',
       automatic_payment_methods: {
         enabled: true,
