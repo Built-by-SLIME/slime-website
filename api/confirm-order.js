@@ -37,7 +37,7 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
             .label { font-weight: bold; color: #0f172a; }
             .value { color: #555; }
             .order-id { background: #39ff14; color: #0f172a; padding: 15px; font-size: 20px; font-weight: bold; text-align: center; border-radius: 6px; margin: 15px 0; font-family: monospace; }
-            .success-icon { font-size: 48px; margin-bottom: 10px; }
+            .logo { width: 120px; height: 120px; margin: 0 auto 15px; display: block; }
             .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
             ul { padding-left: 20px; }
             li { margin: 10px 0; }
@@ -46,7 +46,7 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
         <body>
           <div class="container">
             <div class="header">
-              <div class="success-icon">✅</div>
+              <img src="https://builtbyslime.org/slime-logo.png" alt="SLIME Logo" class="logo" />
               <h1>ORDER CONFIRMED!</h1>
               <p style="margin: 0; color: #ccc;">Thank you for your purchase</p>
             </div>
