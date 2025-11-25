@@ -14,6 +14,8 @@ export default async function handler(req, res) {
   try {
     const { amount, productTitle, customerEmail } = req.body
 
+    console.log('Received payment intent request:', { amount, productTitle, customerEmail })
+
     if (!amount || amount <= 0) {
       return res.status(400).json({
         success: false,
@@ -22,9 +24,12 @@ export default async function handler(req, res) {
       })
     }
 
+    const amountInCents = Math.round(amount)
+    console.log('Creating Stripe payment intent with amount:', amountInCents, 'cents')
+
     // Create a PaymentIntent with the order amount and currency
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount), // Amount is already in cents from Printify
+      amount: amountInCents, // Amount should be in cents
       currency: 'usd',
       automatic_payment_methods: {
         enabled: true,
