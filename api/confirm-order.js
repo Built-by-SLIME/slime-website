@@ -33,7 +33,8 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background: #00ff40; color: #222222; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
             .content { background: #f8f9fa; padding: 30px 20px; border-radius: 0 0 8px 8px; }
-            .section { background: white; padding: 20px; margin: 20px 0; border-radius: 6px; border-left: 4px solid #00ff40; }
+            .section { background: white; padding: 30px; margin: 20px 0; border-radius: 6px; border-left: 4px solid #00ff40; }
+            .divider { border-top: 2px solid #f0f0f0; margin: 30px 0; }
             .label { font-weight: bold; color: #0f172a; }
             .value { color: #555; }
             .order-id { background: #00ff40; color: #0f172a; padding: 15px; font-size: 20px; font-weight: bold; text-align: center; border-radius: 6px; margin: 15px 0; font-family: monospace; }
@@ -59,9 +60,9 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
                 <p><span class="label">Product:</span> <span class="value">${orderDetails.productTitle}</span></p>
                 <p><span class="label">Amount Paid:</span> <span class="value">$${orderDetails.amount.toFixed(2)} USD</span></p>
                 <p><span class="label">Payment Method:</span> <span class="value">Credit Card</span></p>
-              </div>
 
-              <div class="section">
+                <div class="divider"></div>
+
                 <h2>📦 What's Next?</h2>
                 <ul>
                   <li><strong>Processing:</strong> Your order will be processed within 24-48 hours</li>
@@ -69,9 +70,9 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
                   <li><strong>Shipping:</strong> You'll receive tracking information via email once shipped</li>
                   <li><strong>Delivery:</strong> Estimated delivery is 5-7 business days after shipping</li>
                 </ul>
-              </div>
 
-              <div class="section">
+                <div class="divider"></div>
+
                 <h2>💬 Questions?</h2>
                 <p>If you have any questions about your order, join our Discord community!</p>
                 <p style="text-align: center;">
