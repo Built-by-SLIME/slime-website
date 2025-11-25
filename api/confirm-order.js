@@ -5,13 +5,24 @@ import Stripe from 'stripe'
 import { Resend } from 'resend'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 const PRINTIFY_API_BASE = 'https://api.printify.com/v1'
 
 async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
   try {
+    const resendApiKey = process.env.RESEND_API_KEY
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'orders@builtbyslime.org'
+
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY is not set - cannot send email')
+      return
+    }
+
+    console.log('Sending confirmation email to:', customerEmail)
+    console.log('From email:', fromEmail)
+    console.log('Order details:', orderDetails)
+
+    const resend = new Resend(resendApiKey)
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -76,16 +87,19 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
       </html>
     `
 
-    await resend.emails.send({
+    const emailResult = await resend.emails.send({
       from: fromEmail,
       to: customerEmail,
       subject: `✅ Order Confirmed - ${orderDetails.orderId}`,
       html: emailHtml,
     })
 
-    console.log('Customer confirmation email sent to:', customerEmail)
+    console.log('Customer confirmation email sent successfully!')
+    console.log('Email ID:', emailResult.id)
+    console.log('Sent to:', customerEmail)
   } catch (error) {
-    console.error('Error sending customer confirmation email:', error)
+    console.error('❌ ERROR sending customer confirmation email:', error)
+    console.error('Error details:', JSON.stringify(error, null, 2))
     // Don't throw - we don't want to fail the order if email fails
   }
 }
