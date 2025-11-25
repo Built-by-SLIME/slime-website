@@ -1,7 +1,9 @@
 // Vercel Serverless Function: POST /api/create-payment-intent
 // Creates a Stripe Payment Intent for checkout
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+import Stripe from 'stripe'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 export default async function handler(req, res) {
   // Only allow POST requests

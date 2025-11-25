@@ -1,7 +1,9 @@
 // Vercel Serverless Function: POST /api/confirm-order
 // Confirms Stripe payment and creates + sends Printify order to production
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+import Stripe from 'stripe'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 const PRINTIFY_API_BASE = 'https://api.printify.com/v1'
 
