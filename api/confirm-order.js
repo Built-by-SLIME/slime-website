@@ -40,7 +40,7 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
             .order-id { background: #00ff40; color: #0f172a; padding: 15px; font-size: 20px; font-weight: bold; text-align: center; border-radius: 6px; margin: 15px 0; font-family: monospace; }
             .logo { width: 120px; height: 120px; margin: 0 auto 15px; display: block; }
             .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
-            .discord-button { display: inline-block; background: #5865F2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0; }
+            .discord-button { display: inline-block; background: #5865F2; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0; }
             ul { padding-left: 20px; }
             li { margin: 10px 0; }
           </style>
@@ -82,8 +82,8 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
               </div>
 
               <div class="footer">
-                <p>This is an automated confirmation email from SLIME</p>
-                <p>Built by SLIME | <a href="https://builtbyslime.org" style="color: #39ff14;">builtbyslime.org</a></p>
+                <p>This is an automated order confirmation email from SLIME</p>
+                <p><a href="https://builtbyslime.org" style="color: #00ff40; text-decoration: none;">builtbyslime.org</a></p>
               </div>
             </div>
           </div>
