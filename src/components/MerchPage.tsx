@@ -238,7 +238,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
           <ul className="text-sm text-gray-300 space-y-2">
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
-              <span>{isHBAR ? 'Check your email for complete payment instructions' : 'You'll receive an order confirmation email shortly'}</span>
+              <span>{isHBAR ? 'Check your email for complete payment instructions' : "You'll receive an order confirmation email shortly"}</span>
             </li>
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
@@ -246,7 +246,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
             </li>
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
-              <span>{isHBAR ? 'We'll process your order once payment is confirmed on HashScan' : 'You'll receive shipping updates via email'}</span>
+              <span>{isHBAR ? "We'll process your order once payment is confirmed on HashScan" : "You'll receive shipping updates via email"}</span>
             </li>
           </ul>
         </div>
