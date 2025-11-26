@@ -5,6 +5,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useCart } from '../context/CartContext'
 import CartModal from './CartModal'
+import Toast from './Toast'
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
@@ -323,6 +324,8 @@ export default function MerchPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hbarPrice, setHbarPrice] = useState<number | null>(null)
+  const [toastMessage, setToastMessage] = useState<string>('')
+  const [showToast, setShowToast] = useState(false)
   const [formData, setFormData] = useState<CheckoutForm>({
     name: '',
     email: '',
@@ -537,8 +540,9 @@ export default function MerchPage() {
       image: product.image
     }, quantity)
 
-    // Show a brief success message (optional - could add a toast notification)
-    console.log(`Added ${quantity}x ${product.title} to cart`)
+    // Show toast notification
+    setToastMessage(`Added ${quantity}x ${product.title} to cart!`)
+    setShowToast(true)
   }
 
   const handleCheckoutFromCart = () => {
@@ -1292,6 +1296,13 @@ export default function MerchPage() {
         isOpen={showCart}
         onClose={() => setShowCart(false)}
         onCheckout={handleCheckoutFromCart}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
       />
 
       {/* Footer */}
