@@ -219,9 +219,14 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
                 <span className="font-bold">MEMO (Required):</span> <span className="text-slime-green font-mono font-bold">{orderDetails.orderId}</span>
               </p>
             </div>
-            <div className="bg-yellow-500/10 border border-yellow-500 rounded p-3">
+            <div className="bg-yellow-500/10 border border-yellow-500 rounded p-3 mb-2">
               <p className="text-sm text-yellow-200">
                 ⚠️ <span className="font-bold">IMPORTANT:</span> You MUST include the memo <span className="font-mono font-bold">{orderDetails.orderId}</span> when sending your HBAR payment!
+              </p>
+            </div>
+            <div className="bg-red-500/10 border border-red-500 rounded p-3">
+              <p className="text-xs text-red-200">
+                <span className="font-bold">DISCLAIMER:</span> SLIME is not responsible for HBAR sent without the correct MEMO. Always double-check the memo before sending payment.
               </p>
             </div>
           </div>
@@ -229,11 +234,11 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
 
         {/* What's next */}
         <div className="bg-[#252525] rounded-lg p-4 mb-6">
-          <h3 className="font-bold mb-2 text-slime-green">WHAT&apos;S NEXT?</h3>
+          <h3 className="font-bold mb-2 text-slime-green">WHAT'S NEXT?</h3>
           <ul className="text-sm text-gray-300 space-y-2">
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
-              <span>{isHBAR ? 'Check your email for complete payment instructions' : 'You&apos;ll receive an order confirmation email shortly'}</span>
+              <span>{isHBAR ? 'Check your email for complete payment instructions' : 'You'll receive an order confirmation email shortly'}</span>
             </li>
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
@@ -241,7 +246,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
             </li>
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
-              <span>{isHBAR ? 'We&apos;ll process your order once payment is confirmed on HashScan' : 'You&apos;ll receive shipping updates via email'}</span>
+              <span>{isHBAR ? 'We'll process your order once payment is confirmed on HashScan' : 'You'll receive shipping updates via email'}</span>
             </li>
           </ul>
         </div>
@@ -416,7 +421,6 @@ export default function MerchPage() {
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false)
   const [shippingCalculated, setShippingCalculated] = useState(false)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
-  const [orderMemo, setOrderMemo] = useState<string>('')
   const [isProcessingOrder, setIsProcessingOrder] = useState(false)
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
@@ -595,11 +599,9 @@ export default function MerchPage() {
     fetchProducts()
   }, [])
 
-  // Generate unique order memo
-  const generateOrderMemo = () => {
-    const timestamp = Date.now().toString().slice(-6)
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase()
-    return `SLIME-${timestamp}${random}`
+  // Generate HBAR memo from Printify order ID
+  const generateHBARMemo = (printifyOrderId: string) => {
+    return `SLIME${printifyOrderId}`
   }
 
   const handleBuyNow = (product: Product) => {
@@ -607,7 +609,6 @@ export default function MerchPage() {
     setShowCheckout(true)
     setClientSecret(null)
     setPaymentIntentId(null)
-    setOrderMemo(generateOrderMemo())
   }
 
   const handleAddToCart = (product: Product, quantity: number) => {
@@ -639,7 +640,6 @@ export default function MerchPage() {
         setShowCheckout(true)
         setClientSecret(null)
         setPaymentIntentId(null)
-        setOrderMemo(generateOrderMemo())
       }
     }
   }
@@ -783,7 +783,10 @@ export default function MerchPage() {
           body: JSON.stringify({
             amount: amountInCents, // Stripe requires cents (includes shipping)
             productTitle: selectedProduct.title,
-            customerEmail: formData.email
+            customerEmail: formData.email,
+            productTotal: productTotal,
+            shippingCost: shippingCost,
+            shippingMethod: selectedShipping.name
           })
         })
 
@@ -847,12 +850,19 @@ export default function MerchPage() {
           throw new Error(orderResult.error || 'Failed to create order')
         }
 
+        // Get Printify order ID and generate memo
+        const printifyOrderId = orderResult.data.id
+        const hbarMemo = `SLIME${printifyOrderId}`
+
+        console.log('Printify order created:', printifyOrderId)
+        console.log('HBAR memo:', hbarMemo)
+
         // Send email notification
         const emailResponse = await fetch('/api/send-order-notification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            orderMemo,
+            orderMemo: hbarMemo,
             customerName: formData.name,
             customerEmail: formData.email,
             productTitle: selectedProduct.title,
@@ -874,7 +884,7 @@ export default function MerchPage() {
 
         // Set order details and show success modal
         setOrderDetails({
-          orderId: orderMemo,
+          orderId: hbarMemo,
           amount: totalAmount,
           productTitle: selectedProduct.title,
           email: formData.email
@@ -1539,27 +1549,19 @@ export default function MerchPage() {
               {formData.paymentMethod === 'crypto' && shippingCalculated && selectedShipping && (
                 <div className="bg-slime-green/10 border border-slime-green rounded-lg p-4">
                   <h4 className="font-bold text-slime-green mb-3">HBAR PAYMENT INSTRUCTIONS</h4>
-                  <div className="space-y-2 mb-3">
-                    <p className="text-sm text-gray-300">
-                      <span className="font-bold">Order ID / MEMO:</span> <span className="text-slime-green font-mono">{orderMemo}</span>
-                    </p>
-                    <p className="text-sm text-gray-300">
-                      <span className="font-bold">Amount:</span> <span className="text-slime-green">
-                        {calculateHBARPrice((cart.items.length > 0 ? cart.getTotalPrice() : selectedProduct.price) + (selectedShipping.cost / 100))} HBAR
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-300">
-                      <span className="font-bold">Wallet:</span> <span className="text-slime-green font-mono">{import.meta.env.VITE_HBAR_TREASURY_WALLET || '0.0.9463056'}</span>
-                    </p>
-                  </div>
-                  <div className="bg-yellow-500/10 border border-yellow-500 rounded p-3 mb-3">
-                    <p className="text-sm text-yellow-200">
-                      ⚠️ <span className="font-bold">IMPORTANT:</span> You MUST include the memo <span className="font-mono font-bold">{orderMemo}</span> when sending your HBAR payment!
-                    </p>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    After submitting, you'll receive an email with complete payment instructions. Orders are processed manually once payment is confirmed on HashScan.
+                  <p className="text-sm text-gray-300 mb-3">
+                    After submitting your order, you'll receive payment instructions including:
                   </p>
+                  <ul className="text-sm text-gray-300 space-y-2 mb-3 list-disc list-inside">
+                    <li>Your unique order ID / MEMO</li>
+                    <li>Exact HBAR amount to send (currently ~{calculateHBARPrice((cart.items.length > 0 ? cart.getTotalPrice() : selectedProduct.price) + (selectedShipping.cost / 100))} HBAR)</li>
+                    <li>Treasury wallet address</li>
+                  </ul>
+                  <div className="bg-yellow-500/10 border border-yellow-500 rounded p-3">
+                    <p className="text-sm text-yellow-200">
+                      ⚠️ <span className="font-bold">IMPORTANT:</span> You MUST include the MEMO when sending your HBAR payment. Payment instructions will be shown immediately after submitting your order.
+                    </p>
+                  </div>
                 </div>
               )}
 

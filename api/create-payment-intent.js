@@ -12,9 +12,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { amount, productTitle, customerEmail } = req.body
+    const { amount, productTitle, customerEmail, productTotal, shippingCost, shippingMethod } = req.body
 
-    console.log('Received payment intent request:', { amount, productTitle, customerEmail })
+    console.log('Received payment intent request:', { amount, productTitle, customerEmail, productTotal, shippingCost, shippingMethod })
 
     if (!amount || amount <= 0) {
       return res.status(400).json({
@@ -36,7 +36,10 @@ export default async function handler(req, res) {
       },
       metadata: {
         productTitle: productTitle || 'SLIME Merch',
-        customerEmail: customerEmail || 'unknown'
+        customerEmail: customerEmail || 'unknown',
+        productTotal: productTotal ? productTotal.toString() : '0',
+        shippingCost: shippingCost ? shippingCost.toString() : '0',
+        shippingMethod: shippingMethod || 'Standard'
       },
       description: `SLIME Merch: ${productTitle || 'Product'}`,
     })

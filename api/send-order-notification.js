@@ -25,7 +25,10 @@ export default async function handler(req, res) {
       productTitle,
       variantTitle,
       price,
+      shippingCost,
+      totalAmount,
       hbarAmount,
+      shippingMethod,
       shippingAddress
     } = req.body
 
@@ -55,6 +58,7 @@ export default async function handler(req, res) {
             .value { color: #555; }
             .memo { background: #39ff14; color: #0f172a; padding: 10px; font-size: 18px; font-weight: bold; text-align: center; border-radius: 6px; margin: 10px 0; }
             .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 10px 0; border-radius: 4px; }
+            .disclaimer { background: #fee; border-left: 4px solid #dc3545; padding: 10px; margin: 10px 0; border-radius: 4px; color: #721c24; font-size: 12px; }
             .link { color: #39ff14; text-decoration: none; }
           </style>
         </head>
@@ -69,7 +73,9 @@ export default async function handler(req, res) {
                 <p><span class="label">Order ID / MEMO:</span></p>
                 <div class="memo">${orderMemo}</div>
                 <p><span class="label">Product:</span> <span class="value">${productTitle}${variantTitle ? ` - ${variantTitle}` : ''}</span></p>
-                <p><span class="label">Price:</span> <span class="value">$${price.toFixed(2)} USD</span></p>
+                <p><span class="label">Product Price:</span> <span class="value">$${price.toFixed(2)} USD</span></p>
+                <p><span class="label">Shipping (${shippingMethod || 'Standard'}):</span> <span class="value">$${shippingCost.toFixed(2)} USD</span></p>
+                <p><span class="label">Total Amount:</span> <span class="value" style="font-size: 18px; color: #39ff14; font-weight: bold;">$${totalAmount.toFixed(2)} USD</span></p>
               </div>
 
               <div class="section">
@@ -79,6 +85,9 @@ export default async function handler(req, res) {
                 <p><span class="label">MEMO:</span> <span class="value">${orderMemo}</span></p>
                 <div class="warning">
                   ⚠️ <strong>IMPORTANT:</strong> Customer must include MEMO <strong>${orderMemo}</strong> when sending HBAR payment.
+                </div>
+                <div class="disclaimer">
+                  <strong>DISCLAIMER:</strong> SLIME is not responsible for HBAR sent without the correct MEMO. Customer must verify memo before sending payment.
                 </div>
               </div>
 

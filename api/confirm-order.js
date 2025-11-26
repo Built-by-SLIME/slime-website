@@ -58,7 +58,13 @@ async function sendCustomerConfirmationEmail(customerEmail, orderDetails) {
                 <p><span class="label">Order ID:</span></p>
                 <div class="order-id">${orderDetails.orderId}</div>
                 <p><span class="label">Product:</span> <span class="value">${orderDetails.productTitle}</span></p>
-                <p><span class="label">Amount Paid:</span> <span class="value">$${orderDetails.amount.toFixed(2)} USD</span></p>
+                ${orderDetails.productTotal && orderDetails.shippingCost ? `
+                  <p><span class="label">Product Total:</span> <span class="value">$${parseFloat(orderDetails.productTotal).toFixed(2)} USD</span></p>
+                  <p><span class="label">Shipping (${orderDetails.shippingMethod || 'Standard'}):</span> <span class="value">$${parseFloat(orderDetails.shippingCost).toFixed(2)} USD</span></p>
+                  <p><span class="label">Total Paid:</span> <span class="value" style="font-size: 18px; color: #39ff14; font-weight: bold;">$${orderDetails.amount.toFixed(2)} USD</span></p>
+                ` : `
+                  <p><span class="label">Amount Paid:</span> <span class="value">$${orderDetails.amount.toFixed(2)} USD</span></p>
+                `}
                 <p><span class="label">Payment Method:</span> <span class="value">Credit Card</span></p>
 
                 <div class="divider"></div>
@@ -227,7 +233,10 @@ export default async function handler(req, res) {
     await sendCustomerConfirmationEmail(customerEmail, {
       orderId: order.id,
       productTitle: productTitle,
-      amount: amount
+      amount: amount,
+      productTotal: paymentIntent.metadata.productTotal,
+      shippingCost: paymentIntent.metadata.shippingCost,
+      shippingMethod: paymentIntent.metadata.shippingMethod
     })
 
     // Return success

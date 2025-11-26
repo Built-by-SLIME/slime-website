@@ -155,10 +155,13 @@ export default function CartModal({ isOpen, onClose, onCheckout }: CartModalProp
         {/* Footer */}
         {items.length > 0 && (
           <div className="p-4 md:p-6 border-t border-gray-700">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-2">
               <span className="text-lg md:text-xl font-bold">TOTAL:</span>
               <span className="text-2xl md:text-3xl font-black text-slime-green">${getTotalPrice().toFixed(2)}</span>
             </div>
+            <p className="text-xs md:text-sm text-gray-400 text-right mb-4">
+              Shipping calculated at checkout
+            </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={onClose}
