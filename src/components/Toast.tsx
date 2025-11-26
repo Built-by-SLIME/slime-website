@@ -20,8 +20,8 @@ export default function Toast({ message, isVisible, onClose, duration = 3000 }: 
   if (!isVisible) return null
 
   return (
-    <div className="fixed bottom-8 right-8 z-50 animate-slide-up">
-      <div className="bg-slime-green text-black px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px]">
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+      <div className="bg-slime-green text-black px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-[90vw]">
         {/* Success Icon */}
         <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
