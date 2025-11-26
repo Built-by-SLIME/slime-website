@@ -36,6 +36,14 @@ interface CheckoutForm {
   paymentMethod: 'card' | 'crypto'
 }
 
+interface ShippingOption {
+  code: number
+  name: string
+  description: string
+  cost: number // in cents
+  costFormatted: string
+}
+
 // Stripe Payment Form Component
 function StripePaymentForm({
   clientSecret,
@@ -368,6 +376,12 @@ export default function MerchPage() {
     size: '',
     paymentMethod: 'card'
   })
+
+  // Shipping state
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
+  const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null)
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false)
+  const [shippingCalculated, setShippingCalculated] = useState(false)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [orderMemo, setOrderMemo] = useState<string>('')
   const [isProcessingOrder, setIsProcessingOrder] = useState(false)
@@ -600,10 +614,102 @@ export default function MerchPage() {
       ...formData,
       [e.target.name]: e.target.value
     })
+
+    // Reset shipping calculation if address changes
+    if (['address', 'city', 'state', 'zip', 'country'].includes(e.target.name)) {
+      setShippingCalculated(false)
+      setShippingOptions([])
+      setSelectedShipping(null)
+    }
+  }
+
+  const calculateShipping = async () => {
+    if (!selectedProduct) return
+
+    // Validate address fields
+    if (!formData.address || !formData.city || !formData.state || !formData.zip || !formData.country) {
+      alert('Please fill in all address fields before calculating shipping')
+      return
+    }
+
+    // Validate size selection
+    if (!formData.size) {
+      alert('Please select a size before calculating shipping')
+      return
+    }
+
+    setIsCalculatingShipping(true)
+
+    try {
+      // Split name into first and last name
+      const nameParts = formData.name.trim().split(' ')
+      const firstName = nameParts[0] || 'Customer'
+      const lastName = nameParts.slice(1).join(' ') || firstName
+
+      // Prepare line items from cart or single product
+      const lineItems = cart.items.length > 0
+        ? cart.items.map(item => ({
+            product_id: item.productId,
+            variant_id: item.variantId,
+            quantity: item.quantity
+          }))
+        : [{
+            product_id: selectedProduct.id,
+            variant_id: parseInt(formData.size),
+            quantity: 1
+          }]
+
+      const response = await fetch('/api/calculate-shipping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          line_items: lineItems,
+          address_to: {
+            first_name: firstName,
+            last_name: lastName,
+            email: formData.email || '[email protected]',
+            country: formData.country === 'United States' ? 'US' : formData.country,
+            region: formData.state,
+            address1: formData.address,
+            city: formData.city,
+            zip: formData.zip
+          }
+        })
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to calculate shipping')
+      }
+
+      setShippingOptions(result.shippingOptions)
+
+      // Auto-select standard shipping (code 1) if available
+      const standardShipping = result.shippingOptions.find((opt: ShippingOption) => opt.code === 1)
+      if (standardShipping) {
+        setSelectedShipping(standardShipping)
+      } else if (result.shippingOptions.length > 0) {
+        setSelectedShipping(result.shippingOptions[0])
+      }
+
+      setShippingCalculated(true)
+    } catch (error) {
+      console.error('Error calculating shipping:', error)
+      alert('Failed to calculate shipping. Please try again.')
+    } finally {
+      setIsCalculatingShipping(false)
+    }
   }
 
   const handleSubmitOrder = async () => {
     if (!selectedProduct) return
+
+    // Validate shipping is calculated
+    if (!shippingCalculated || !selectedShipping) {
+      alert('Please calculate shipping before submitting your order')
+      return
+    }
 
     setIsProcessingOrder(true)
 
@@ -623,15 +729,24 @@ export default function MerchPage() {
 
       if (formData.paymentMethod === 'card') {
         // STRIPE PAYMENT FLOW
-        // Create payment intent
-        const amountInCents = Math.round(selectedVariant.price * 100) // Convert dollars to cents
-        console.log('Creating payment intent with amount:', amountInCents, 'cents (from $' + selectedVariant.price + ')')
+        // Calculate total with shipping
+        const productTotal = cart.items.length > 0 ? cart.getTotalPrice() : selectedVariant.price
+        const shippingCost = selectedShipping.cost / 100 // Convert cents to dollars
+        const totalAmount = productTotal + shippingCost
+        const amountInCents = Math.round(totalAmount * 100) // Convert dollars to cents
+
+        console.log('Creating payment intent:', {
+          productTotal,
+          shippingCost,
+          totalAmount,
+          amountInCents
+        })
 
         const paymentResponse = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            amount: amountInCents, // Stripe requires cents
+            amount: amountInCents, // Stripe requires cents (includes shipping)
             productTitle: selectedProduct.title,
             customerEmail: formData.email
           })
@@ -649,16 +764,27 @@ export default function MerchPage() {
         setIsProcessingOrder(false)
       } else {
         // HBAR PAYMENT FLOW
+        // Calculate total with shipping
+        const productTotal = cart.items.length > 0 ? cart.getTotalPrice() : selectedVariant.price
+        const shippingCost = selectedShipping.cost / 100 // Convert cents to dollars
+        const totalAmount = productTotal + shippingCost
+
         // Create order data for Printify API
-        const orderData = {
-          line_items: [
-            {
+        const lineItems = cart.items.length > 0
+          ? cart.items.map(item => ({
+              product_id: item.productId,
+              variant_id: item.variantId,
+              quantity: item.quantity
+            }))
+          : [{
               product_id: selectedProduct.id,
               variant_id: selectedVariant.id,
               quantity: 1
-            }
-          ],
-          shipping_method: 1,
+            }]
+
+        const orderData = {
+          line_items: lineItems,
+          shipping_method: selectedShipping.code,
           send_shipping_notification: true,
           address_to: {
             first_name: firstName,
@@ -696,8 +822,11 @@ export default function MerchPage() {
             customerEmail: formData.email,
             productTitle: selectedProduct.title,
             variantTitle: selectedVariant.title,
-            price: selectedVariant.price, // Already in dollars
-            hbarAmount: calculateHBARPrice(selectedVariant.price), // Already in dollars
+            price: productTotal,
+            shippingCost: shippingCost,
+            totalAmount: totalAmount,
+            hbarAmount: calculateHBARPrice(totalAmount),
+            shippingMethod: selectedShipping.name,
             shippingAddress: orderData.address_to
           })
         })
@@ -711,12 +840,12 @@ export default function MerchPage() {
         // Set order details and show success modal
         setOrderDetails({
           orderId: orderMemo,
-          amount: selectedVariant.price,
+          amount: totalAmount,
           productTitle: selectedProduct.title,
           email: formData.email
         })
         setSuccessPaymentMethod('crypto')
-        setSuccessHbarAmount(calculateHBARPrice(selectedVariant.price))
+        setSuccessHbarAmount(calculateHBARPrice(totalAmount))
         setShowSuccessModal(true)
 
         // Clear cart after successful order
@@ -739,6 +868,12 @@ export default function MerchPage() {
           size: '',
           paymentMethod: 'card'
         })
+
+        // Reset shipping
+        setShippingCalculated(false)
+        setShippingOptions([])
+        setSelectedShipping(null)
+
         setIsProcessingOrder(false)
       }
     } catch (error) {
@@ -762,8 +897,8 @@ export default function MerchPage() {
     console.log('selectedProduct:', selectedProduct)
     console.log('paymentIntentId:', paymentIntentId)
 
-    if (!selectedProduct || !paymentIntentId) {
-      console.error('Missing required data:', { selectedProduct, paymentIntentId })
+    if (!selectedProduct || !paymentIntentId || !selectedShipping) {
+      console.error('Missing required data:', { selectedProduct, paymentIntentId, selectedShipping })
       return
     }
 
@@ -781,16 +916,23 @@ export default function MerchPage() {
 
       console.log('Creating order with variant:', selectedVariant)
 
-      // Create order data for Printify API
-      const orderData = {
-        line_items: [
-          {
+      // Prepare line items from cart or single product
+      const lineItems = cart.items.length > 0
+        ? cart.items.map(item => ({
+            product_id: item.productId,
+            variant_id: item.variantId,
+            quantity: item.quantity
+          }))
+        : [{
             product_id: selectedProduct.id,
             variant_id: selectedVariant.id,
             quantity: 1
-          }
-        ],
-        shipping_method: 1,
+          }]
+
+      // Create order data for Printify API
+      const orderData = {
+        line_items: lineItems,
+        shipping_method: selectedShipping.code,
         send_shipping_notification: true,
         address_to: {
           first_name: firstName,
@@ -825,10 +967,15 @@ export default function MerchPage() {
         throw new Error(result.error || 'Failed to confirm order')
       }
 
+      // Calculate total with shipping
+      const productTotal = cart.items.length > 0 ? cart.getTotalPrice() : selectedVariant.price
+      const shippingCost = selectedShipping.cost / 100
+      const totalAmount = productTotal + shippingCost
+
       // Set order details and show success modal
       setOrderDetails({
         orderId: result.data.orderId,
-        amount: selectedVariant.price,
+        amount: totalAmount,
         productTitle: selectedProduct.title,
         email: formData.email
       })
@@ -855,6 +1002,12 @@ export default function MerchPage() {
         size: '',
         paymentMethod: 'card'
       })
+
+      // Reset shipping
+      setShippingCalculated(false)
+      setShippingOptions([])
+      setSelectedShipping(null)
+
     } catch (error) {
       console.error('Error confirming order:', error)
       alert(`Payment succeeded but order creation failed: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease contact support at orders@builtbyslime.org`)
@@ -1069,7 +1222,12 @@ export default function MerchPage() {
             <div className="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-[#1f1f1f] z-10">
               <h2 className="text-2xl font-black">CHECKOUT</h2>
               <button
-                onClick={() => setShowCheckout(false)}
+                onClick={() => {
+                  setShowCheckout(false)
+                  setShippingCalculated(false)
+                  setShippingOptions([])
+                  setSelectedShipping(null)
+                }}
                 className="text-gray-400 hover:text-white text-2xl"
               >
                 ×
@@ -1165,7 +1323,9 @@ export default function MerchPage() {
                         : 'border-gray-700 text-gray-400 hover:border-gray-600'
                     }`}
                   >
-                    HBAR ({calculateHBARPrice(selectedProduct.price)} HBAR)
+                    HBAR {shippingCalculated && selectedShipping
+                      ? `(${calculateHBARPrice((cart.items.length > 0 ? cart.getTotalPrice() : selectedProduct.price) + (selectedShipping.cost / 100))} HBAR)`
+                      : ''}
                   </button>
                 </div>
               </div>
@@ -1261,6 +1421,67 @@ export default function MerchPage() {
                 </div>
               </div>
 
+              {/* Shipping Calculation */}
+              <div className="bg-[#252525] border border-gray-700 rounded-lg p-4">
+                <h4 className="font-bold mb-3">SHIPPING</h4>
+
+                {!shippingCalculated ? (
+                  <div>
+                    <p className="text-sm text-gray-400 mb-3">
+                      Please calculate shipping to continue
+                    </p>
+                    <button
+                      type="button"
+                      onClick={calculateShipping}
+                      disabled={isCalculatingShipping}
+                      className="w-full bg-slime-green text-black py-3 rounded-md font-bold hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isCalculatingShipping ? 'CALCULATING...' : 'CALCULATE SHIPPING'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-slime-green font-bold">✓ Shipping calculated</p>
+
+                    {/* Shipping Method Selector */}
+                    <div className="space-y-2">
+                      {shippingOptions.map((option) => (
+                        <button
+                          key={option.code}
+                          type="button"
+                          onClick={() => setSelectedShipping(option)}
+                          className={`w-full p-3 rounded-md border-2 text-left transition ${
+                            selectedShipping?.code === option.code
+                              ? 'border-slime-green bg-slime-green/10'
+                              : 'border-gray-700 hover:border-gray-600'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-bold">{option.name}</div>
+                              <div className="text-sm text-gray-400">{option.description}</div>
+                            </div>
+                            <div className="font-bold text-slime-green">{option.costFormatted}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShippingCalculated(false)
+                        setShippingOptions([])
+                        setSelectedShipping(null)
+                      }}
+                      className="text-sm text-gray-400 hover:text-slime-green transition"
+                    >
+                      Recalculate shipping
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Stripe Payment Form */}
               {formData.paymentMethod === 'card' && clientSecret && (
                 <div className="bg-[#252525] border border-gray-700 rounded-lg p-4">
@@ -1276,7 +1497,7 @@ export default function MerchPage() {
               )}
 
               {/* Crypto Payment Instructions */}
-              {formData.paymentMethod === 'crypto' && (
+              {formData.paymentMethod === 'crypto' && shippingCalculated && selectedShipping && (
                 <div className="bg-slime-green/10 border border-slime-green rounded-lg p-4">
                   <h4 className="font-bold text-slime-green mb-3">HBAR PAYMENT INSTRUCTIONS</h4>
                   <div className="space-y-2 mb-3">
@@ -1284,7 +1505,9 @@ export default function MerchPage() {
                       <span className="font-bold">Order ID / MEMO:</span> <span className="text-slime-green font-mono">{orderMemo}</span>
                     </p>
                     <p className="text-sm text-gray-300">
-                      <span className="font-bold">Amount:</span> <span className="text-slime-green">{calculateHBARPrice(selectedProduct.price)} HBAR</span>
+                      <span className="font-bold">Amount:</span> <span className="text-slime-green">
+                        {calculateHBARPrice((cart.items.length > 0 ? cart.getTotalPrice() : selectedProduct.price) + (selectedShipping.cost / 100))} HBAR
+                      </span>
                     </p>
                     <p className="text-sm text-gray-300">
                       <span className="font-bold">Wallet:</span> <span className="text-slime-green font-mono">{import.meta.env.VITE_HBAR_TREASURY_WALLET || '0.0.9463056'}</span>
@@ -1298,6 +1521,39 @@ export default function MerchPage() {
                   <p className="text-xs text-gray-400">
                     After submitting, you'll receive an email with complete payment instructions. Orders are processed manually once payment is confirmed on HashScan.
                   </p>
+                </div>
+              )}
+
+              {/* Order Summary */}
+              {shippingCalculated && selectedShipping && (
+                <div className="bg-[#1f1f1f] border border-gray-700 rounded-lg p-4">
+                  <h4 className="font-bold mb-3">ORDER SUMMARY</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Subtotal:</span>
+                      <span className="font-bold">
+                        ${(cart.items.length > 0
+                          ? cart.getTotalPrice()
+                          : selectedProduct?.variants.find(v => v.id.toString() === formData.size)?.price || 0
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Shipping ({selectedShipping.name}):</span>
+                      <span className="font-bold">{selectedShipping.costFormatted}</span>
+                    </div>
+                    <div className="border-t border-gray-700 pt-2 mt-2">
+                      <div className="flex justify-between text-lg">
+                        <span className="font-bold">Total:</span>
+                        <span className="font-bold text-slime-green">
+                          ${((cart.items.length > 0
+                            ? cart.getTotalPrice()
+                            : selectedProduct?.variants.find(v => v.id.toString() === formData.size)?.price || 0
+                          ) + (selectedShipping.cost / 100)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
