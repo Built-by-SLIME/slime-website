@@ -32,7 +32,6 @@ interface CheckoutForm {
   state: string
   zip: string
   country: string
-  size: string
   paymentMethod: 'card' | 'crypto'
 }
 
@@ -263,6 +262,184 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   )
 }
 
+// Product Selection Modal Component
+function ProductSelectionModal({
+  product,
+  onClose,
+  onAddToCart,
+  onBuyNow
+}: {
+  product: Product
+  onClose: () => void
+  onAddToCart: (variantId: number, quantity: number) => void
+  onBuyNow: (variantId: number, quantity: number) => void
+}) {
+  const [selectedVariantId, setSelectedVariantId] = useState<string>('')
+  const [quantity, setQuantity] = useState(1)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === product.images.length - 1 ? 0 : prev + 1
+    )
+  }
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? product.images.length - 1 : prev - 1
+    )
+  }
+
+  const handleAddToCart = () => {
+    if (!selectedVariantId) {
+      alert('Please select a size/color')
+      return
+    }
+    onAddToCart(parseInt(selectedVariantId), quantity)
+    onClose()
+  }
+
+  const handleBuyNow = () => {
+    if (!selectedVariantId) {
+      alert('Please select a size/color')
+      return
+    }
+    onBuyNow(parseInt(selectedVariantId), quantity)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#1f1f1f] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-700">
+        <div className="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-[#1f1f1f] z-10">
+          <h2 className="text-2xl font-black">SELECT OPTIONS</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Product Image Carousel */}
+          <div className="relative aspect-square bg-[#252525] rounded-lg overflow-hidden">
+            <img
+              src={product.images[currentImageIndex]}
+              alt={product.title}
+              className="w-full h-full object-cover"
+            />
+            {product.images.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white w-10 h-10 rounded-full flex items-center justify-center transition"
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white w-10 h-10 rounded-full flex items-center justify-center transition"
+                >
+                  ›
+                </button>
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                  {product.images.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-2 h-2 rounded-full ${
+                        index === currentImageIndex ? 'bg-slime-green' : 'bg-white/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Product Title */}
+          <h3 className="text-xl font-bold">{product.title}</h3>
+
+          {/* Size/Color Selection */}
+          <div>
+            <label className="block text-sm font-bold mb-2">SIZE / COLOR *</label>
+            <select
+              value={selectedVariantId}
+              onChange={(e) => setSelectedVariantId(e.target.value)}
+              className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
+            >
+              <option value="">Select size / color</option>
+              {product.variants
+                .slice()
+                .sort((a, b) => {
+                  const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', 'One size']
+                  const getSizeAndColor = (title: string) => {
+                    const parts = title.split(' / ')
+                    return {
+                      size: parts[0]?.trim() || '',
+                      color: parts[1]?.trim() || ''
+                    }
+                  }
+                  const variantA = getSizeAndColor(a.title)
+                  const variantB = getSizeAndColor(b.title)
+                  const sizeIndexA = sizeOrder.findIndex(s => variantA.size.includes(s))
+                  const sizeIndexB = sizeOrder.findIndex(s => variantB.size.includes(s))
+                  if (sizeIndexA !== sizeIndexB) {
+                    if (sizeIndexA === -1) return 1
+                    if (sizeIndexB === -1) return -1
+                    return sizeIndexA - sizeIndexB
+                  }
+                  return variantA.color.localeCompare(variantB.color)
+                })
+                .map((variant) => (
+                  <option key={variant.id} value={variant.id}>
+                    {variant.title}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Quantity Selector */}
+          <div>
+            <label className="block text-sm font-bold mb-2">QUANTITY</label>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="w-10 h-10 bg-[#252525] hover:bg-slime-green hover:text-black rounded transition font-bold"
+              >
+                −
+              </button>
+              <span className="w-16 text-center font-bold text-lg">{quantity}</span>
+              <button
+                onClick={() => setQuantity(quantity + 1)}
+                className="w-10 h-10 bg-[#252525] hover:bg-slime-green hover:text-black rounded transition font-bold"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <button
+              onClick={handleAddToCart}
+              className="flex-1 bg-gray-700 text-white px-6 py-3 rounded-md font-bold hover:bg-gray-600 transition"
+            >
+              ADD TO CART
+            </button>
+            <button
+              onClick={handleBuyNow}
+              className="flex-1 bg-slime-green text-black px-6 py-3 rounded-md font-bold hover:bg-[#00cc33] transition"
+            >
+              BUY NOW
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Product Card Component with image carousel
 function ProductCard({
   product,
@@ -411,9 +588,13 @@ export default function MerchPage() {
     state: '',
     zip: '',
     country: 'United States',
-    size: '',
     paymentMethod: 'card'
   })
+
+  // Product selection modal state
+  const [showProductModal, setShowProductModal] = useState(false)
+  const [productForModal, setProductForModal] = useState<Product | null>(null)
+  const [modalAction, setModalAction] = useState<'addToCart' | 'buyNow'>('addToCart')
 
   // Shipping state
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
@@ -605,27 +786,58 @@ export default function MerchPage() {
   }
 
   const handleBuyNow = (product: Product) => {
-    setSelectedProduct(product)
-    setShowCheckout(true)
-    setClientSecret(null)
-    setPaymentIntentId(null)
+    setProductForModal(product)
+    setModalAction('buyNow')
+    setShowProductModal(true)
   }
 
   const handleAddToCart = (product: Product, quantity: number) => {
-    // Add first variant by default (user will select size in checkout)
-    const firstVariant = product.variants[0]
+    setProductForModal(product)
+    setModalAction('addToCart')
+    setShowProductModal(true)
+  }
+
+  const handleModalAddToCart = (variantId: number, quantity: number) => {
+    if (!productForModal) return
+
+    const variant = productForModal.variants.find(v => v.id === variantId)
+    if (!variant) return
+
     cart.addItem({
-      productId: product.id,
-      variantId: firstVariant.id,
-      title: product.title,
-      variantTitle: firstVariant.title,
-      price: firstVariant.price,
-      image: product.image
+      productId: productForModal.id,
+      variantId: variant.id,
+      title: productForModal.title,
+      variantTitle: variant.title,
+      price: variant.price,
+      image: productForModal.image
     }, quantity)
 
     // Show toast notification
-    setToastMessage(`Added ${quantity}x ${product.title} to cart!`)
+    setToastMessage(`Added ${quantity}x ${productForModal.title} to cart!`)
     setShowToast(true)
+  }
+
+  const handleModalBuyNow = (variantId: number, quantity: number) => {
+    if (!productForModal) return
+
+    const variant = productForModal.variants.find(v => v.id === variantId)
+    if (!variant) return
+
+    // Add to cart first
+    cart.addItem({
+      productId: productForModal.id,
+      variantId: variant.id,
+      title: productForModal.title,
+      variantTitle: variant.title,
+      price: variant.price,
+      image: productForModal.image
+    }, quantity)
+
+    // Then go to checkout
+    setSelectedProduct(productForModal)
+    setShowCheckout(true)
+    setClientSecret(null)
+    setPaymentIntentId(null)
   }
 
   const handleCheckoutFromCart = () => {
@@ -659,17 +871,15 @@ export default function MerchPage() {
   }
 
   const calculateShipping = async () => {
-    if (!selectedProduct) return
+    // Validate cart has items
+    if (cart.items.length === 0) {
+      alert('Your cart is empty. Please add items before calculating shipping.')
+      return
+    }
 
     // Validate address fields
     if (!formData.address || !formData.city || !formData.state || !formData.zip || !formData.country) {
       alert('Please fill in all address fields before calculating shipping')
-      return
-    }
-
-    // Validate size selection
-    if (!formData.size) {
-      alert('Please select a size before calculating shipping')
       return
     }
 
@@ -681,18 +891,12 @@ export default function MerchPage() {
       const firstName = nameParts[0] || 'Customer'
       const lastName = nameParts.slice(1).join(' ') || firstName
 
-      // Prepare line items from cart or single product
-      const lineItems = cart.items.length > 0
-        ? cart.items.map(item => ({
-            product_id: item.productId,
-            variant_id: item.variantId,
-            quantity: item.quantity
-          }))
-        : [{
-            product_id: selectedProduct.id,
-            variant_id: parseInt(formData.size),
-            quantity: 1
-          }]
+      // Prepare line items from cart
+      const lineItems = cart.items.map(item => ({
+        product_id: item.productId,
+        variant_id: item.variantId,
+        quantity: item.quantity
+      }))
 
       const response = await fetch('/api/calculate-shipping', {
         method: 'POST',
@@ -738,7 +942,11 @@ export default function MerchPage() {
   }
 
   const handleSubmitOrder = async () => {
-    if (!selectedProduct) return
+    // Validate cart has items
+    if (cart.items.length === 0) {
+      alert('Your cart is empty')
+      return
+    }
 
     // Validate shipping is calculated
     if (!shippingCalculated || !selectedShipping) {
@@ -754,18 +962,10 @@ export default function MerchPage() {
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || firstName
 
-      // Find the selected variant
-      const selectedVariant = selectedProduct.variants.find(v => v.id.toString() === formData.size)
-      if (!selectedVariant) {
-        alert('Please select a size')
-        setIsProcessingOrder(false)
-        return
-      }
-
       if (formData.paymentMethod === 'card') {
         // STRIPE PAYMENT FLOW
         // Calculate total with shipping
-        const productTotal = cart.items.length > 0 ? cart.getTotalPrice() : selectedVariant.price
+        const productTotal = cart.getTotalPrice()
         const shippingCost = selectedShipping.cost / 100 // Convert cents to dollars
         const totalAmount = productTotal + shippingCost
         const amountInCents = Math.round(totalAmount * 100) // Convert dollars to cents
@@ -777,12 +977,15 @@ export default function MerchPage() {
           amountInCents
         })
 
+        // Get first item title for payment description
+        const firstItemTitle = cart.items[0]?.title || 'SLIME Merch'
+
         const paymentResponse = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             amount: amountInCents, // Stripe requires cents (includes shipping)
-            productTitle: selectedProduct.title,
+            productTitle: firstItemTitle,
             customerEmail: formData.email,
             productTotal: productTotal,
             shippingCost: shippingCost,
@@ -803,22 +1006,16 @@ export default function MerchPage() {
       } else {
         // HBAR PAYMENT FLOW
         // Calculate total with shipping
-        const productTotal = cart.items.length > 0 ? cart.getTotalPrice() : selectedVariant.price
+        const productTotal = cart.getTotalPrice()
         const shippingCost = selectedShipping.cost / 100 // Convert cents to dollars
         const totalAmount = productTotal + shippingCost
 
         // Create order data for Printify API
-        const lineItems = cart.items.length > 0
-          ? cart.items.map(item => ({
-              product_id: item.productId,
-              variant_id: item.variantId,
-              quantity: item.quantity
-            }))
-          : [{
-              product_id: selectedProduct.id,
-              variant_id: selectedVariant.id,
-              quantity: 1
-            }]
+        const lineItems = cart.items.map(item => ({
+          product_id: item.productId,
+          variant_id: item.variantId,
+          quantity: item.quantity
+        }))
 
         const orderData = {
           line_items: lineItems,
@@ -857,6 +1054,10 @@ export default function MerchPage() {
         console.log('Printify order created:', printifyOrderId)
         console.log('HBAR memo:', hbarMemo)
 
+        // Get first item title for email
+        const firstItemTitle = cart.items[0]?.title || 'SLIME Merch'
+        const firstItemVariant = cart.items[0]?.variantTitle || ''
+
         // Send email notification
         const emailResponse = await fetch('/api/send-order-notification', {
           method: 'POST',
@@ -865,8 +1066,8 @@ export default function MerchPage() {
             orderMemo: hbarMemo,
             customerName: formData.name,
             customerEmail: formData.email,
-            productTitle: selectedProduct.title,
-            variantTitle: selectedVariant.title,
+            productTitle: firstItemTitle,
+            variantTitle: firstItemVariant,
             price: productTotal,
             shippingCost: shippingCost,
             totalAmount: totalAmount,
@@ -886,7 +1087,7 @@ export default function MerchPage() {
         setOrderDetails({
           orderId: hbarMemo,
           amount: totalAmount,
-          productTitle: selectedProduct.title,
+          productTitle: firstItemTitle,
           email: formData.email
         })
         setSuccessPaymentMethod('crypto')
@@ -912,7 +1113,6 @@ export default function MerchPage() {
           state: '',
           zip: '',
           country: 'United States',
-          size: '',
           paymentMethod: 'card'
         })
 
@@ -941,11 +1141,10 @@ export default function MerchPage() {
 
   const handleStripePaymentSuccess = async () => {
     console.log('Payment success handler called!')
-    console.log('selectedProduct:', selectedProduct)
     console.log('paymentIntentId:', paymentIntentId)
 
-    if (!selectedProduct || !paymentIntentId || !selectedShipping) {
-      console.error('Missing required data:', { selectedProduct, paymentIntentId, selectedShipping })
+    if (!paymentIntentId || !selectedShipping || cart.items.length === 0) {
+      console.error('Missing required data:', { paymentIntentId, selectedShipping, cartItems: cart.items.length })
       return
     }
 
@@ -955,26 +1154,14 @@ export default function MerchPage() {
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || firstName
 
-      // Find the selected variant
-      const selectedVariant = selectedProduct.variants.find(v => v.id.toString() === formData.size)
-      if (!selectedVariant) {
-        throw new Error('Selected variant not found')
-      }
+      console.log('Creating order with cart items:', cart.items)
 
-      console.log('Creating order with variant:', selectedVariant)
-
-      // Prepare line items from cart or single product
-      const lineItems = cart.items.length > 0
-        ? cart.items.map(item => ({
-            product_id: item.productId,
-            variant_id: item.variantId,
-            quantity: item.quantity
-          }))
-        : [{
-            product_id: selectedProduct.id,
-            variant_id: selectedVariant.id,
-            quantity: 1
-          }]
+      // Prepare line items from cart
+      const lineItems = cart.items.map(item => ({
+        product_id: item.productId,
+        variant_id: item.variantId,
+        quantity: item.quantity
+      }))
 
       // Create order data for Printify API
       const orderData = {
@@ -1048,7 +1235,6 @@ export default function MerchPage() {
         state: '',
         zip: '',
         country: 'United States',
-        size: '',
         paymentMethod: 'card'
       })
 
@@ -1264,6 +1450,16 @@ export default function MerchPage() {
         </div>
       </section>
 
+      {/* Product Selection Modal */}
+      {showProductModal && productForModal && (
+        <ProductSelectionModal
+          product={productForModal}
+          onClose={() => setShowProductModal(false)}
+          onAddToCart={handleModalAddToCart}
+          onBuyNow={handleModalBuyNow}
+        />
+      )}
+
       {/* Checkout Modal */}
       {showCheckout && selectedProduct && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -1284,68 +1480,28 @@ export default function MerchPage() {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Product Summary */}
+              {/* Cart Items Summary */}
               <div className="bg-[#252525] rounded-lg p-4 border border-gray-700">
-                <div className="flex gap-4">
-                  <img src={selectedProduct.image} alt={selectedProduct.title} className="w-20 h-20 object-contain" />
-                  <div className="flex-1">
-                    <h3 className="font-bold">{selectedProduct.title}</h3>
-                    <p className="text-sm text-gray-400">{selectedProduct.description}</p>
-                    <p className="text-slime-green font-bold mt-2">${selectedProduct.price}</p>
-                  </div>
+                <h3 className="font-bold mb-3">ORDER ITEMS</h3>
+                <div className="space-y-3">
+                  {cart.items.map((item) => (
+                    <div key={`${item.productId}-${item.variantId}`} className="flex gap-3 pb-3 border-b border-gray-700 last:border-0 last:pb-0">
+                      <img src={item.image} alt={item.title} className="w-16 h-16 object-contain rounded" />
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm">{item.title}</h4>
+                        <p className="text-xs text-gray-400">{item.variantTitle}</p>
+                        <div className="flex justify-between items-center mt-1">
+                          <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
+                          <p className="text-sm font-bold text-slime-green">${(item.price * item.quantity).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-
-              {/* Size Selection */}
-              <div>
-                <label className="block text-sm font-bold mb-2">SIZE *</label>
-                <select
-                  name="size"
-                  value={formData.size}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
-                >
-                  <option value="">Select size</option>
-                  {selectedProduct.variants
-                    .slice()
-                    .sort((a, b) => {
-                      // Define size order
-                      const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', 'One size']
-
-                      // Extract size from variant title (format: "Size / Color" or just "Size")
-                      const getSizeAndColor = (title: string) => {
-                        const parts = title.split(' / ')
-                        return {
-                          size: parts[0]?.trim() || '',
-                          color: parts[1]?.trim() || ''
-                        }
-                      }
-
-                      const variantA = getSizeAndColor(a.title)
-                      const variantB = getSizeAndColor(b.title)
-
-                      // Find size indices
-                      const sizeIndexA = sizeOrder.findIndex(s => variantA.size.includes(s))
-                      const sizeIndexB = sizeOrder.findIndex(s => variantB.size.includes(s))
-
-                      // Sort by size first
-                      if (sizeIndexA !== sizeIndexB) {
-                        // If size not found, put it at the end
-                        if (sizeIndexA === -1) return 1
-                        if (sizeIndexB === -1) return -1
-                        return sizeIndexA - sizeIndexB
-                      }
-
-                      // If same size, sort by color alphabetically
-                      return variantA.color.localeCompare(variantB.color)
-                    })
-                    .map((variant) => (
-                      <option key={variant.id} value={variant.id}>
-                        {variant.title}
-                      </option>
-                    ))}
-                </select>
+                <div className="mt-3 pt-3 border-t border-gray-700 flex justify-between items-center">
+                  <span className="font-bold">Subtotal:</span>
+                  <span className="font-bold text-slime-green">${cart.getTotalPrice().toFixed(2)}</span>
+                </div>
               </div>
 
               {/* Payment Method */}
@@ -1373,7 +1529,7 @@ export default function MerchPage() {
                     }`}
                   >
                     HBAR {shippingCalculated && selectedShipping
-                      ? `(${calculateHBARPrice((cart.items.length > 0 ? cart.getTotalPrice() : selectedProduct.price) + (selectedShipping.cost / 100))} HBAR)`
+                      ? `(${calculateHBARPrice(cart.getTotalPrice() + (selectedShipping.cost / 100))} HBAR)`
                       : ''}
                   </button>
                 </div>
@@ -1554,7 +1710,7 @@ export default function MerchPage() {
                   </p>
                   <ul className="text-sm text-gray-300 space-y-2 mb-3 list-disc list-inside">
                     <li>Your unique order ID / MEMO</li>
-                    <li>Exact HBAR amount to send (currently ~{calculateHBARPrice((cart.items.length > 0 ? cart.getTotalPrice() : selectedProduct.price) + (selectedShipping.cost / 100))} HBAR)</li>
+                    <li>Exact HBAR amount to send (currently ~{calculateHBARPrice(cart.getTotalPrice() + (selectedShipping.cost / 100))} HBAR)</li>
                     <li>Treasury wallet address</li>
                   </ul>
                   <div className="bg-yellow-500/10 border border-yellow-500 rounded p-3">
@@ -1572,12 +1728,7 @@ export default function MerchPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-400">Subtotal:</span>
-                      <span className="font-bold">
-                        ${(cart.items.length > 0
-                          ? cart.getTotalPrice()
-                          : selectedProduct?.variants.find(v => v.id.toString() === formData.size)?.price || 0
-                        ).toFixed(2)}
-                      </span>
+                      <span className="font-bold">${cart.getTotalPrice().toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Shipping ({selectedShipping.name}):</span>
@@ -1587,10 +1738,7 @@ export default function MerchPage() {
                       <div className="flex justify-between text-lg">
                         <span className="font-bold">Total:</span>
                         <span className="font-bold text-slime-green">
-                          ${((cart.items.length > 0
-                            ? cart.getTotalPrice()
-                            : selectedProduct?.variants.find(v => v.id.toString() === formData.size)?.price || 0
-                          ) + (selectedShipping.cost / 100)).toFixed(2)}
+                          ${(cart.getTotalPrice() + (selectedShipping.cost / 100)).toFixed(2)}
                         </span>
                       </div>
                     </div>
