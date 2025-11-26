@@ -1059,6 +1059,19 @@ export default function MerchPage() {
         const firstItemVariant = cart.items[0]?.variantTitle || ''
 
         // Send email notification
+        console.log('Sending HBAR order email with data:', {
+          orderMemo: hbarMemo,
+          customerName: formData.name,
+          customerEmail: formData.email,
+          productTitle: firstItemTitle,
+          variantTitle: firstItemVariant,
+          price: productTotal,
+          shippingCost: shippingCost,
+          totalAmount: totalAmount,
+          hbarAmount: calculateHBARPrice(totalAmount),
+          shippingMethod: selectedShipping.name
+        })
+
         const emailResponse = await fetch('/api/send-order-notification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1077,10 +1090,14 @@ export default function MerchPage() {
           })
         })
 
+        console.log('Email response status:', emailResponse.status)
         const emailResult = await emailResponse.json()
+        console.log('Email result:', emailResult)
 
         if (!emailResult.success) {
           console.error('Failed to send email notification:', emailResult.error)
+        } else {
+          console.log('Email sent successfully!')
         }
 
         // Set order details and show success modal
