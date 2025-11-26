@@ -10,6 +10,11 @@ export default async function handler(req, res) {
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'orders@builtbyslime.org'
     const toEmail = process.env.RESEND_TO_EMAIL || 'orders@builtbyslime.org'
 
+    console.log('Email configuration check:')
+    console.log('- Has API Key:', !!resendApiKey)
+    console.log('- From Email:', fromEmail)
+    console.log('- To Email:', toEmail)
+
     if (!resendApiKey) {
       return res.status(500).json({
         success: false,
@@ -123,12 +128,32 @@ export default async function handler(req, res) {
     `
 
     // Send email
+    console.log('Attempting to send email with Resend...')
+    console.log('From:', fromEmail)
+    console.log('To:', toEmail)
+    console.log('Subject:', `🎨 New HBAR Order - ${orderMemo}`)
+
     const data = await resend.emails.send({
       from: fromEmail,
       to: toEmail,
       subject: `🎨 New HBAR Order - ${orderMemo}`,
       html: emailHtml,
     })
+
+    console.log('Resend API response:', data)
+
+    // Check if Resend returned an error
+    if (data.error) {
+      console.error('Resend API error:', data.error)
+      return res.status(500).json({
+        success: false,
+        error: 'Resend API error',
+        message: data.error.message || 'Unknown Resend error',
+        details: data.error
+      })
+    }
+
+    console.log('Email sent successfully! ID:', data.id)
 
     return res.status(200).json({
       success: true,
