@@ -104,10 +104,14 @@ interface SuccessModalProps {
     productTitle: string
     email: string
   }
+  paymentMethod?: 'card' | 'crypto'
+  hbarAmount?: string
 }
 
-const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose, orderDetails }) => {
+const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose, orderDetails, paymentMethod = 'card', hbarAmount }) => {
   if (!isOpen) return null
+
+  const isHBAR = paymentMethod === 'crypto'
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -132,17 +136,21 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose, orderDetai
         </div>
 
         {/* Success message */}
-        <h2 className="text-2xl font-bold text-center mb-2">PAYMENT SUCCESSFUL!</h2>
-        <p className="text-gray-400 text-center mb-6">Your order has been received</p>
+        <h2 className="text-2xl font-bold text-center mb-2">
+          {isHBAR ? 'ORDER CREATED!' : 'PAYMENT SUCCESSFUL!'}
+        </h2>
+        <p className="text-gray-400 text-center mb-6">
+          {isHBAR ? 'Complete your payment to finalize' : 'Your order has been received'}
+        </p>
 
         {/* Order details */}
         <div className="bg-[#252525] rounded-lg p-4 mb-6 space-y-3">
           <div className="flex justify-between">
-            <span className="text-gray-400">Order ID:</span>
+            <span className="text-gray-400">Order ID / MEMO:</span>
             <span className="font-mono text-slime-green">{orderDetails.orderId}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">Amount Paid:</span>
+            <span className="text-gray-400">{isHBAR ? 'Amount:' : 'Amount Paid:'}</span>
             <span className="font-bold">${orderDetails.amount.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
@@ -155,21 +163,44 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose, orderDetai
           </div>
         </div>
 
+        {/* HBAR Payment Instructions */}
+        {isHBAR && hbarAmount && (
+          <div className="bg-slime-green/10 border border-slime-green rounded-lg p-4 mb-6">
+            <h3 className="font-bold mb-3 text-slime-green">COMPLETE YOUR PAYMENT</h3>
+            <div className="space-y-2 mb-3">
+              <p className="text-sm text-gray-300">
+                <span className="font-bold">Send:</span> <span className="text-slime-green font-bold text-lg">{hbarAmount} HBAR</span>
+              </p>
+              <p className="text-sm text-gray-300">
+                <span className="font-bold">To Wallet:</span> <span className="text-slime-green font-mono break-all">{import.meta.env.VITE_HBAR_TREASURY_WALLET || '0.0.9463056'}</span>
+              </p>
+              <p className="text-sm text-gray-300">
+                <span className="font-bold">MEMO (Required):</span> <span className="text-slime-green font-mono font-bold">{orderDetails.orderId}</span>
+              </p>
+            </div>
+            <div className="bg-yellow-500/10 border border-yellow-500 rounded p-3">
+              <p className="text-sm text-yellow-200">
+                ⚠️ <span className="font-bold">IMPORTANT:</span> You MUST include the memo <span className="font-mono font-bold">{orderDetails.orderId}</span> when sending your HBAR payment!
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* What's next */}
         <div className="bg-[#252525] rounded-lg p-4 mb-6">
           <h3 className="font-bold mb-2 text-slime-green">WHAT'S NEXT?</h3>
           <ul className="text-sm text-gray-300 space-y-2">
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
-              <span>You'll receive an order confirmation email shortly</span>
+              <span>{isHBAR ? 'Check your email for complete payment instructions' : 'You'll receive an order confirmation email shortly'}</span>
             </li>
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
-              <span>Your order will be processed within 24-48 hours</span>
+              <span>{isHBAR ? 'Send HBAR payment with the memo above' : 'Your order will be processed within 24-48 hours'}</span>
             </li>
             <li className="flex items-start">
               <span className="text-slime-green mr-2">•</span>
-              <span>You'll receive shipping updates via email</span>
+              <span>{isHBAR ? 'We'll process your order once payment is confirmed on HashScan' : 'You'll receive shipping updates via email'}</span>
             </li>
           </ul>
         </div>
@@ -348,6 +379,8 @@ export default function MerchPage() {
     productTitle: string
     email: string
   } | null>(null)
+  const [successPaymentMethod, setSuccessPaymentMethod] = useState<'card' | 'crypto'>('card')
+  const [successHbarAmount, setSuccessHbarAmount] = useState<string>('')
 
   // Fetch live HBAR price
   useEffect(() => {
@@ -675,11 +708,26 @@ export default function MerchPage() {
           console.error('Failed to send email notification:', emailResult.error)
         }
 
-        // Show success message
-        alert(`Order created successfully!\n\nOrder ID: ${orderMemo}\n\nPlease send ${calculateHBARPrice(selectedVariant.price / 100)} HBAR to:\n${process.env.HBAR_TREASURY_WALLET || '0.0.9463056'}\n\nIMPORTANT: Include memo "${orderMemo}" with your payment!\n\nYou will also receive an email with payment instructions.`)
+        // Set order details and show success modal
+        setOrderDetails({
+          orderId: orderMemo,
+          amount: selectedVariant.price,
+          productTitle: selectedProduct.title,
+          email: formData.email
+        })
+        setSuccessPaymentMethod('crypto')
+        setSuccessHbarAmount(calculateHBARPrice(selectedVariant.price))
+        setShowSuccessModal(true)
 
-        // Reset
+        // Clear cart after successful order
+        cart.clearCart()
+
+        // Close checkout
         setShowCheckout(false)
+        setClientSecret(null)
+        setPaymentIntentId(null)
+
+        // Reset form data
         setFormData({
           name: '',
           email: '',
@@ -784,6 +832,7 @@ export default function MerchPage() {
         productTitle: selectedProduct.title,
         email: formData.email
       })
+      setSuccessPaymentMethod('card')
       setShowSuccessModal(true)
 
       // Clear cart after successful order
@@ -1288,6 +1337,8 @@ export default function MerchPage() {
             setOrderDetails(null)
           }}
           orderDetails={orderDetails}
+          paymentMethod={successPaymentMethod}
+          hbarAmount={successHbarAmount}
         />
       )}
 
