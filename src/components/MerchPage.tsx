@@ -114,12 +114,23 @@ interface SuccessModalProps {
   }
   paymentMethod?: 'card' | 'crypto'
   hbarAmount?: string
+  shippingCost?: number
+  productTotal?: number
 }
 
-const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose, orderDetails, paymentMethod = 'card', hbarAmount }) => {
+const SuccessModal: React.FC<SuccessModalProps> = ({
+  isOpen,
+  onClose,
+  orderDetails,
+  paymentMethod = 'card',
+  hbarAmount,
+  shippingCost,
+  productTotal
+}) => {
   if (!isOpen) return null
 
   const isHBAR = paymentMethod === 'crypto'
+  const hasBreakdown = shippingCost !== undefined && productTotal !== undefined
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -157,10 +168,32 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose, orderDetai
             <span className="text-gray-400">Order ID / MEMO:</span>
             <span className="font-mono text-slime-green">{orderDetails.orderId}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">{isHBAR ? 'Amount:' : 'Amount Paid:'}</span>
-            <span className="font-bold">${orderDetails.amount.toFixed(2)}</span>
-          </div>
+
+          {/* Show breakdown if available */}
+          {hasBreakdown ? (
+            <>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Product Total:</span>
+                <span className="font-bold">${productTotal!.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Shipping:</span>
+                <span className="font-bold">${shippingCost!.toFixed(2)}</span>
+              </div>
+              <div className="border-t border-gray-700 pt-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-400 font-bold">{isHBAR ? 'Total Amount:' : 'Total Paid:'}</span>
+                  <span className="font-bold text-slime-green text-lg">${orderDetails.amount.toFixed(2)}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between">
+              <span className="text-gray-400">{isHBAR ? 'Amount:' : 'Amount Paid:'}</span>
+              <span className="font-bold">${orderDetails.amount.toFixed(2)}</span>
+            </div>
+          )}
+
           <div className="flex justify-between">
             <span className="text-gray-400">Product:</span>
             <span className="text-right">{orderDetails.productTitle}</span>
@@ -395,6 +428,8 @@ export default function MerchPage() {
   } | null>(null)
   const [successPaymentMethod, setSuccessPaymentMethod] = useState<'card' | 'crypto'>('card')
   const [successHbarAmount, setSuccessHbarAmount] = useState<string>('')
+  const [successShippingCost, setSuccessShippingCost] = useState<number | undefined>(undefined)
+  const [successProductTotal, setSuccessProductTotal] = useState<number | undefined>(undefined)
 
   // Fetch live HBAR price
   useEffect(() => {
@@ -846,6 +881,8 @@ export default function MerchPage() {
         })
         setSuccessPaymentMethod('crypto')
         setSuccessHbarAmount(calculateHBARPrice(totalAmount))
+        setSuccessShippingCost(shippingCost)
+        setSuccessProductTotal(productTotal)
         setShowSuccessModal(true)
 
         // Clear cart after successful order
@@ -980,6 +1017,8 @@ export default function MerchPage() {
         email: formData.email
       })
       setSuccessPaymentMethod('card')
+      setSuccessShippingCost(shippingCost)
+      setSuccessProductTotal(productTotal)
       setShowSuccessModal(true)
 
       // Clear cart after successful order
@@ -1591,10 +1630,14 @@ export default function MerchPage() {
           onClose={() => {
             setShowSuccessModal(false)
             setOrderDetails(null)
+            setSuccessShippingCost(undefined)
+            setSuccessProductTotal(undefined)
           }}
           orderDetails={orderDetails}
           paymentMethod={successPaymentMethod}
           hbarAmount={successHbarAmount}
+          shippingCost={successShippingCost}
+          productTotal={successProductTotal}
         />
       )}
 
