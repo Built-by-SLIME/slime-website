@@ -782,6 +782,9 @@ export default function MerchPage() {
       })
       setShowSuccessModal(true)
 
+      // Clear cart after successful order
+      cart.clearCart()
+
       // Close checkout
       setShowCheckout(false)
       setClientSecret(null)
