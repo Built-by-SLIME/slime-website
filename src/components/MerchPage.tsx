@@ -3,6 +3,8 @@ import Footer from './Footer'
 import type { PrintifyProduct } from '../types/printify'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { useCart } from '../context/CartContext'
+import CartModal from './CartModal'
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
@@ -187,13 +189,16 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose, orderDetai
 function ProductCard({
   product,
   onBuyNow,
+  onAddToCart,
   calculateHBARPrice
 }: {
   product: Product
   onBuyNow: (product: Product) => void
+  onAddToCart: (product: Product, quantity: number) => void
   calculateHBARPrice: (price: number) => string
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [quantity, setQuantity] = useState(1)
 
   const nextImage = () => {
     setCurrentImageIndex((prev) =>
@@ -261,18 +266,47 @@ function ProductCard({
           <h3 className="text-2xl font-bold mb-2">{product.title}</h3>
           <p className="text-gray-400 text-sm line-clamp-3">{product.description}</p>
         </div>
-        <div className="flex justify-between items-center pt-2 border-t border-gray-700">
-          <div>
-            <div className="text-xs text-gray-400 mb-1">From</div>
-            <div className="text-2xl font-black text-slime-green">${product.price.toFixed(2)}</div>
-            <div className="text-xs text-gray-500">~{calculateHBARPrice(product.price)} HBAR</div>
+        <div className="space-y-3 pt-2 border-t border-gray-700">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="text-xs text-gray-400 mb-1">From</div>
+              <div className="text-2xl font-black text-slime-green">${product.price.toFixed(2)}</div>
+              <div className="text-xs text-gray-500">~{calculateHBARPrice(product.price)} HBAR</div>
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="w-8 h-8 bg-[#252525] hover:bg-slime-green hover:text-black rounded transition font-bold"
+              >
+                −
+              </button>
+              <span className="w-12 text-center font-bold">{quantity}</span>
+              <button
+                onClick={() => setQuantity(quantity + 1)}
+                className="w-8 h-8 bg-[#252525] hover:bg-slime-green hover:text-black rounded transition font-bold"
+              >
+                +
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => onBuyNow(product)}
-            className="bg-slime-green text-black px-6 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
-          >
-            BUY NOW
-          </button>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => onAddToCart(product, quantity)}
+              className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-md font-bold text-sm hover:bg-gray-600 transition"
+            >
+              ADD TO CART
+            </button>
+            <button
+              onClick={() => onBuyNow(product)}
+              className="flex-1 bg-slime-green text-black px-4 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
+            >
+              BUY NOW
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -280,8 +314,10 @@ function ProductCard({
 }
 
 export default function MerchPage() {
+  const cart = useCart()
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showCheckout, setShowCheckout] = useState(false)
+  const [showCart, setShowCart] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -487,6 +523,39 @@ export default function MerchPage() {
     setClientSecret(null)
     setPaymentIntentId(null)
     setOrderMemo(generateOrderMemo())
+  }
+
+  const handleAddToCart = (product: Product, quantity: number) => {
+    // Add first variant by default (user will select size in checkout)
+    const firstVariant = product.variants[0]
+    cart.addItem({
+      productId: product.id,
+      variantId: firstVariant.id,
+      title: product.title,
+      variantTitle: firstVariant.title,
+      price: firstVariant.price,
+      image: product.image
+    }, quantity)
+
+    // Show a brief success message (optional - could add a toast notification)
+    console.log(`Added ${quantity}x ${product.title} to cart`)
+  }
+
+  const handleCheckoutFromCart = () => {
+    setShowCart(false)
+    // For now, we'll use the first item in cart as selected product
+    // In a full implementation, we'd handle multiple items differently
+    if (cart.items.length > 0) {
+      const firstItem = cart.items[0]
+      const product = products.find(p => p.id === firstItem.productId)
+      if (product) {
+        setSelectedProduct(product)
+        setShowCheckout(true)
+        setClientSecret(null)
+        setPaymentIntentId(null)
+        setOrderMemo(generateOrderMemo())
+      }
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -790,25 +859,56 @@ export default function MerchPage() {
                   <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
                 </svg>
               </a>
+              {/* Cart Icon */}
+              <button
+                onClick={() => setShowCart(true)}
+                className="relative text-gray-300 hover:text-slime-green transition"
+                aria-label="Shopping cart"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                {cart.getTotalItems() > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-slime-green text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cart.getTotalItems()}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
-          {/* Mobile Hamburger Button */}
-          <button
-            className="md:hidden text-gray-300 hover:text-slime-green transition z-50"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? (
+          {/* Mobile Cart & Hamburger Buttons */}
+          <div className="md:hidden flex items-center gap-4">
+            <button
+              onClick={() => setShowCart(true)}
+              className="relative text-gray-300 hover:text-slime-green transition"
+              aria-label="Shopping cart"
+            >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
+              {cart.getTotalItems() > 0 && (
+                <span className="absolute -top-2 -right-2 bg-slime-green text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {cart.getTotalItems()}
+                </span>
+              )}
+            </button>
+            <button
+              className="text-gray-300 hover:text-slime-green transition z-50"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         </nav>
 
         {/* Mobile Menu */}
@@ -897,6 +997,7 @@ export default function MerchPage() {
                   key={product.id}
                   product={product}
                   onBuyNow={handleBuyNow}
+                  onAddToCart={handleAddToCart}
                   calculateHBARPrice={calculateHBARPrice}
                 />
               ))}
@@ -1182,6 +1283,13 @@ export default function MerchPage() {
           orderDetails={orderDetails}
         />
       )}
+
+      {/* Cart Modal */}
+      <CartModal
+        isOpen={showCart}
+        onClose={() => setShowCart(false)}
+        onCheckout={handleCheckoutFromCart}
+      />
 
       {/* Footer */}
       <Footer />
