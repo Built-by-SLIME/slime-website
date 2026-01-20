@@ -46,8 +46,9 @@ export default function CollectionPage() {
         throw new Error('Missing API configuration')
       }
 
+      // Use proxy to avoid CORS issues
       const response = await fetch(
-        `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${itemsPerPage}&page=${page}&sortBy=rarity&sortDirection=ASC`
+        `/api/sentx-proxy?apikey=${apiKey}&token=${tokenId}&limit=${itemsPerPage}&page=${page}&sortBy=rarity&sortDirection=ASC`
       )
 
       if (!response.ok) {

@@ -41,8 +41,9 @@ export default function HotNFTs() {
       }
 
       // Fetch more NFTs to ensure we get enough listed ones
+      // Use proxy to avoid CORS issues
       const response = await fetch(
-        `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=100&sortBy=listingDate&sortDirection=DESC`
+        `/api/sentx-proxy?apikey=${apiKey}&token=${tokenId}&limit=100&sortBy=listingDate&sortDirection=DESC`
       )
 
       if (!response.ok) {
