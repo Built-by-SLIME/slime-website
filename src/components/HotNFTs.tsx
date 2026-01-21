@@ -65,7 +65,7 @@ export default function HotNFTs() {
       setNfts(listedNFTs)
     } catch (err) {
       console.error('Error fetching SentX listings:', err)
-      setError('Unable to load listings')
+      setError('SentX API is temporarily unavailable')
       setNfts([])
     } finally {
       setLoading(false)
