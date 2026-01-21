@@ -32,6 +32,12 @@ interface CheckoutForm {
   state: string
   zip: string
   country: string
+  shippingName: string
+  shippingAddress: string
+  shippingCity: string
+  shippingState: string
+  shippingZip: string
+  shippingCountry: string
   paymentMethod: 'card' | 'crypto'
 }
 
@@ -588,8 +594,15 @@ export default function MerchPage() {
     state: '',
     zip: '',
     country: 'United States',
+    shippingName: '',
+    shippingAddress: '',
+    shippingCity: '',
+    shippingState: '',
+    shippingZip: '',
+    shippingCountry: 'United States',
     paymentMethod: 'card'
   })
+  const [sameAsBilling, setSameAsBilling] = useState(true)
 
   // Product selection modal state
   const [showProductModal, setShowProductModal] = useState(false)
@@ -877,9 +890,26 @@ export default function MerchPage() {
       return
     }
 
-    // Validate address fields
-    if (!formData.address || !formData.city || !formData.state || !formData.zip || !formData.country) {
-      alert('Please fill in all address fields before calculating shipping')
+    // Determine which address to use for shipping
+    const shippingAddress = sameAsBilling ? {
+      name: formData.name,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      zip: formData.zip,
+      country: formData.country
+    } : {
+      name: formData.shippingName,
+      address: formData.shippingAddress,
+      city: formData.shippingCity,
+      state: formData.shippingState,
+      zip: formData.shippingZip,
+      country: formData.shippingCountry
+    }
+
+    // Validate shipping address fields
+    if (!shippingAddress.address || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip || !shippingAddress.country) {
+      alert('Please fill in all shipping address fields before calculating shipping')
       return
     }
 
@@ -887,7 +917,7 @@ export default function MerchPage() {
 
     try {
       // Split name into first and last name
-      const nameParts = formData.name.trim().split(' ')
+      const nameParts = shippingAddress.name.trim().split(' ')
       const firstName = nameParts[0] || 'Customer'
       const lastName = nameParts.slice(1).join(' ') || firstName
 
@@ -907,11 +937,11 @@ export default function MerchPage() {
             first_name: firstName,
             last_name: lastName,
             email: formData.email || '[email protected]',
-            country: formData.country === 'United States' ? 'US' : formData.country,
-            region: formData.state,
-            address1: formData.address,
-            city: formData.city,
-            zip: formData.zip
+            country: shippingAddress.country === 'United States' ? 'US' : shippingAddress.country,
+            region: shippingAddress.state,
+            address1: shippingAddress.address,
+            city: shippingAddress.city,
+            zip: shippingAddress.zip
           }
         })
       })
@@ -957,8 +987,25 @@ export default function MerchPage() {
     setIsProcessingOrder(true)
 
     try {
+      // Determine which address to use for shipping
+      const shippingAddress = sameAsBilling ? {
+        name: formData.name,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        country: formData.country
+      } : {
+        name: formData.shippingName,
+        address: formData.shippingAddress,
+        city: formData.shippingCity,
+        state: formData.shippingState,
+        zip: formData.shippingZip,
+        country: formData.shippingCountry
+      }
+
       // Split name into first and last name
-      const nameParts = formData.name.trim().split(' ')
+      const nameParts = shippingAddress.name.trim().split(' ')
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || firstName
 
@@ -1026,11 +1073,11 @@ export default function MerchPage() {
             last_name: lastName,
             email: formData.email,
             phone: '',
-            country: formData.country === 'United States' ? 'US' : formData.country,
-            region: formData.state,
-            address1: formData.address,
-            city: formData.city,
-            zip: formData.zip
+            country: shippingAddress.country === 'United States' ? 'US' : shippingAddress.country,
+            region: shippingAddress.state,
+            address1: shippingAddress.address,
+            city: shippingAddress.city,
+            zip: shippingAddress.zip
           }
         }
 
@@ -1166,8 +1213,25 @@ export default function MerchPage() {
     }
 
     try {
+      // Determine which address to use for shipping
+      const shippingAddress = sameAsBilling ? {
+        name: formData.name,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        country: formData.country
+      } : {
+        name: formData.shippingName,
+        address: formData.shippingAddress,
+        city: formData.shippingCity,
+        state: formData.shippingState,
+        zip: formData.shippingZip,
+        country: formData.shippingCountry
+      }
+
       // Split name into first and last name
-      const nameParts = formData.name.trim().split(' ')
+      const nameParts = shippingAddress.name.trim().split(' ')
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || firstName
 
@@ -1190,11 +1254,11 @@ export default function MerchPage() {
           last_name: lastName,
           email: formData.email,
           phone: '',
-          country: formData.country === 'United States' ? 'US' : formData.country,
-          region: formData.state,
-          address1: formData.address,
-          city: formData.city,
-          zip: formData.zip
+          country: shippingAddress.country === 'United States' ? 'US' : shippingAddress.country,
+          region: shippingAddress.state,
+          address1: shippingAddress.address,
+          city: shippingAddress.city,
+          zip: shippingAddress.zip
         }
       }
 
@@ -1252,8 +1316,15 @@ export default function MerchPage() {
         state: '',
         zip: '',
         country: 'United States',
+        shippingName: '',
+        shippingAddress: '',
+        shippingCity: '',
+        shippingState: '',
+        shippingZip: '',
+        shippingCountry: 'United States',
         paymentMethod: 'card'
       })
+      setSameAsBilling(true)
 
       // Reset shipping
       setShippingCalculated(false)
@@ -1552,10 +1623,10 @@ export default function MerchPage() {
                 </div>
               </div>
 
-              {/* Shipping Information */}
+              {/* Billing Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-bold">SHIPPING INFORMATION</h3>
-                
+                <h3 className="text-lg font-bold">BILLING INFORMATION</h3>
+
                 <div>
                   <label className="block text-sm font-bold mb-2">FULL NAME *</label>
                   <input
@@ -1641,6 +1712,100 @@ export default function MerchPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Shipping Information */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold">SHIPPING INFORMATION</h3>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sameAsBilling}
+                      onChange={(e) => setSameAsBilling(e.target.checked)}
+                      className="w-4 h-4 accent-slime-green"
+                    />
+                    <span className="text-sm text-gray-300">Same as billing</span>
+                  </label>
+                </div>
+
+                {!sameAsBilling && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-bold mb-2">FULL NAME *</label>
+                      <input
+                        type="text"
+                        name="shippingName"
+                        value={formData.shippingName}
+                        onChange={handleInputChange}
+                        required={!sameAsBilling}
+                        className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold mb-2">ADDRESS *</label>
+                      <input
+                        type="text"
+                        name="shippingAddress"
+                        value={formData.shippingAddress}
+                        onChange={handleInputChange}
+                        required={!sameAsBilling}
+                        className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold mb-2">CITY *</label>
+                        <input
+                          type="text"
+                          name="shippingCity"
+                          value={formData.shippingCity}
+                          onChange={handleInputChange}
+                          required={!sameAsBilling}
+                          className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold mb-2">STATE *</label>
+                        <input
+                          type="text"
+                          name="shippingState"
+                          value={formData.shippingState}
+                          onChange={handleInputChange}
+                          required={!sameAsBilling}
+                          className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold mb-2">ZIP CODE *</label>
+                        <input
+                          type="text"
+                          name="shippingZip"
+                          value={formData.shippingZip}
+                          onChange={handleInputChange}
+                          required={!sameAsBilling}
+                          className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold mb-2">COUNTRY *</label>
+                        <input
+                          type="text"
+                          name="shippingCountry"
+                          value={formData.shippingCountry}
+                          onChange={handleInputChange}
+                          required={!sameAsBilling}
+                          className="w-full bg-[#252525] border border-gray-700 rounded-md px-4 py-3 text-white focus:border-slime-green focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Shipping Calculation */}
