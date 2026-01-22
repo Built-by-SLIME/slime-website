@@ -89,15 +89,15 @@ export default function SwapPage() {
         const appMetadata = {
           name: 'SLIME NFT Swap',
           description: 'Swap your old SLIME NFTs for new ones',
-          icons: ['https://builtbyslime.org/favicon.ico'],
-          url: 'https://builtbyslime.org'
+          icons: ['https://builtbyslime.org/favicon.ico']
         }
 
-        // Initialize HashConnect
-        await hashconnect.init(appMetadata, 'mainnet', false)
+        // Initialize HashConnect with project ID
+        const initData = await hashconnect.init(appMetadata, import.meta.env.VITE_WALLETCONNECT_PROJECT_ID, false)
+        console.log('HashConnect initialized:', initData)
 
         // Listen for pairing events
-        hashconnect.pairingEvent.on((pairingData) => {
+        hashconnect.pairingEvent.once((pairingData) => {
           console.log('Pairing event:', pairingData)
           pairingDataRef.current = pairingData
 
@@ -110,7 +110,7 @@ export default function SwapPage() {
         })
 
         // Listen for disconnect events
-        hashconnect.disconnectionEvent.on(() => {
+        hashconnect.disconnectionEvent.once(() => {
           console.log('Disconnected')
           setWalletConnected(false)
           setAccountId('')
@@ -120,6 +120,7 @@ export default function SwapPage() {
         })
       } catch (err) {
         console.error('Failed to initialize HashConnect:', err)
+        setError('Failed to initialize wallet connection')
       }
     }
 
@@ -128,7 +129,11 @@ export default function SwapPage() {
     return () => {
       // Cleanup on unmount
       if (hashconnectRef.current) {
-        hashconnectRef.current.disconnect()
+        try {
+          hashconnectRef.current.disconnect()
+        } catch (err) {
+          console.error('Error disconnecting:', err)
+        }
       }
     }
   }, [])
@@ -143,8 +148,9 @@ export default function SwapPage() {
       }
 
       // This will show the pairing modal with QR code
-      await hashconnectRef.current.connectToLocalWallet()
+      hashconnectRef.current.openPairingModal()
     } catch (err) {
+      console.error('Connect wallet error:', err)
       setError(err instanceof Error ? err.message : 'Failed to connect wallet')
     }
   }
