@@ -1,18 +1,10 @@
 import { useState } from 'react'
 
-export default function Hero() {
+export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
-    <section className="relative min-h-screen flex flex-col bg-[#2a2a2a] overflow-visible">
-      {/* Dot pattern background with gradient fade */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(0, 255, 64, 1) 1px, transparent 1px)',
-        backgroundSize: '50px 50px',
-        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)'
-      }}></div>
-
+    <>
       {/* Navigation */}
       <nav className="relative flex justify-between items-center px-4 py-5 z-10" style={{ paddingLeft: undefined, paddingRight: undefined }}>
         <style>{`
@@ -21,7 +13,9 @@ export default function Hero() {
           }
         `}</style>
         <div className="flex items-center md:mt-[4px]">
-          <img src="/Assets/SPLAT.png" alt="SLIME" className="h-auto w-10 md:w-12" />
+          <a href="/">
+            <img src="/Assets/SPLAT.png" alt="SLIME" className="h-auto w-10 md:w-12" />
+          </a>
         </div>
 
         {/* Desktop Navigation */}
@@ -45,7 +39,7 @@ export default function Hero() {
             </a>
             <a href="https://discord.gg/8X9PvNFyzK" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+                <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0 a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
               </svg>
             </a>
           </div>
@@ -120,58 +114,14 @@ export default function Hero() {
               </a>
               <a href="https://discord.gg/8X9PvNFyzK" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">
                 <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+                  <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0 a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
                 </svg>
               </a>
             </div>
           </div>
         </div>
       )}
-
-      {/* Hero Content - Match BEANZ: text centered, characters at bottom */}
-      <div className="flex-1 relative overflow-visible">
-        {/* Left Character - STAYS at bottom left corner */}
-        <div className="hidden lg:block absolute left-0 bottom-0 z-0" style={{ transform: 'rotate(8deg)', transformOrigin: 'bottom left' }}>
-          <img
-            src="/Assets/slime1.png"
-            alt="SLIME Character"
-            className="object-contain object-bottom"
-            style={{ width: '384px', height: '384px' }}
-          />
-        </div>
-
-        {/* Center - Text Content - Centered in viewport */}
-        <div className="h-full flex items-center justify-center pt-8 md:pt-32">
-          <div className="text-center z-10 max-w-5xl px-4">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-none tracking-tight mb-6" style={{ fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace" }}>
-              SHAPE THE FUTURE OF HEDERA.<br />
-              JOIN SLIME.
-            </h1>
-            <p className="text-gray-400 text-base md:text-lg mb-8 max-w-2xl mx-auto">
-              SLIME is a development collective dedicated to delivering production-grade FOSS to the Hedera ecosystem. We scout, and mentor new builders - then ship production-ready FOSS for Hedera, governed 100% by our DAO.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="https://sentx.io/nft-marketplace/slime" target="_blank" rel="noopener noreferrer" className="bg-slime-green text-black px-10 py-3.5 rounded-md font-bold text-sm hover:bg-[#00cc33] transition text-center">
-                BUY SLIME
-              </a>
-              <a href="/collection" className="bg-transparent border-2 border-slime-green text-slime-green px-10 py-3.5 rounded-md font-bold text-sm hover:bg-slime-green hover:text-black transition text-center">
-                VIEW COLLECTION
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Character - STAYS at bottom right corner */}
-        <div className="hidden lg:block absolute right-0 bottom-0 z-0" style={{ transform: 'rotate(-8deg)', transformOrigin: 'bottom right' }}>
-          <img
-            src="/Assets/slime2.png"
-            alt="SLIME Character"
-            className="object-contain object-bottom"
-            style={{ width: '340px', height: '340px' }}
-          />
-        </div>
-      </div>
-    </section>
+    </>
   )
 }
 

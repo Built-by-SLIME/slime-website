@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Navigation from './Navigation'
 import Footer from './Footer'
 
 interface NFT {
@@ -186,24 +187,20 @@ export default function SwapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white">
+    <div className="min-h-screen bg-[#2a2a2a] text-white">
+      {/* Dot pattern background with gradient fade */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: 'radial-gradient(circle, rgba(0, 255, 64, 1) 1px, transparent 1px)',
+        backgroundSize: '50px 50px',
+        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)'
+      }}></div>
+
       {/* Navigation */}
-      <nav className="bg-[#2a2a2a] border-b border-slime-green/20">
-        <div className="max-w-7xl mx-auto px-8 py-4">
-          <div className="flex items-center justify-between">
-            <a href="/" className="text-2xl font-black text-slime-green">SLIME</a>
-            <div className="flex gap-6">
-              <a href="/home" className="hover:text-slime-green transition">HOME</a>
-              <a href="/collection" className="hover:text-slime-green transition">COLLECTION</a>
-              <a href="/merch" className="hover:text-slime-green transition">MERCH</a>
-              <a href="/swap" className="text-slime-green font-bold">SWAP</a>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-8 py-16">
+      <div className="relative max-w-7xl mx-auto px-8 py-16">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-black mb-4">NFT SWAP</h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
@@ -214,7 +211,7 @@ export default function SwapPage() {
 
         {/* Wallet Connection */}
         {!walletConnected ? (
-          <div className="max-w-md mx-auto bg-[#2a2a2a] border border-gray-700 rounded-lg p-8 text-center">
+          <div className="max-w-md mx-auto text-center">
             <h2 className="text-2xl font-bold mb-4">CONNECT YOUR WALLET</h2>
             <p className="text-gray-400 mb-6">
               Connect your HashPack wallet to view and swap your old SLIME NFTs.
@@ -237,7 +234,7 @@ export default function SwapPage() {
         ) : (
           <div>
             {/* Connected Wallet Info */}
-            <div className="bg-[#2a2a2a] border border-gray-700 rounded-lg p-6 mb-8">
+            <div className="bg-black/20 border border-slime-green/30 rounded-lg p-6 mb-8">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-400">CONNECTED WALLET</p>
@@ -267,7 +264,7 @@ export default function SwapPage() {
 
             {/* No NFTs Found */}
             {!loading && oldNFTs.length === 0 && (
-              <div className="text-center py-12 bg-[#2a2a2a] border border-gray-700 rounded-lg">
+              <div className="text-center py-12">
                 <p className="text-gray-400 text-lg">No old SLIME NFTs found in your wallet.</p>
                 <p className="text-gray-500 text-sm mt-2">Token ID: {OLD_TOKEN_ID}</p>
               </div>
@@ -312,12 +309,12 @@ export default function SwapPage() {
                       <div
                         key={nft.serial_number}
                         onClick={() => toggleNFTSelection(nft.serial_number)}
-                        className={`bg-[#2a2a2a] border-2 rounded-lg overflow-hidden cursor-pointer transition ${
-                          isSelected ? 'border-slime-green' : 'border-gray-700 hover:border-gray-600'
+                        className={`bg-black/30 border-2 rounded-lg overflow-hidden cursor-pointer transition ${
+                          isSelected ? 'border-slime-green' : 'border-gray-700/50 hover:border-slime-green/50'
                         }`}
                       >
                         {/* NFT Image */}
-                        <div className="aspect-square bg-[#1a1a1a] relative">
+                        <div className="aspect-square bg-black/50 relative">
                           {metadata?.image ? (
                             <img
                               src={metadata.image}
