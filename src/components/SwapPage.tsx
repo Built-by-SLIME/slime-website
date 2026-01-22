@@ -274,7 +274,7 @@ export default function SwapPage() {
               onClick={connectWallet}
               className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition"
             >
-              CONNECT HASHPACK
+              CONNECT WALLET
             </button>
             {error && (
               <div className="mt-4 bg-red-500/10 border border-red-500 rounded p-3 text-red-500 text-sm">
