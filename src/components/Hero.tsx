@@ -27,9 +27,9 @@ export default function Hero() {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-10" style={{ marginTop: '4px' }}>
           <div className="flex gap-10 text-sm font-medium">
-            <a href="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</a>
             <a href="/swap" className="text-gray-300 hover:text-slime-green transition">SWAP</a>
             <a href="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</a>
+            <a href="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</a>
           </div>
           {/* Social Icons */}
           <div className="flex items-center gap-4">
@@ -85,13 +85,6 @@ export default function Hero() {
 
           <div className="flex flex-col items-center gap-8 text-center">
             <a
-              href="/collection"
-              className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              COLLECTION
-            </a>
-            <a
               href="/swap"
               className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
               onClick={() => setMobileMenuOpen(false)}
@@ -104,6 +97,13 @@ export default function Hero() {
               onClick={() => setMobileMenuOpen(false)}
             >
               MERCH
+            </a>
+            <a
+              href="/collection"
+              className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              COLLECTION
             </a>
 
             {/* Social Icons */}
