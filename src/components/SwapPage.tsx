@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { HashConnect } from 'hashconnect'
+import { DAppConnector, HederaSessionEvent, HederaJsonRpcMethod, HederaChainId } from '@hashgraph/hedera-wallet-connect'
+import { LedgerId } from '@hiero-ledger/sdk'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
@@ -30,8 +31,7 @@ export default function SwapPage() {
   const OLD_TOKEN_ID = import.meta.env.VITE_OLD_TOKEN_ID || '0.0.8357917'
   const NEW_TOKEN_ID = import.meta.env.VITE_NEW_TOKEN_ID || '0.0.9474754'
 
-  const hashconnectRef = useRef<HashConnect | null>(null)
-  const pairingDataRef = useRef<any>(null)
+  const dAppConnectorRef = useRef<DAppConnector | null>(null)
 
   // Decode base64 metadata
   const decodeMetadata = (base64: string): NFTMetadata | null => {
@@ -79,58 +79,61 @@ export default function SwapPage() {
     }
   }
 
-  // Initialize HashConnect on component mount
+  // Initialize DAppConnector on component mount
   useEffect(() => {
-    const initHashConnect = async () => {
+    const initDAppConnector = async () => {
       try {
-        const hashconnect = new HashConnect()
-        hashconnectRef.current = hashconnect
-
-        const appMetadata = {
+        const metadata = {
           name: 'SLIME NFT Swap',
           description: 'Swap your old SLIME NFTs for new ones',
+          url: window.location.origin,
           icons: ['https://builtbyslime.org/favicon.ico']
         }
 
-        // Initialize HashConnect with project ID
-        const initData = await hashconnect.init(appMetadata, import.meta.env.VITE_WALLETCONNECT_PROJECT_ID, false)
-        console.log('HashConnect initialized:', initData)
+        const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
-        // Listen for pairing events
-        hashconnect.pairingEvent.once((pairingData) => {
-          console.log('Pairing event:', pairingData)
-          pairingDataRef.current = pairingData
+        // Initialize DAppConnector
+        const dAppConnector = new DAppConnector(
+          metadata,
+          LedgerId.MAINNET,
+          projectId,
+          Object.values(HederaJsonRpcMethod),
+          [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
+          [HederaChainId.Mainnet]
+        )
 
-          if (pairingData.accountIds && pairingData.accountIds.length > 0) {
-            const account = pairingData.accountIds[0]
-            setAccountId(account)
-            setWalletConnected(true)
-            fetchOldNFTs(account)
+        await dAppConnector.init({ logger: 'error' })
+        dAppConnectorRef.current = dAppConnector
+
+        console.log('DAppConnector initialized')
+
+        // Listen for session events
+        dAppConnector.onSessionEvent((event) => {
+          console.log('Session event:', event)
+
+          if (event.name === HederaSessionEvent.AccountsChanged) {
+            const accounts = event.data as string[]
+            if (accounts && accounts.length > 0) {
+              const account = accounts[0].split(':').pop() || ''
+              setAccountId(account)
+              setWalletConnected(true)
+              fetchOldNFTs(account)
+            }
           }
         })
-
-        // Listen for disconnect events
-        hashconnect.disconnectionEvent.once(() => {
-          console.log('Disconnected')
-          setWalletConnected(false)
-          setAccountId('')
-          setOldNFTs([])
-          setSelectedNFTs(new Set())
-          pairingDataRef.current = null
-        })
       } catch (err) {
-        console.error('Failed to initialize HashConnect:', err)
+        console.error('Failed to initialize DAppConnector:', err)
         setError('Failed to initialize wallet connection')
       }
     }
 
-    initHashConnect()
+    initDAppConnector()
 
     return () => {
       // Cleanup on unmount
-      if (hashconnectRef.current) {
+      if (dAppConnectorRef.current) {
         try {
-          hashconnectRef.current.disconnect()
+          dAppConnectorRef.current.disconnectAll()
         } catch (err) {
           console.error('Error disconnecting:', err)
         }
@@ -138,17 +141,32 @@ export default function SwapPage() {
     }
   }, [])
 
-  // Connect wallet using HashConnect
+  // Connect wallet using DAppConnector
   const connectWallet = async () => {
     setError('')
 
     try {
-      if (!hashconnectRef.current) {
-        throw new Error('HashConnect not initialized')
+      if (!dAppConnectorRef.current) {
+        throw new Error('DAppConnector not initialized')
       }
 
-      // This will show the pairing modal with QR code
-      hashconnectRef.current.openPairingModal()
+      // This will show the modal with QR code for mobile wallets
+      await dAppConnectorRef.current.openModal()
+
+      // Get connected sessions
+      const sessions = dAppConnectorRef.current.walletConnectClient?.session.getAll()
+      if (sessions && sessions.length > 0) {
+        const session = sessions[0]
+        const hederaAccounts = session.namespaces?.hedera?.accounts || []
+
+        if (hederaAccounts.length > 0) {
+          // Extract account ID from format: hedera:mainnet:0.0.xxxxx
+          const account = hederaAccounts[0].split(':').pop() || ''
+          setAccountId(account)
+          setWalletConnected(true)
+          fetchOldNFTs(account)
+        }
+      }
     } catch (err) {
       console.error('Connect wallet error:', err)
       setError(err instanceof Error ? err.message : 'Failed to connect wallet')
