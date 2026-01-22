@@ -281,9 +281,6 @@ export default function SwapPage() {
                 {error}
               </div>
             )}
-            <p className="text-xs text-gray-500 mt-4">
-              Don't have HashPack? <a href="https://www.hashpack.app/" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">Get it here</a>
-            </p>
           </div>
         ) : (
           <div>
