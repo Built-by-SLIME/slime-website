@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { HashConnect } from 'hashconnect'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
@@ -28,6 +29,9 @@ export default function SwapPage() {
 
   const OLD_TOKEN_ID = import.meta.env.VITE_OLD_TOKEN_ID || '0.0.8357917'
   const NEW_TOKEN_ID = import.meta.env.VITE_NEW_TOKEN_ID || '0.0.9474754'
+
+  const hashconnectRef = useRef<HashConnect | null>(null)
+  const pairingDataRef = useRef<any>(null)
 
   // Decode base64 metadata
   const decodeMetadata = (base64: string): NFTMetadata | null => {
@@ -75,48 +79,71 @@ export default function SwapPage() {
     }
   }
 
-  // Connect wallet using HashPack
+  // Initialize HashConnect on component mount
+  useEffect(() => {
+    const initHashConnect = async () => {
+      try {
+        const hashconnect = new HashConnect()
+        hashconnectRef.current = hashconnect
+
+        const appMetadata = {
+          name: 'SLIME NFT Swap',
+          description: 'Swap your old SLIME NFTs for new ones',
+          icons: ['https://builtbyslime.org/favicon.ico'],
+          url: 'https://builtbyslime.org'
+        }
+
+        // Initialize HashConnect
+        await hashconnect.init(appMetadata, 'mainnet', false)
+
+        // Listen for pairing events
+        hashconnect.pairingEvent.on((pairingData) => {
+          console.log('Pairing event:', pairingData)
+          pairingDataRef.current = pairingData
+
+          if (pairingData.accountIds && pairingData.accountIds.length > 0) {
+            const account = pairingData.accountIds[0]
+            setAccountId(account)
+            setWalletConnected(true)
+            fetchOldNFTs(account)
+          }
+        })
+
+        // Listen for disconnect events
+        hashconnect.disconnectionEvent.on(() => {
+          console.log('Disconnected')
+          setWalletConnected(false)
+          setAccountId('')
+          setOldNFTs([])
+          setSelectedNFTs(new Set())
+          pairingDataRef.current = null
+        })
+      } catch (err) {
+        console.error('Failed to initialize HashConnect:', err)
+      }
+    }
+
+    initHashConnect()
+
+    return () => {
+      // Cleanup on unmount
+      if (hashconnectRef.current) {
+        hashconnectRef.current.disconnect()
+      }
+    }
+  }, [])
+
+  // Connect wallet using HashConnect
   const connectWallet = async () => {
     setError('')
 
     try {
-      // Check if HashPack is installed
-      if (!(window as any).hashpack) {
-        setError('HashPack wallet not found. Please install HashPack extension.')
-        window.open('https://www.hashpack.app/', '_blank')
-        return
+      if (!hashconnectRef.current) {
+        throw new Error('HashConnect not initialized')
       }
 
-      const hashpack = (window as any).hashpack
-      const appMetadata = {
-        name: 'SLIME NFT Swap',
-        description: 'Swap your old SLIME NFTs for new ones',
-        icon: 'https://builtbyslime.org/favicon.ico'
-      }
-
-      // Initialize HashPack
-      const initData = await hashpack.init(
-        import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
-        appMetadata
-      )
-
-      if (!initData.success) {
-        throw new Error('Failed to initialize HashPack')
-      }
-
-      // Pair with wallet
-      const pairingData = await hashpack.connectToLocalWallet()
-
-      if (pairingData.success) {
-        const account = pairingData.accountIds[0]
-        setAccountId(account)
-        setWalletConnected(true)
-
-        // Fetch NFTs
-        await fetchOldNFTs(account)
-      } else {
-        throw new Error('Failed to connect wallet')
-      }
+      // This will show the pairing modal with QR code
+      await hashconnectRef.current.connectToLocalWallet()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect wallet')
     }
