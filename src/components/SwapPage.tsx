@@ -244,7 +244,7 @@ export default function SwapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#2a2a2a] text-white">
+    <div className="min-h-screen bg-[#2a2a2a] text-white flex flex-col">
       {/* Dot pattern background with gradient fade */}
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: 'radial-gradient(circle, rgba(0, 255, 64, 1) 1px, transparent 1px)',
@@ -257,7 +257,7 @@ export default function SwapPage() {
       <Navigation />
 
       {/* Main Content */}
-      <div className="relative max-w-7xl mx-auto px-8 py-16">
+      <div className="relative max-w-7xl mx-auto px-8 py-16 flex-grow">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-black mb-4">SLIME SWAP</h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
