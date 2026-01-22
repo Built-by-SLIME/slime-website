@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@hashgraph/hedera-wallet-connect": "^2.0.4",
+    "@hashgraph/proto": "^2.25.0",
+    "@hashgraph/sdk": "^2.80.0",
     "@hiero-ledger/sdk": "^2.80.0",
     "@stripe/react-stripe-js": "^5.4.0",
     "@stripe/stripe-js": "^8.5.2",
