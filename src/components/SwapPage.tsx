@@ -83,14 +83,18 @@ export default function SwapPage() {
   useEffect(() => {
     const initDAppConnector = async () => {
       try {
+        const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+
+        if (!projectId) {
+          throw new Error('WalletConnect Project ID is not configured. Please add VITE_WALLETCONNECT_PROJECT_ID to Vercel environment variables.')
+        }
+
         const metadata = {
           name: 'SLIME NFT Swap',
           description: 'Swap your old SLIME NFTs for new ones',
           url: window.location.origin,
           icons: ['https://builtbyslime.org/favicon.ico']
         }
-
-        const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
         // Initialize DAppConnector
         const dAppConnector = new DAppConnector(
@@ -108,22 +112,24 @@ export default function SwapPage() {
         console.log('DAppConnector initialized')
 
         // Listen for session events
-        dAppConnector.onSessionEvent((event) => {
-          console.log('Session event:', event)
+        if (typeof dAppConnector.onSessionEvent === 'function') {
+          dAppConnector.onSessionEvent((event) => {
+            console.log('Session event:', event)
 
-          if (event.name === HederaSessionEvent.AccountsChanged) {
-            const accounts = event.data as string[]
-            if (accounts && accounts.length > 0) {
-              const account = accounts[0].split(':').pop() || ''
-              setAccountId(account)
-              setWalletConnected(true)
-              fetchOldNFTs(account)
+            if (event.name === HederaSessionEvent.AccountsChanged) {
+              const accounts = event.data as string[]
+              if (accounts && accounts.length > 0) {
+                const account = accounts[0].split(':').pop() || ''
+                setAccountId(account)
+                setWalletConnected(true)
+                fetchOldNFTs(account)
+              }
             }
-          }
-        })
+          })
+        }
       } catch (err) {
         console.error('Failed to initialize DAppConnector:', err)
-        setError('Failed to initialize wallet connection')
+        setError(err instanceof Error ? err.message : 'Failed to initialize wallet connection')
       }
     }
 
