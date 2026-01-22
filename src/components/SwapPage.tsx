@@ -261,7 +261,7 @@ export default function SwapPage() {
         <div className="text-center mb-12">
           <h1 className="text-5xl font-black mb-4">NFT SWAP</h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Swap SLIME (Token ID: {OLD_TOKEN_ID}) for SLIME (Token ID: {NEW_TOKEN_ID}).
+            Swap SLIME {OLD_TOKEN_ID} for SLIME {NEW_TOKEN_ID}.
             Same serial numbers, same traits, upgraded collection!
           </p>
         </div>
