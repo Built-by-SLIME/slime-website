@@ -3,6 +3,7 @@ import GooeyLanding from './components/GooeyLanding'
 import HomePage from './components/HomePage'
 import MerchPage from './components/MerchPage'
 import CollectionPage from './components/CollectionPage'
+import SwapPage from './components/SwapPage'
 import { CartProvider } from './context/CartContext'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Route path="/home" element={<HomePage />} />
           <Route path="/merch" element={<MerchPage />} />
           <Route path="/collection" element={<CollectionPage />} />
+          <Route path="/swap" element={<SwapPage />} />
         </Routes>
       </BrowserRouter>
     </CartProvider>
