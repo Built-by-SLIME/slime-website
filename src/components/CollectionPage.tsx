@@ -28,7 +28,7 @@ export default function CollectionPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalNFTs, setTotalNFTs] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const itemsPerPage = 100
+  const itemsPerPage = 50 // Reduced from 100 to 50 for faster loading
 
   useEffect(() => {
     fetchCollection(currentPage)
