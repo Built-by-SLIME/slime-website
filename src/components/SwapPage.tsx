@@ -28,9 +28,9 @@ export default function SwapPage() {
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
 
-  // Token IDs for swap - using Wild Tiger for testing, will switch to old SLIME later
-  const OLD_TOKEN_ID = import.meta.env.VITE_OLD_TOKEN_ID || '0.0.8357917'
-  const NEW_TOKEN_ID = import.meta.env.VITE_NEW_TOKEN_ID || '0.0.9474754'
+  // Token IDs for swap - TEMPORARY: Hardcoded Wild Tiger for testing
+  const OLD_TOKEN_ID = '0.0.6024491' // Wild Tiger NFT for testing
+  const NEW_TOKEN_ID = '0.0.9474754' // New SLIME
 
   const dAppConnectorRef = useRef<DAppConnector | null>(null)
 
