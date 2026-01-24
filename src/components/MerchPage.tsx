@@ -1072,6 +1072,14 @@ export default function MerchPage() {
           quantity: item.quantity
         }))
 
+        // Convert country names to ISO codes for Printify API
+        let orderCountryCode = shippingAddress.country
+        if (shippingAddress.country === 'United States') {
+          orderCountryCode = 'US'
+        } else if (shippingAddress.country === 'Canada') {
+          orderCountryCode = 'CA'
+        }
+
         const orderData = {
           line_items: lineItems,
           shipping_method: selectedShipping.code,
@@ -1081,7 +1089,7 @@ export default function MerchPage() {
             last_name: lastName,
             email: formData.email,
             phone: '',
-            country: shippingAddress.country === 'United States' ? 'US' : shippingAddress.country,
+            country: orderCountryCode,
             region: shippingAddress.state,
             address1: shippingAddress.address,
             city: shippingAddress.city,
@@ -1185,6 +1193,12 @@ export default function MerchPage() {
           state: '',
           zip: '',
           country: 'United States',
+          shippingName: '',
+          shippingAddress: '',
+          shippingCity: '',
+          shippingState: '',
+          shippingZip: '',
+          shippingCountry: 'United States',
           paymentMethod: 'card'
         })
 
@@ -1252,6 +1266,14 @@ export default function MerchPage() {
         quantity: item.quantity
       }))
 
+      // Convert country names to ISO codes for Printify API
+      let confirmCountryCode = shippingAddress.country
+      if (shippingAddress.country === 'United States') {
+        confirmCountryCode = 'US'
+      } else if (shippingAddress.country === 'Canada') {
+        confirmCountryCode = 'CA'
+      }
+
       // Create order data for Printify API
       const orderData = {
         line_items: lineItems,
@@ -1262,7 +1284,7 @@ export default function MerchPage() {
           last_name: lastName,
           email: formData.email,
           phone: '',
-          country: shippingAddress.country === 'United States' ? 'US' : shippingAddress.country,
+          country: confirmCountryCode,
           region: shippingAddress.state,
           address1: shippingAddress.address,
           city: shippingAddress.city,
