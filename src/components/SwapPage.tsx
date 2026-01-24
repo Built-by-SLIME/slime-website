@@ -28,6 +28,7 @@ export default function SwapPage() {
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
 
+  // Token IDs for swap - using Wild Tiger for testing, will switch to old SLIME later
   const OLD_TOKEN_ID = import.meta.env.VITE_OLD_TOKEN_ID || '0.0.8357917'
   const NEW_TOKEN_ID = import.meta.env.VITE_NEW_TOKEN_ID || '0.0.9474754'
 
