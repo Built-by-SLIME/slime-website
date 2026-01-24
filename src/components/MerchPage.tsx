@@ -928,6 +928,14 @@ export default function MerchPage() {
         quantity: item.quantity
       }))
 
+      // Convert country names to ISO codes for Printify API
+      let countryCode = shippingAddress.country
+      if (shippingAddress.country === 'United States') {
+        countryCode = 'US'
+      } else if (shippingAddress.country === 'Canada') {
+        countryCode = 'CA'
+      }
+
       const response = await fetch('/api/calculate-shipping', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -937,7 +945,7 @@ export default function MerchPage() {
             first_name: firstName,
             last_name: lastName,
             email: formData.email || '[email protected]',
-            country: shippingAddress.country === 'United States' ? 'US' : shippingAddress.country,
+            country: countryCode,
             region: shippingAddress.state,
             address1: shippingAddress.address,
             city: shippingAddress.city,
