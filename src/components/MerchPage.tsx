@@ -62,6 +62,7 @@ function StripePaymentForm({
   const stripe = useStripe()
   const elements = useElements()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isReady, setIsReady] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,14 +75,6 @@ function StripePaymentForm({
     setIsProcessing(true)
 
     try {
-      // Submit the elements to ensure they're ready
-      const { error: submitError } = await elements.submit()
-      if (submitError) {
-        onError(submitError.message || 'Payment validation failed')
-        setIsProcessing(false)
-        return
-      }
-
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
@@ -104,13 +97,13 @@ function StripePaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
+      <PaymentElement onReady={() => setIsReady(true)} />
       <button
         type="submit"
-        disabled={!stripe || isProcessing}
+        disabled={!stripe || !isReady || isProcessing}
         className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isProcessing ? 'PROCESSING...' : 'PAY NOW'}
+        {isProcessing ? 'PROCESSING...' : !isReady ? 'LOADING...' : 'PAY NOW'}
       </button>
     </form>
   )
@@ -1322,7 +1315,7 @@ export default function MerchPage() {
       }
 
       // Calculate total with shipping
-      const productTotal = cart.items.length > 0 ? cart.getTotalPrice() : selectedVariant.price
+      const productTotal = cart.getTotalPrice()
       const shippingCost = selectedShipping.cost / 100
       const totalAmount = productTotal + shippingCost
 
