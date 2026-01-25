@@ -67,12 +67,21 @@ function StripePaymentForm({
     e.preventDefault()
 
     if (!stripe || !elements) {
+      onError('Payment system not ready. Please wait a moment and try again.')
       return
     }
 
     setIsProcessing(true)
 
     try {
+      // Submit the elements to ensure they're ready
+      const { error: submitError } = await elements.submit()
+      if (submitError) {
+        onError(submitError.message || 'Payment validation failed')
+        setIsProcessing(false)
+        return
+      }
+
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
