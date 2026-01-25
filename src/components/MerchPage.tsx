@@ -63,16 +63,23 @@ function StripePaymentForm({
   const elements = useElements()
   const [isProcessing, setIsProcessing] = useState(false)
   const [isReady, setIsReady] = useState(false)
+  const [message, setMessage] = useState<string>('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!stripe || !elements) {
-      onError('Payment system not ready. Please wait a moment and try again.')
+      setMessage('Payment system not ready. Please wait a moment and try again.')
+      return
+    }
+
+    if (!isReady) {
+      setMessage('Please wait for the payment form to load.')
       return
     }
 
     setIsProcessing(true)
+    setMessage('')
 
     try {
       const { error } = await stripe.confirmPayment({
@@ -84,12 +91,15 @@ function StripePaymentForm({
       })
 
       if (error) {
+        setMessage(error.message || 'Payment failed')
         onError(error.message || 'Payment failed')
       } else {
         onSuccess()
       }
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Payment failed')
+      const errorMessage = err instanceof Error ? err.message : 'Payment failed'
+      setMessage(errorMessage)
+      onError(errorMessage)
     } finally {
       setIsProcessing(false)
     }
@@ -97,7 +107,15 @@ function StripePaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement onReady={() => setIsReady(true)} />
+      <PaymentElement
+        onReady={() => setIsReady(true)}
+        options={{
+          layout: 'tabs'
+        }}
+      />
+      {message && (
+        <div className="text-red-500 text-sm">{message}</div>
+      )}
       <button
         type="submit"
         disabled={!stripe || !isReady || isProcessing}
