@@ -28,9 +28,9 @@ export default function SwapPage() {
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
 
-  // Token IDs for swap - TEMPORARY: Hardcoded Wild Tiger for testing
-  const OLD_TOKEN_ID = '0.0.6024491' // Wild Tiger NFT for testing
-  const NEW_TOKEN_ID = '0.0.9474754' // New SLIME
+  // Token IDs for swap
+  const OLD_TOKEN_ID = '0.0.8357917' // Old SLIME NFT (no royalties)
+  const NEW_TOKEN_ID = '0.0.9474754' // New SLIME NFT (with royalties)
   const TREASURY_ACCOUNT_ID = '0.0.9463056' // Treasury wallet that holds new NFTs
 
   const dAppConnectorRef = useRef<DAppConnector | null>(null)
