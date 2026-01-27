@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { DAppConnector, HederaSessionEvent, HederaJsonRpcMethod, HederaChainId } from '@hashgraph/hedera-wallet-connect'
-import { LedgerId, AccountAllowanceApproveTransaction, TokenId, NftId, AccountId } from '@hiero-ledger/sdk'
+import { LedgerId, AccountAllowanceApproveTransaction, TokenId, NftId, AccountId, TransactionId } from '@hiero-ledger/sdk'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
@@ -230,13 +230,14 @@ export default function SwapPage() {
       setSuccess('Approving NFT transfers...')
 
       for (const serialNumber of Array.from(selectedNFTs)) {
-        // Create approval transaction
+        // Create approval transaction with transactionId
         const approveTransaction = new AccountAllowanceApproveTransaction()
           .approveTokenNftAllowance(
             new NftId(TokenId.fromString(OLD_TOKEN_ID), serialNumber),
             AccountId.fromString(accountId),
             AccountId.fromString(TREASURY_ACCOUNT_ID)
           )
+          .setTransactionId(TransactionId.generate(AccountId.fromString(accountId)))
 
         // Sign and execute with WalletConnect signer
         const signedTx = await signer.signTransaction(approveTransaction)
