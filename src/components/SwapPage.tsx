@@ -39,7 +39,14 @@ export default function SwapPage() {
   const decodeMetadata = (base64: string): NFTMetadata | null => {
     try {
       const decoded = atob(base64)
-      return JSON.parse(decoded)
+      const metadata = JSON.parse(decoded)
+
+      // Convert IPFS URLs to HTTP gateway URLs
+      if (metadata.image && metadata.image.startsWith('ipfs://')) {
+        metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+      }
+
+      return metadata
     } catch {
       return null
     }
