@@ -228,16 +228,18 @@ export default function SwapPage() {
       setSuccess('Approving NFT transfers...')
 
       for (const serialNumber of Array.from(selectedNFTs)) {
-        const approveTransaction = await new AccountAllowanceApproveTransaction()
+        // Create approval transaction
+        const approveTransaction = new AccountAllowanceApproveTransaction()
           .approveTokenNftAllowance(
             new NftId(TokenId.fromString(OLD_TOKEN_ID), serialNumber),
             AccountId.fromString(accountId),
             AccountId.fromString(TREASURY_ACCOUNT_ID)
           )
-          .freezeWithSigner(signer)
 
-        const approveResponse = await approveTransaction.executeWithSigner(signer)
-        await approveResponse.getReceiptWithSigner(signer)
+        // Sign and execute with WalletConnect signer
+        const signedTx = await signer.signTransaction(approveTransaction)
+        const txResponse = await signedTx.execute(dAppConnector.client)
+        await txResponse.getReceipt(dAppConnector.client)
       }
 
       // Step 2: Call backend API to perform swap
