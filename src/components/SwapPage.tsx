@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { DAppConnector, HederaSessionEvent, HederaJsonRpcMethod, HederaChainId } from '@hashgraph/hedera-wallet-connect'
-import { LedgerId } from '@hiero-ledger/sdk'
+import { LedgerId, AccountAllowanceApproveTransaction, TokenId, NftId, AccountId } from '@hiero-ledger/sdk'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
@@ -209,12 +209,39 @@ export default function SwapPage() {
       return
     }
 
+    if (!dAppConnector) {
+      setError('Wallet not connected')
+      return
+    }
+
     setSwapping(true)
     setError('')
     setSuccess('')
 
     try {
-      // Call backend API to perform swap
+      const signer = dAppConnector.signers[0]
+      if (!signer) {
+        throw new Error('No signer available')
+      }
+
+      // Step 1: Approve allowance for each NFT
+      setSuccess('Approving NFT transfers...')
+
+      for (const serialNumber of Array.from(selectedNFTs)) {
+        const approveTransaction = await new AccountAllowanceApproveTransaction()
+          .approveTokenNftAllowance(
+            new NftId(TokenId.fromString(OLD_TOKEN_ID), serialNumber),
+            AccountId.fromString(accountId),
+            AccountId.fromString(TREASURY_ACCOUNT_ID)
+          )
+          .freezeWithSigner(signer)
+
+        const approveResponse = await approveTransaction.executeWithSigner(signer)
+        await approveResponse.getReceiptWithSigner(signer)
+      }
+
+      // Step 2: Call backend API to perform swap
+      setSuccess('Swapping NFTs...')
       const response = await fetch('/api/swap-nft', {
         method: 'POST',
         headers: {
