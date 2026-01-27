@@ -35,18 +35,37 @@ export default function SwapPage() {
 
   const dAppConnectorRef = useRef<DAppConnector | null>(null)
 
-  // Decode base64 metadata
-  const decodeMetadata = (base64: string): NFTMetadata | null => {
+  // Decode base64 metadata and fetch from IPFS if needed
+  const decodeMetadata = async (base64: string): Promise<NFTMetadata | null> => {
     try {
       const decoded = atob(base64)
-      const metadata = JSON.parse(decoded)
 
-      // Convert IPFS URLs to HTTP gateway URLs
-      if (metadata.image && metadata.image.startsWith('ipfs://')) {
-        metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+      // Check if the decoded string is an IPFS URL (metadata URI)
+      if (decoded.startsWith('ipfs://')) {
+        // Fetch the actual metadata from IPFS
+        const metadataUrl = decoded.replace('ipfs://', 'https://ipfs.io/ipfs/')
+        const response = await fetch(metadataUrl)
+        if (!response.ok) return null
+
+        const metadata = await response.json()
+
+        // Convert image IPFS URL to HTTP gateway URL
+        if (metadata.image && metadata.image.startsWith('ipfs://')) {
+          metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+        }
+
+        return metadata
+      } else {
+        // Direct JSON metadata
+        const metadata = JSON.parse(decoded)
+
+        // Convert IPFS URLs to HTTP gateway URLs
+        if (metadata.image && metadata.image.startsWith('ipfs://')) {
+          metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+        }
+
+        return metadata
       }
-
-      return metadata
     } catch {
       return null
     }
@@ -70,16 +89,18 @@ export default function SwapPage() {
       const nfts = data.nfts || []
       setOldNFTs(nfts)
 
-      // Decode metadata for each NFT
+      // Decode metadata for each NFT (async)
       const metadataMap = new Map<number, NFTMetadata>()
-      nfts.forEach((nft: NFT) => {
-        if (nft.metadata) {
-          const decoded = decodeMetadata(nft.metadata)
-          if (decoded) {
-            metadataMap.set(nft.serial_number, decoded)
+      await Promise.all(
+        nfts.map(async (nft: NFT) => {
+          if (nft.metadata) {
+            const decoded = await decodeMetadata(nft.metadata)
+            if (decoded) {
+              metadataMap.set(nft.serial_number, decoded)
+            }
           }
-        }
-      })
+        })
+      )
       setNftMetadata(metadataMap)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch NFTs')
