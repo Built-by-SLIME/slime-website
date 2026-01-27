@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { DAppConnector, HederaSessionEvent, HederaJsonRpcMethod, HederaChainId } from '@hashgraph/hedera-wallet-connect'
-import { LedgerId, AccountAllowanceApproveTransaction, TokenId, NftId, AccountId, TransactionId } from '@hiero-ledger/sdk'
+import { LedgerId, AccountAllowanceApproveTransaction, TokenId, NftId, AccountId } from '@hashgraph/sdk'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
@@ -140,23 +140,6 @@ export default function SwapPage() {
         dAppConnectorRef.current = dAppConnector
 
         console.log('DAppConnector initialized')
-
-        // Listen for session events
-        if (typeof dAppConnector.onSessionEvent === 'function') {
-          dAppConnector.onSessionEvent((event) => {
-            console.log('Session event:', event)
-
-            if (event.name === HederaSessionEvent.AccountsChanged) {
-              const accounts = event.data as string[]
-              if (accounts && accounts.length > 0) {
-                const account = accounts[0].split(':').pop() || ''
-                setAccountId(account)
-                setWalletConnected(true)
-                fetchOldNFTs(account)
-              }
-            }
-          })
-        }
       } catch (err) {
         console.error('Failed to initialize DAppConnector:', err)
         setError(err instanceof Error ? err.message : 'Failed to initialize wallet connection')
@@ -288,7 +271,7 @@ export default function SwapPage() {
         throw new Error(errorData.error || 'Swap failed')
       }
 
-      const result = await response.json()
+      await response.json()
       setSuccess(`Successfully swapped ${selectedNFTs.size} NFT(s)!`)
       setSelectedNFTs(new Set())
 
