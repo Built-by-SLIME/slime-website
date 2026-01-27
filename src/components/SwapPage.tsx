@@ -209,6 +209,7 @@ export default function SwapPage() {
       return
     }
 
+    const dAppConnector = dAppConnectorRef.current
     if (!dAppConnector) {
       setError('Wallet not connected')
       return
