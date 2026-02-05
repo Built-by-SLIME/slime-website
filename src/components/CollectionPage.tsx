@@ -12,8 +12,10 @@ interface NFT {
     trait_type: string
     value: string
   }>
-  rarity: number
-  rarityRank: number
+  originalRarity?: number
+  originalRank?: number
+  correctedRarity: number
+  correctedRank: number
   rarityPct: number
   listingDate: string | null
   sellerAddress: string | null
@@ -46,9 +48,9 @@ export default function CollectionPage() {
         throw new Error('Missing API configuration')
       }
 
-      // Use proxy to avoid CORS issues
+      // Use corrected rarity calculation (fixes Crown trait capitalization)
       const response = await fetch(
-        `/api/sentx-proxy?apikey=${apiKey}&token=${tokenId}&limit=${itemsPerPage}&page=${page}&sortBy=rarity&sortDirection=ASC`
+        `/api/collection-rarity?apikey=${apiKey}&token=${tokenId}&limit=${itemsPerPage}&page=${page}`
       )
 
       if (!response.ok) {
@@ -274,7 +276,7 @@ export default function CollectionPage() {
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-gray-500">Rank</span>
-                        <span className="text-slime-green font-bold">#{nft.rarityRank}</span>
+                        <span className="text-slime-green font-bold">#{nft.correctedRank}</span>
                       </div>
                       {nft.isListed && nft.listingPrice && (
                         <div className="flex justify-between items-center text-xs">
