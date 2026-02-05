@@ -1,69 +1,36 @@
-/**
- * Collection Rarity Calculator API
- *
- * This endpoint:
- * 1. Fetches ALL NFTs from SentX API (paginated) - ONCE and caches
- * 2. Normalizes trait values (fixes Crown/crown capitalization)
- * 3. Calculates trait frequencies across the collection
- * 4. Computes proper rarity scores
- * 5. Returns NFTs sorted by corrected rarity
- */
-
 // Cache configuration
 const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
 let cachedAllNFTs = null
 let cacheTimestamp = 0
-let isFetching = false
 
 /**
- * Fetch all NFTs from SentX API (handles pagination) - PARALLEL FETCHING
+ * Fetch all NFTs from SentX API (handles pagination)
  */
 async function fetchAllNFTs(apiKey, tokenId) {
   const limit = 100
+  const allNFTs = []
+  let page = 1
+  let hasMore = true
 
-  console.log(`Fetching first page to determine total NFT count...`)
+  while (hasMore) {
+    const url = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=${page}&sortBy=rarity&sortDirection=ASC`
+    const response = await fetch(url)
 
-  // First, fetch page 1 to get total count
-  const firstPageUrl = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=1&sortBy=serialId&sortDirection=ASC`
-  const firstResponse = await fetch(firstPageUrl)
-
-  if (!firstResponse.ok) {
-    throw new Error(`SentX API error: ${firstResponse.status}`)
-  }
-
-  const firstData = await firstResponse.json()
-
-  if (!firstData.success || !firstData.nfts) {
-    throw new Error('Invalid SentX API response')
-  }
-
-  const totalNFTs = firstData.total || 1000
-  const totalPages = Math.ceil(totalNFTs / limit)
-
-  console.log(`Total NFTs: ${totalNFTs}, Total pages: ${totalPages}`)
-
-  // Start with first page data
-  const allNFTs = [...firstData.nfts]
-
-  // If there are more pages, fetch them all in parallel
-  if (totalPages > 1) {
-    console.log(`Fetching remaining ${totalPages - 1} pages in parallel...`)
-
-    const pagePromises = []
-    for (let page = 2; page <= totalPages; page++) {
-      const url = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=${page}&sortBy=serialId&sortDirection=ASC`
-      pagePromises.push(
-        fetch(url)
-          .then(res => res.ok ? res.json() : Promise.reject(`Page ${page} failed`))
-          .then(data => data.nfts || [])
-      )
+    if (!response.ok) {
+      throw new Error(`SentX API error: ${response.status}`)
     }
 
-    const results = await Promise.all(pagePromises)
-    results.forEach(nfts => allNFTs.push(...nfts))
+    const data = await response.json()
+
+    if (!data.success || !data.nfts) {
+      throw new Error('Invalid SentX API response')
+    }
+
+    allNFTs.push(...data.nfts)
+    hasMore = data.nfts.length === limit && allNFTs.length < 5000
+    page++
   }
 
-  console.log(`Successfully fetched ${allNFTs.length} NFTs`)
   return allNFTs
 }
 
@@ -150,49 +117,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  console.log('Collection rarity API called with params:', req.query)
-
   try {
     const { apikey, token, page = 1, limit = 50 } = req.query
 
     if (!apikey || !token) {
-      console.error('Missing required parameters')
       return res.status(400).json({ error: 'Missing required parameters: apikey and token' })
     }
 
     // Check cache
     const now = Date.now()
-    if (cachedAllNFTs && (now - cacheTimestamp) < CACHE_TTL) {
-      console.log('Returning cached rarity data (age:', Math.round((now - cacheTimestamp) / 1000), 'seconds)')
-    } else if (isFetching) {
-      // If another request is already fetching, wait a bit and return error
-      console.log('Another request is already fetching data, please retry in a moment')
-      return res.status(503).json({
-        success: false,
-        error: 'Data is being calculated, please retry in a few seconds'
-      })
-    } else {
-      isFetching = true
-      console.log('Cache miss or expired. Fetching and processing all NFTs from SentX...')
-
-      try {
-        // Fetch all NFTs in parallel
-        const allNFTs = await fetchAllNFTs(apikey, token)
-        console.log(`Successfully fetched ${allNFTs.length} NFTs from SentX`)
-
-        // Process and calculate corrected rarity
-        console.log('Processing NFTs and calculating rarity...')
-        cachedAllNFTs = processNFTs(allNFTs)
-        cacheTimestamp = now
-
-        console.log(`Rarity calculation complete. Processed ${cachedAllNFTs.length} NFTs. Data cached.`)
-      } catch (fetchError) {
-        console.error('Error during fetch/process:', fetchError)
-        isFetching = false
-        throw fetchError
-      } finally {
-        isFetching = false
-      }
+    if (!cachedAllNFTs || (now - cacheTimestamp) >= CACHE_TTL) {
+      const allNFTs = await fetchAllNFTs(apikey, token)
+      cachedAllNFTs = processNFTs(allNFTs)
+      cacheTimestamp = now
     }
 
     // Paginate results
@@ -202,7 +139,6 @@ export default async function handler(req, res) {
     const endIndex = startIndex + limitNum
     const paginatedNFTs = cachedAllNFTs.slice(startIndex, endIndex)
 
-    // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -213,18 +149,14 @@ export default async function handler(req, res) {
       total: cachedAllNFTs.length,
       page: pageNum,
       limit: limitNum,
-      totalPages: Math.ceil(cachedAllNFTs.length / limitNum),
-      cached: (now - cacheTimestamp) < CACHE_TTL
+      totalPages: Math.ceil(cachedAllNFTs.length / limitNum)
     })
 
   } catch (error) {
-    console.error('Collection rarity API error:', error)
-    console.error('Error stack:', error.stack)
     return res.status(500).json({
       success: false,
       error: 'Failed to calculate rarity',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: error.message
     })
   }
 }
