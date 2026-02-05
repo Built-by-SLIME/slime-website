@@ -1,8 +1,8 @@
 /**
  * Collection Rarity Calculator API
- * 
+ *
  * This endpoint:
- * 1. Fetches ALL NFTs from SentX API (paginated)
+ * 1. Fetches ALL NFTs from SentX API (paginated) - ONCE and caches
  * 2. Normalizes trait values (fixes Crown/crown capitalization)
  * 3. Calculates trait frequencies across the collection
  * 4. Computes proper rarity scores
@@ -10,60 +10,60 @@
  */
 
 // Cache configuration
-const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
-let cachedData = null
+const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
+let cachedAllNFTs = null
 let cacheTimestamp = 0
+let isFetching = false
 
 /**
- * Fetch all NFTs from SentX API (handles pagination)
+ * Fetch all NFTs from SentX API (handles pagination) - PARALLEL FETCHING
  */
 async function fetchAllNFTs(apiKey, tokenId) {
-  const allNFTs = []
-  let page = 1
-  let hasMore = true
-  const limit = 100 // Max per page
+  const limit = 100
 
-  console.log(`Starting to fetch NFTs for token ${tokenId}...`)
+  console.log(`Fetching first page to determine total NFT count...`)
 
-  while (hasMore) {
-    try {
-      const url = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=${page}&sortBy=serialId&sortDirection=ASC`
+  // First, fetch page 1 to get total count
+  const firstPageUrl = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=1&sortBy=serialId&sortDirection=ASC`
+  const firstResponse = await fetch(firstPageUrl)
 
-      console.log(`Fetching page ${page}...`)
-      const response = await fetch(url)
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`SentX API error on page ${page}:`, response.status, errorText)
-        throw new Error(`SentX API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (!data.success || !data.nfts) {
-        console.error('Invalid SentX response:', data)
-        throw new Error('Invalid SentX API response')
-      }
-
-      console.log(`Page ${page}: Got ${data.nfts.length} NFTs`)
-      allNFTs.push(...data.nfts)
-
-      // Check if there are more pages
-      hasMore = data.nfts.length === limit
-      page++
-
-      // Safety check - don't fetch more than 5000 NFTs
-      if (allNFTs.length >= 5000) {
-        console.log('Reached 5000 NFT limit, stopping pagination')
-        break
-      }
-    } catch (error) {
-      console.error(`Error fetching page ${page}:`, error)
-      throw error
-    }
+  if (!firstResponse.ok) {
+    throw new Error(`SentX API error: ${firstResponse.status}`)
   }
 
-  console.log(`Total NFTs fetched: ${allNFTs.length}`)
+  const firstData = await firstResponse.json()
+
+  if (!firstData.success || !firstData.nfts) {
+    throw new Error('Invalid SentX API response')
+  }
+
+  const totalNFTs = firstData.total || 1000
+  const totalPages = Math.ceil(totalNFTs / limit)
+
+  console.log(`Total NFTs: ${totalNFTs}, Total pages: ${totalPages}`)
+
+  // Start with first page data
+  const allNFTs = [...firstData.nfts]
+
+  // If there are more pages, fetch them all in parallel
+  if (totalPages > 1) {
+    console.log(`Fetching remaining ${totalPages - 1} pages in parallel...`)
+
+    const pagePromises = []
+    for (let page = 2; page <= totalPages; page++) {
+      const url = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=${page}&sortBy=serialId&sortDirection=ASC`
+      pagePromises.push(
+        fetch(url)
+          .then(res => res.ok ? res.json() : Promise.reject(`Page ${page} failed`))
+          .then(data => data.nfts || [])
+      )
+    }
+
+    const results = await Promise.all(pagePromises)
+    results.forEach(nfts => allNFTs.push(...nfts))
+  }
+
+  console.log(`Successfully fetched ${allNFTs.length} NFTs`)
   return allNFTs
 }
 
@@ -162,25 +162,36 @@ export default async function handler(req, res) {
 
     // Check cache
     const now = Date.now()
-    if (cachedData && (now - cacheTimestamp) < CACHE_TTL) {
+    if (cachedAllNFTs && (now - cacheTimestamp) < CACHE_TTL) {
       console.log('Returning cached rarity data (age:', Math.round((now - cacheTimestamp) / 1000), 'seconds)')
+    } else if (isFetching) {
+      // If another request is already fetching, wait a bit and return error
+      console.log('Another request is already fetching data, please retry in a moment')
+      return res.status(503).json({
+        success: false,
+        error: 'Data is being calculated, please retry in a few seconds'
+      })
     } else {
+      isFetching = true
       console.log('Cache miss or expired. Fetching and processing all NFTs from SentX...')
 
       try {
-        // Fetch all NFTs
+        // Fetch all NFTs in parallel
         const allNFTs = await fetchAllNFTs(apikey, token)
         console.log(`Successfully fetched ${allNFTs.length} NFTs from SentX`)
 
         // Process and calculate corrected rarity
         console.log('Processing NFTs and calculating rarity...')
-        cachedData = processNFTs(allNFTs)
+        cachedAllNFTs = processNFTs(allNFTs)
         cacheTimestamp = now
 
-        console.log(`Rarity calculation complete. Processed ${cachedData.length} NFTs. Data cached.`)
+        console.log(`Rarity calculation complete. Processed ${cachedAllNFTs.length} NFTs. Data cached.`)
       } catch (fetchError) {
         console.error('Error during fetch/process:', fetchError)
+        isFetching = false
         throw fetchError
+      } finally {
+        isFetching = false
       }
     }
 
@@ -189,7 +200,7 @@ export default async function handler(req, res) {
     const limitNum = parseInt(limit)
     const startIndex = (pageNum - 1) * limitNum
     const endIndex = startIndex + limitNum
-    const paginatedNFTs = cachedData.slice(startIndex, endIndex)
+    const paginatedNFTs = cachedAllNFTs.slice(startIndex, endIndex)
 
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -199,10 +210,10 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       nfts: paginatedNFTs,
-      total: cachedData.length,
+      total: cachedAllNFTs.length,
       page: pageNum,
       limit: limitNum,
-      totalPages: Math.ceil(cachedData.length / limitNum),
+      totalPages: Math.ceil(cachedAllNFTs.length / limitNum),
       cached: (now - cacheTimestamp) < CACHE_TTL
     })
 
