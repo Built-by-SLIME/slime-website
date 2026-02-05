@@ -23,32 +23,47 @@ async function fetchAllNFTs(apiKey, tokenId) {
   let hasMore = true
   const limit = 100 // Max per page
 
+  console.log(`Starting to fetch NFTs for token ${tokenId}...`)
+
   while (hasMore) {
-    const url = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=${page}&sortBy=serialId&sortDirection=ASC`
-    
-    const response = await fetch(url)
-    if (!response.ok) {
-      throw new Error(`SentX API error: ${response.status}`)
-    }
+    try {
+      const url = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=${page}&sortBy=serialId&sortDirection=ASC`
 
-    const data = await response.json()
-    
-    if (!data.success || !data.nfts) {
-      throw new Error('Invalid SentX API response')
-    }
+      console.log(`Fetching page ${page}...`)
+      const response = await fetch(url)
 
-    allNFTs.push(...data.nfts)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`SentX API error on page ${page}:`, response.status, errorText)
+        throw new Error(`SentX API error: ${response.status}`)
+      }
 
-    // Check if there are more pages
-    hasMore = data.nfts.length === limit
-    page++
+      const data = await response.json()
 
-    // Safety check - don't fetch more than 5000 NFTs
-    if (allNFTs.length >= 5000) {
-      break
+      if (!data.success || !data.nfts) {
+        console.error('Invalid SentX response:', data)
+        throw new Error('Invalid SentX API response')
+      }
+
+      console.log(`Page ${page}: Got ${data.nfts.length} NFTs`)
+      allNFTs.push(...data.nfts)
+
+      // Check if there are more pages
+      hasMore = data.nfts.length === limit
+      page++
+
+      // Safety check - don't fetch more than 5000 NFTs
+      if (allNFTs.length >= 5000) {
+        console.log('Reached 5000 NFT limit, stopping pagination')
+        break
+      }
+    } catch (error) {
+      console.error(`Error fetching page ${page}:`, error)
+      throw error
     }
   }
 
+  console.log(`Total NFTs fetched: ${allNFTs.length}`)
   return allNFTs
 }
 
@@ -135,10 +150,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  console.log('Collection rarity API called with params:', req.query)
+
   try {
     const { apikey, token, page = 1, limit = 50 } = req.query
 
     if (!apikey || !token) {
+      console.error('Missing required parameters')
       return res.status(400).json({ error: 'Missing required parameters: apikey and token' })
     }
 
@@ -147,17 +165,23 @@ export default async function handler(req, res) {
     if (cachedData && (now - cacheTimestamp) < CACHE_TTL) {
       console.log('Returning cached rarity data (age:', Math.round((now - cacheTimestamp) / 1000), 'seconds)')
     } else {
-      console.log('Fetching and processing all NFTs from SentX...')
-      
-      // Fetch all NFTs
-      const allNFTs = await fetchAllNFTs(apikey, token)
-      console.log(`Fetched ${allNFTs.length} NFTs from SentX`)
+      console.log('Cache miss or expired. Fetching and processing all NFTs from SentX...')
 
-      // Process and calculate corrected rarity
-      cachedData = processNFTs(allNFTs)
-      cacheTimestamp = now
-      
-      console.log('Rarity calculation complete. Data cached.')
+      try {
+        // Fetch all NFTs
+        const allNFTs = await fetchAllNFTs(apikey, token)
+        console.log(`Successfully fetched ${allNFTs.length} NFTs from SentX`)
+
+        // Process and calculate corrected rarity
+        console.log('Processing NFTs and calculating rarity...')
+        cachedData = processNFTs(allNFTs)
+        cacheTimestamp = now
+
+        console.log(`Rarity calculation complete. Processed ${cachedData.length} NFTs. Data cached.`)
+      } catch (fetchError) {
+        console.error('Error during fetch/process:', fetchError)
+        throw fetchError
+      }
     }
 
     // Paginate results
@@ -184,10 +208,12 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Collection rarity API error:', error)
+    console.error('Error stack:', error.stack)
     return res.status(500).json({
       success: false,
       error: 'Failed to calculate rarity',
-      message: error.message
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     })
   }
 }
