@@ -8,7 +8,6 @@ const HomePage = lazy(() => import('./components/HomePage'))
 const MerchPage = lazy(() => import('./components/MerchPage'))
 const CollectionPage = lazy(() => import('./components/CollectionPage'))
 const SwapPage = lazy(() => import('./components/SwapPage'))
-const RarityTestPage = lazy(() => import('./components/RarityTestPage'))
 
 // Loading spinner component
 function LoadingSpinner() {
@@ -33,7 +32,6 @@ function App() {
             <Route path="/merch" element={<MerchPage />} />
             <Route path="/collection" element={<CollectionPage />} />
             <Route path="/swap" element={<SwapPage />} />
-            <Route path="/rarity-test" element={<RarityTestPage />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
