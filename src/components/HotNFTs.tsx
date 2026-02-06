@@ -142,6 +142,7 @@ export default function HotNFTs() {
                   src={getNFTImage(nft)}
                   alt={nft.name}
                   className="w-full h-full object-contain"
+                  crossOrigin="anonymous"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/Assets/SPLAT.png'
                   }}

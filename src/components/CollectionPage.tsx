@@ -269,6 +269,7 @@ export default function CollectionPage() {
                         alt={nft.name}
                         className="w-full h-full object-contain"
                         loading="lazy"
+                        crossOrigin="anonymous"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/Assets/SPLAT.png'
                         }}

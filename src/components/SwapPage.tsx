@@ -414,6 +414,7 @@ export default function SwapPage() {
                               src={metadata.image}
                               alt={metadata.name || `SLIME #${nft.serial_number}`}
                               className="w-full h-full object-cover"
+                              crossOrigin="anonymous"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-600">
