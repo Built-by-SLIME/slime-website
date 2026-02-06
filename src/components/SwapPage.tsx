@@ -40,10 +40,12 @@ export default function SwapPage() {
     try {
       const decoded = atob(base64)
 
+      const gateway = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
+
       // Check if the decoded string is an IPFS URL (metadata URI)
       if (decoded.startsWith('ipfs://')) {
         // Fetch the actual metadata from IPFS
-        const metadataUrl = decoded.replace('ipfs://', 'https://ipfs.io/ipfs/')
+        const metadataUrl = decoded.replace('ipfs://', gateway)
         const response = await fetch(metadataUrl)
         if (!response.ok) return null
 
@@ -51,7 +53,7 @@ export default function SwapPage() {
 
         // Convert image IPFS URL to HTTP gateway URL
         if (metadata.image && metadata.image.startsWith('ipfs://')) {
-          metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+          metadata.image = metadata.image.replace('ipfs://', gateway)
         }
 
         return metadata
@@ -61,7 +63,7 @@ export default function SwapPage() {
 
         // Convert IPFS URLs to HTTP gateway URLs
         if (metadata.image && metadata.image.startsWith('ipfs://')) {
-          metadata.image = metadata.image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+          metadata.image = metadata.image.replace('ipfs://', gateway)
         }
 
         return metadata
