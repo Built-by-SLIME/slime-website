@@ -79,7 +79,8 @@ export default function CollectionPage() {
       return '/Assets/SPLAT.png'
     }
     if (nft.image.startsWith('ipfs://')) {
-      return nft.image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+      // Use Cloudflare IPFS gateway (faster and more reliable than ipfs.io)
+      return nft.image.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
     }
     return nft.image
   }
