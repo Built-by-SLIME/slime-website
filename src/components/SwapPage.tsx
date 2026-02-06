@@ -53,7 +53,9 @@ export default function SwapPage() {
 
         // Convert image IPFS URL to HTTP gateway URL
         if (metadata.image && metadata.image.startsWith('ipfs://')) {
-          metadata.image = metadata.image.replace('ipfs://', gateway)
+          const raw = metadata.image.replace('ipfs://', gateway)
+          const hashIdx = raw.lastIndexOf('/')
+          metadata.image = raw.substring(0, hashIdx + 1) + raw.substring(hashIdx + 1).replace(/#/g, '%23')
         }
 
         return metadata
@@ -63,7 +65,9 @@ export default function SwapPage() {
 
         // Convert IPFS URLs to HTTP gateway URLs
         if (metadata.image && metadata.image.startsWith('ipfs://')) {
-          metadata.image = metadata.image.replace('ipfs://', gateway)
+          const raw = metadata.image.replace('ipfs://', gateway)
+          const hashIdx = raw.lastIndexOf('/')
+          metadata.image = raw.substring(0, hashIdx + 1) + raw.substring(hashIdx + 1).replace(/#/g, '%23')
         }
 
         return metadata

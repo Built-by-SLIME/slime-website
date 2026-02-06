@@ -81,7 +81,12 @@ export default function HotNFTs() {
     // Convert IPFS URL to gateway URL
     if (nft.image.startsWith('ipfs://')) {
       const gateway = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
-      return nft.image.replace('ipfs://', gateway)
+      const raw = nft.image.replace('ipfs://', gateway)
+      // Encode # in filenames so browsers don't treat them as URL fragments
+      const hashIdx = raw.lastIndexOf('/')
+      const dir = raw.substring(0, hashIdx + 1)
+      const file = raw.substring(hashIdx + 1).replace(/#/g, '%23')
+      return dir + file
     }
     return nft.image || '/Assets/SPLAT.png'
   }
