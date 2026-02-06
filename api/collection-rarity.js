@@ -26,6 +26,11 @@ async function fetchAllNFTs(apiKey, tokenId) {
       throw new Error('Invalid SentX API response')
     }
 
+    // Log first NFT to debug image issue
+    if (page === 1 && data.nfts.length > 0) {
+      console.log('Sample NFT from SentX:', JSON.stringify(data.nfts[0], null, 2))
+    }
+
     allNFTs.push(...data.nfts)
     hasMore = data.nfts.length === limit && allNFTs.length < 5000
     page++

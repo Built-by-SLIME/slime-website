@@ -75,10 +75,13 @@ export default function CollectionPage() {
   }
 
   const getNFTImage = (nft: NFT) => {
+    if (!nft.image) {
+      return '/Assets/SPLAT.png'
+    }
     if (nft.image.startsWith('ipfs://')) {
       return nft.image.replace('ipfs://', 'https://ipfs.io/ipfs/')
     }
-    return nft.image || '/Assets/SPLAT.png'
+    return nft.image
   }
 
   const getBuyLink = (nft: NFT) => {
