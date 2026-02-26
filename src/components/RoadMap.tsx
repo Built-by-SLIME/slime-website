@@ -20,18 +20,24 @@ export default function RoadMap() {
     },
     {
       phase: "PHASE 4",
+      title: "SLIME TOOLS",
+      description: "A powerful suite of free tools to build, create, and thrive on Hedera.",
+      status: "UPCOMING"
+    },
+    {
+      phase: "PHASE 5",
       title: "SLIME DAPP",
       description: "Deploy the dApp: Stake your SLIME, build your profile, and gain access to SLIME Tools - a token creator kit and dNFT GUI",
       status: "IN PROGRESS"
     },
     {
-      phase: "PHASE 5",
-      title: "WAVE WALLET",
-      description: "Launch our cross-chain wallet that will support Hbar, X**, & ***  focusing on retail NFTs and Tokens",
+      phase: "PHASE 6",
+      title: "INTEGRATED WALLET",
+      description: "Integrated wallet to our toolkit supporting or a seamless creator experience with retail NFTs and tokens",
       status: "UPCOMING"
     },
     {
-      phase: "PHASE 6",
+      phase: "PHASE 7",
       title: "SLIME DAO",
       description: "Launch the SLIME DAO to decentralize development: every PR goes to vote, DAO holders crown the winner",
       status: "UPCOMING"
