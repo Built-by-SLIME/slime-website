@@ -22,7 +22,7 @@ export default function RoadMap() {
       phase: "PHASE 4",
       title: "SLIME TOOLS",
       description: "A powerful suite of free tools to build, create, and thrive on Hedera.",
-      status: "UPCOMING"
+      status: "COMPLETE"
     },
     {
       phase: "PHASE 5",
