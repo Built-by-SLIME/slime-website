@@ -27,7 +27,7 @@ export default function RoadMap() {
     {
       phase: "PHASE 5",
       title: "SLIME DAPP",
-      description: "Deploy the dApp: Stake your SLIME, build your profile, and gain access to SLIME Tools - a token creator kit and dNFT GUI",
+      description: "Deploy the dApp: Stake your SLIME, claim rewards, build your profile, & register domains",
       status: "IN PROGRESS"
     },
     {
