@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
-  const faqs = [
+  const faqs: { question: string; answer: React.ReactNode }[] = [
     {
       question: "WHAT IS SLIME?",
       answer: "Focused on Hedera - SLIME is one part development collective, one part community DAO, and one part NFT project. We support the network by training new builders, shipping FOSS, and partnering with other Hedera projects - lifting everyone higher, together."
@@ -18,11 +18,11 @@ export default function FAQ() {
     },
     {
       question: "WHEN IS THE MINT DATE?",
-      answer: "SLIME minting live on Atlantis until Nov 19, 11:59 PM EST — after that, secondary market only until we drop the rest of the collection."
+      answer: <>We are currently minting on SentX! <a href="https://sentx.io/launchpad/slime-public?filter=all" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">Click here to mint!</a></>
     },
     {
       question: "WHAT IS THE MINT PRICE?",
-      answer: "50 HBAR"
+      answer: "200 HBAR"
     }
   ]
 

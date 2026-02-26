@@ -30,6 +30,7 @@ export default function Hero() {
             <a href="/swap" className="text-gray-300 hover:text-slime-green transition">SWAP</a>
             <a href="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</a>
             <a href="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</a>
+            <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">TOOLS</a>
           </div>
           {/* Social Icons */}
           <div className="flex items-center gap-4">
@@ -104,6 +105,15 @@ export default function Hero() {
               onClick={() => setMobileMenuOpen(false)}
             >
               COLLECTION
+            </a>
+            <a
+              href="https://slime.tools/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              TOOLS
             </a>
 
             {/* Social Icons */}
