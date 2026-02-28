@@ -8,8 +8,8 @@ export default function RoadMap() {
     },
     {
       phase: "PHASE 2",
-      title: "SLIME WEBSITE",
-      description: "Launch the SLIME brochure site to sharply communicate our vision and mission, and lay a clean foundation for the dApp",
+      title: "STRATEGIC PARTNERSHIPS",
+      description: "Forge strategic partnerships with developers, project leads, and ecosystem contributors to accelerate growth",
       status: "COMPLETE"
     },
     {
@@ -32,14 +32,14 @@ export default function RoadMap() {
     },
     {
       phase: "PHASE 6",
-      title: "INTEGRATED WALLET",
-      description: "Integrated wallet to our toolkit supporting or a seamless creator experience with retail NFTs and tokens",
+      title: "SLIME DAO",
+      description: "Launch the SLIME DAO to decentralize development: every PR goes to vote, DAO holders crown the winner",
       status: "UPCOMING"
     },
     {
       phase: "PHASE 7",
-      title: "SLIME DAO",
-      description: "Launch the SLIME DAO to decentralize development: every PR goes to vote, DAO holders crown the winner",
+      title: "INTEGRATED WALLET",
+      description: "Integrated wallet to our toolkit supporting or a seamless creator experience with retail NFTs and tokens",
       status: "UPCOMING"
     }
   ]
