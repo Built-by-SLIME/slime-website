@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useWallet } from '../context/WalletContext'
-import ProfileMenu from './ProfileMenu'
+import ProfileSlideout from './ProfileSlideout'
 
 export default function Hero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { isConnected, accountId, connect, disconnect } = useWallet()
+  const [slideoutOpen, setSlideoutOpen] = useState(false)
+  const { isConnected, accountId, slimeNFTs, slimeTokenBalance, pfp, connect, disconnect } = useWallet()
 
   const handleConnect = async () => {
     try { await connect() } catch (err) { console.error('Connect failed:', err) }
@@ -57,9 +58,21 @@ export default function Hero() {
               </svg>
             </a>
           </div>
-          {/* Connect / Profile */}
+          {/* Desktop: Connect button or PFP avatar → slideout */}
           {isConnected ? (
-            <ProfileMenu />
+            <button
+              onClick={() => setSlideoutOpen(true)}
+              className="w-9 h-9 rounded-full overflow-hidden border-2 border-slime-green hover:border-[#00cc33] transition flex items-center justify-center bg-[#1f1f1f] flex-shrink-0"
+              aria-label="Open profile"
+            >
+              {pfp?.imageUrl ? (
+                <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <svg className="w-5 h-5 text-slime-green" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                </svg>
+              )}
+            </button>
           ) : (
             <button onClick={handleConnect} className="bg-slime-green text-black px-5 py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition">
               CONNECT
@@ -67,28 +80,37 @@ export default function Hero() {
           )}
         </div>
 
-        {/* Mobile Hamburger Button */}
+        {/* Mobile: hamburger (disconnected) or PFP avatar (connected) */}
         <button
-          className="md:hidden text-gray-300 hover:text-slime-green transition z-50"
+          className="md:hidden transition z-50 flex items-center justify-center"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
+          ) : isConnected ? (
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-slime-green flex items-center justify-center bg-[#1f1f1f]">
+              {pfp?.imageUrl ? (
+                <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <svg className="w-4 h-4 text-slime-green" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                </svg>
+              )}
+            </div>
           ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-gray-300 hover:text-slime-green transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           )}
         </button>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-[#2a2a2a] z-40 flex flex-col items-center justify-center">
-          {/* Close Button */}
+        <div className="md:hidden fixed inset-0 bg-[#2a2a2a] z-40 flex flex-col">
           <button
             className="absolute top-6 right-6 text-gray-300 hover:text-slime-green transition"
             onClick={() => setMobileMenuOpen(false)}
@@ -99,47 +121,25 @@ export default function Hero() {
             </svg>
           </button>
 
-          <div className="flex flex-col items-center gap-8 text-center">
-            <a
-              href="/swap"
-              className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              SWAP
-            </a>
-            <a
-              href="/merch"
-              className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              MERCH
-            </a>
-            <a
-              href="/collection"
-              className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              COLLECTION
-            </a>
-            <a
-              href="https://slime.tools/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-300 hover:text-slime-green transition text-2xl font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              TOOLS
-            </a>
+          <div className="flex flex-col items-center justify-center flex-1 gap-6 text-center px-8">
+            <a href="/swap" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>SWAP</a>
+            <a href="/merch" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</a>
+            <a href="/collection" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</a>
+            <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>TOOLS</a>
+
             {isConnected ? (
-              <div className="text-center">
-                <p className="text-slime-green font-mono text-sm mb-3">{accountId}</p>
-                <button
-                  onClick={() => { disconnect(); setMobileMenuOpen(false) }}
-                  className="text-sm text-gray-400 hover:text-red-400 transition"
-                >
-                  DISCONNECT
-                </button>
-              </div>
+              <>
+                <div className="w-12 border-t border-gray-700 my-1" />
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Connected</p>
+                  <p className="text-slime-green font-mono text-sm">{accountId}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {slimeNFTs.length} NFTs &nbsp;·&nbsp; {Number(slimeTokenBalance).toLocaleString()} $SLIME
+                  </p>
+                </div>
+                <a href="/profile" onClick={() => setMobileMenuOpen(false)} className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition">PROFILE</a>
+                <button onClick={() => { disconnect(); setMobileMenuOpen(false) }} className="text-sm text-gray-400 hover:text-red-400 transition">DISCONNECT</button>
+              </>
             ) : (
               <button onClick={() => { handleConnect(); setMobileMenuOpen(false) }} className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition">
                 CONNECT
@@ -211,6 +211,9 @@ export default function Hero() {
           />
         </div>
       </div>
+
+      {/* Desktop Slideout Panel */}
+      <ProfileSlideout open={slideoutOpen} onClose={() => setSlideoutOpen(false)} />
     </section>
   )
 }
