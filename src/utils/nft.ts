@@ -5,7 +5,7 @@ export interface NFTMetadata {
   attributes?: Array<{ trait_type: string; value: string }>
 }
 
-const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
+const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || 'https://gateway.pinata.cloud/ipfs/'
 
 // Rewrites private Pinata gateway URLs and ipfs:// URIs to a public IPFS gateway
 function toPublicUrl(url: string): string {
