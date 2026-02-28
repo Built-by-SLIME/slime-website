@@ -8,6 +8,7 @@ interface NFTWithImage {
   serial_number: number
   name: string
   imageUrl: string
+  rank?: number
 }
 
 export default function ProfilePage() {
@@ -51,7 +52,7 @@ export default function ProfilePage() {
       if (!response.ok) throw new Error('Failed to fetch NFT images')
 
       const data = await response.json()
-      const nftsMap: Record<number, { name: string; image: string }> = data.nfts || {}
+      const nftsMap: Record<number, { name: string; image: string; rank?: number }> = data.nfts || {}
       const gateway = 'https://gateway.pinata.cloud/ipfs/'
 
       const results: NFTWithImage[] = slimeNFTs
@@ -64,7 +65,8 @@ export default function ProfilePage() {
           return {
             serial_number: nft.serial_number,
             name: info?.name || `SLIME #${nft.serial_number}`,
-            imageUrl
+            imageUrl,
+            rank: info?.rank
           }
         })
         .sort((a, b) => a.serial_number - b.serial_number)
@@ -321,7 +323,12 @@ export default function ProfilePage() {
             {/* Info + actions */}
             <div className="p-4">
               <p className="text-white font-bold text-sm mb-0.5">{expandedNFT.name}</p>
-              <p className="text-gray-500 text-xs mb-4">Serial #{expandedNFT.serial_number}</p>
+              <div className="flex items-center gap-3 mb-4">
+                <p className="text-gray-500 text-xs">Serial #{expandedNFT.serial_number}</p>
+                {expandedNFT.rank && (
+                  <p className="text-xs text-slime-green font-bold">Rank #{expandedNFT.rank}</p>
+                )}
+              </div>
 
               {pfp?.serial_number === expandedNFT.serial_number ? (
                 <div className="flex gap-2">

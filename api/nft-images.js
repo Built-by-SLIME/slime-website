@@ -1,13 +1,45 @@
 // Vercel Serverless Function: GET /api/nft-images
-// Returns image URLs for specific NFT serial numbers via SentX API.
-// SentX serves ipfs:// URIs that resolve through the public IPFS network,
-// unlike the on-chain metadata which points to a private Pinata gateway.
+// Returns image URLs and corrected rank for specific NFT serial numbers via SentX API.
+// Rank is computed using the same trait-frequency rarity formula as collection-rarity.js.
 
 const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
 const cache = new Map() // tokenId → { timestamp, serialMap }
 
+function normalizeTraits(nft) {
+  return {
+    ...nft,
+    attributes: (nft.attributes || []).map(attr => ({
+      ...attr,
+      value: attr.trait_type.toLowerCase() === 'head' && attr.value.toLowerCase() === 'crown'
+        ? 'crown'
+        : attr.value
+    }))
+  }
+}
+
+function calculateTraitFrequencies(nfts) {
+  const frequencies = {}
+  nfts.forEach(nft => {
+    (nft.attributes || []).forEach(attr => {
+      const key = `${attr.trait_type}:${attr.value}`
+      frequencies[key] = (frequencies[key] || 0) + 1
+    })
+  })
+  return frequencies
+}
+
+function calculateRarityScore(nft, frequencies) {
+  let score = 0
+  ;(nft.attributes || []).forEach(attr => {
+    const key = `${attr.trait_type}:${attr.value}`
+    const frequency = frequencies[key] || 1
+    score += 1 / frequency
+  })
+  return score
+}
+
 async function buildSerialMap(apiKey, tokenId) {
-  const serialMap = {}
+  const allNFTs = []
   const limit = 100
   let page = 1
   let hasMore = true
@@ -18,14 +50,28 @@ async function buildSerialMap(apiKey, tokenId) {
     if (!response.ok) throw new Error(`SentX API error: ${response.status}`)
     const data = await response.json()
     if (!data.success || !data.nfts) throw new Error('Invalid SentX response')
-
-    for (const nft of data.nfts) {
-      serialMap[nft.serialId] = { name: nft.name, image: nft.image }
-    }
-
-    hasMore = data.nfts.length === limit && Object.keys(serialMap).length < 5000
+    allNFTs.push(...data.nfts)
+    hasMore = data.nfts.length === limit && allNFTs.length < 5000
     page++
   }
+
+  // Compute corrected ranks using the same logic as collection-rarity.js
+  const normalized = allNFTs.map(normalizeTraits)
+  const frequencies = calculateTraitFrequencies(normalized)
+  const withScores = normalized.map(nft => ({
+    ...nft,
+    correctedRarity: calculateRarityScore(nft, frequencies)
+  }))
+  withScores.sort((a, b) => b.correctedRarity - a.correctedRarity)
+
+  const serialMap = {}
+  withScores.forEach((nft, index) => {
+    serialMap[nft.serialId] = {
+      name: nft.name,
+      image: nft.image,
+      rank: index + 1
+    }
+  })
 
   return serialMap
 }
