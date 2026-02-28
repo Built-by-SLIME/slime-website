@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [loadingNFTs, setLoadingNFTs] = useState(false)
   const [editingSocial, setEditingSocial] = useState(false)
   const [socialDraft, setSocialDraft] = useState<SocialInfo>({ twitter: '', discord: '', bio: '' })
+  const [expandedNFT, setExpandedNFT] = useState<NFTWithImage | null>(null)
 
   useEffect(() => {
     if (isConnected && slimeNFTs.length > 0) {
@@ -29,6 +30,13 @@ export default function ProfilePage() {
       setNftsWithImages([])
     }
   }, [isConnected, slimeNFTs])
+
+  // Close modal on Escape
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpandedNFT(null) }
+    if (expandedNFT) document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [expandedNFT])
 
   const loadNFTImages = async () => {
     setLoadingNFTs(true)
@@ -141,19 +149,12 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* PFP Selector */}
+        {/* NFT Gallery */}
         {slimeNFTs.length > 0 && (
           <div className="mb-10">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Set Profile Picture</h2>
-              {pfp && (
-                <button
-                  onClick={() => setPfp(null)}
-                  className="text-xs text-gray-500 hover:text-red-400 transition"
-                >
-                  REMOVE PFP
-                </button>
-              )}
+              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Your NFTs</h2>
+              <p className="text-xs text-gray-600">Click to view &amp; set PFP</p>
             </div>
             {loadingNFTs ? (
               <div className="flex justify-center py-16">
@@ -164,9 +165,9 @@ export default function ProfilePage() {
                 {nftsWithImages.map(nft => (
                   <button
                     key={nft.serial_number}
-                    onClick={() => handleSelectPfp(nft)}
+                    onClick={() => setExpandedNFT(nft)}
                     title={nft.name}
-                    className={`aspect-square rounded-xl overflow-hidden border-2 transition ${
+                    className={`relative aspect-square rounded-xl overflow-hidden border-2 transition hover:scale-105 ${
                       pfp?.serial_number === nft.serial_number
                         ? 'border-slime-green ring-2 ring-slime-green/30'
                         : 'border-gray-700 hover:border-slime-green/50'
@@ -177,6 +178,11 @@ export default function ProfilePage() {
                     ) : (
                       <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-600">
                         #{nft.serial_number}
+                      </div>
+                    )}
+                    {pfp?.serial_number === nft.serial_number && (
+                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-slime-green text-black text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap">
+                        PFP
                       </div>
                     )}
                   </button>
@@ -279,6 +285,68 @@ export default function ProfilePage() {
       </div>
 
       <Footer />
+
+      {/* NFT Expanded Modal */}
+      {expandedNFT && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setExpandedNFT(null)}
+        >
+          <div
+            className="relative bg-[#1a1a1a] border border-gray-800 rounded-2xl overflow-hidden w-full max-w-xs"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setExpandedNFT(null)}
+              className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-gray-400 hover:text-white transition"
+              aria-label="Close"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Image */}
+            <div className="aspect-square w-full bg-gray-900">
+              {expandedNFT.imageUrl ? (
+                <img src={expandedNFT.imageUrl} alt={expandedNFT.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-600 text-sm">
+                  #{expandedNFT.serial_number}
+                </div>
+              )}
+            </div>
+
+            {/* Info + actions */}
+            <div className="p-4">
+              <p className="text-white font-bold text-sm mb-0.5">{expandedNFT.name}</p>
+              <p className="text-gray-500 text-xs mb-4">Serial #{expandedNFT.serial_number}</p>
+
+              {pfp?.serial_number === expandedNFT.serial_number ? (
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center justify-center text-xs font-bold text-slime-green border border-slime-green/40 rounded-lg py-2.5">
+                    CURRENT PFP
+                  </div>
+                  <button
+                    onClick={() => { setPfp(null); setExpandedNFT(null) }}
+                    className="flex-1 bg-gray-800 text-gray-400 py-2.5 rounded-lg text-xs font-bold hover:text-red-400 hover:bg-red-900/20 transition"
+                  >
+                    REMOVE
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { handleSelectPfp(expandedNFT); setExpandedNFT(null) }}
+                  className="w-full bg-slime-green text-black py-2.5 rounded-lg text-xs font-bold hover:bg-[#00cc33] transition"
+                >
+                  SET AS PFP
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
