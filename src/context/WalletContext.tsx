@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { DAppConnector, HederaSessionEvent, HederaJsonRpcMethod, HederaChainId } from '@hashgraph/hedera-wallet-connect'
 import { LedgerId } from '@hashgraph/sdk'
 
@@ -69,7 +70,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
         const connector = new DAppConnector(
           {
-            name: 'SLIME dApp',
+            name: 'SLIME',
             description: 'The SLIME community dApp on Hedera',
             url: window.location.origin,
             icons: [`${window.location.origin}/favicon.ico`]
