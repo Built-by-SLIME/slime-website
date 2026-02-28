@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useWallet } from '../context/WalletContext'
 import ProfileSlideout from './ProfileSlideout'
 
@@ -35,9 +36,9 @@ export default function Hero() {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-10" style={{ marginTop: '4px' }}>
           <div className="flex gap-10 text-sm font-medium">
-            <a href="/swap" className="text-gray-300 hover:text-slime-green transition">SWAP</a>
-            <a href="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</a>
-            <a href="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</a>
+            <Link to="/swap" className="text-gray-300 hover:text-slime-green transition">SWAP</Link>
+            <Link to="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</Link>
+            <Link to="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</Link>
             <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">TOOLS</a>
           </div>
           {/* Social Icons */}
@@ -122,9 +123,9 @@ export default function Hero() {
           </button>
 
           <div className="flex flex-col items-center justify-center flex-1 gap-6 text-center px-8">
-            <a href="/swap" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>SWAP</a>
-            <a href="/merch" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</a>
-            <a href="/collection" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</a>
+            <Link to="/swap" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>SWAP</Link>
+            <Link to="/merch" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</Link>
+            <Link to="/collection" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</Link>
             <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>TOOLS</a>
 
             {isConnected ? (
@@ -137,7 +138,7 @@ export default function Hero() {
                     {slimeNFTs.length} NFTs &nbsp;·&nbsp; {Number(slimeTokenBalance).toLocaleString()} $SLIME
                   </p>
                 </div>
-                <a href="/profile" onClick={() => setMobileMenuOpen(false)} className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition">PROFILE</a>
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition">PROFILE</Link>
                 <button onClick={() => { disconnect(); setMobileMenuOpen(false) }} className="text-sm text-gray-400 hover:text-red-400 transition">DISCONNECT</button>
               </>
             ) : (
@@ -194,9 +195,9 @@ export default function Hero() {
               <a href="https://sentx.io/nft-marketplace/slime" target="_blank" rel="noopener noreferrer" className="bg-slime-green text-black px-10 py-3.5 rounded-md font-bold text-sm hover:bg-[#00cc33] transition text-center">
                 BUY SLIME
               </a>
-              <a href="/collection" className="bg-transparent border-2 border-slime-green text-slime-green px-10 py-3.5 rounded-md font-bold text-sm hover:bg-slime-green hover:text-black transition text-center">
+              <Link to="/collection" className="bg-transparent border-2 border-slime-green text-slime-green px-10 py-3.5 rounded-md font-bold text-sm hover:bg-slime-green hover:text-black transition text-center">
                 VIEW COLLECTION
-              </a>
+              </Link>
             </div>
           </div>
         </div>

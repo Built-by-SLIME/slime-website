@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useWallet } from '../context/WalletContext'
 import ProfileSlideout from './ProfileSlideout'
 
@@ -21,17 +22,17 @@ export default function Navigation() {
           }
         `}</style>
         <div className="flex items-center md:mt-[4px]">
-          <a href="/">
+          <Link to="/">
             <img src="/Assets/SPLAT.png" alt="SLIME" className="h-auto w-10 md:w-12" />
-          </a>
+          </Link>
         </div>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-10" style={{ marginTop: '4px' }}>
           <div className="flex gap-10 text-sm font-medium">
-            <a href="/swap" className="text-gray-300 hover:text-slime-green transition">SWAP</a>
-            <a href="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</a>
-            <a href="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</a>
+            <Link to="/swap" className="text-gray-300 hover:text-slime-green transition">SWAP</Link>
+            <Link to="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</Link>
+            <Link to="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</Link>
             <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">TOOLS</a>
           </div>
           {/* Social Icons */}
@@ -120,9 +121,9 @@ export default function Navigation() {
 
           <div className="flex flex-col items-center justify-center flex-1 gap-6 text-center px-8">
             {/* Nav Links — always visible */}
-            <a href="/swap" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>SWAP</a>
-            <a href="/merch" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</a>
-            <a href="/collection" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</a>
+            <Link to="/swap" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>SWAP</Link>
+            <Link to="/merch" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</Link>
+            <Link to="/collection" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</Link>
             <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>TOOLS</a>
 
             {isConnected ? (
@@ -135,13 +136,13 @@ export default function Navigation() {
                     {slimeNFTs.length} NFTs &nbsp;·&nbsp; {Number(slimeTokenBalance).toLocaleString()} $SLIME
                   </p>
                 </div>
-                <a
-                  href="/profile"
+                <Link
+                  to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
                   className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
                 >
                   PROFILE
-                </a>
+                </Link>
                 <button
                   onClick={() => { disconnect(); setMobileMenuOpen(false) }}
                   className="text-sm text-gray-400 hover:text-red-400 transition"

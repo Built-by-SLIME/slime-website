@@ -84,6 +84,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
         await connector.init({ logger: 'error' })
         setDAppConnector(connector)
+
+        // Restore existing WalletConnect session (handles page reloads)
+        const existingSessions = connector.walletConnectClient?.session.getAll()
+        if (existingSessions && existingSessions.length > 0) {
+          const session = existingSessions[0]
+          const accounts = session.namespaces?.hedera?.accounts || []
+          if (accounts.length > 0) {
+            const account = accounts[0].split(':').pop() || ''
+            if (account) {
+              setAccountId(account)
+              setIsConnected(true)
+              await fetchWalletData(account)
+            }
+          }
+        }
       } catch (err) {
         console.error('DAppConnector init failed:', err)
       }

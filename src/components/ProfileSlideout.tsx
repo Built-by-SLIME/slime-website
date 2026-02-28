@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useWallet } from '../context/WalletContext'
 
 interface Props {
@@ -89,8 +90,8 @@ export default function ProfileSlideout({ open, onClose }: Props) {
 
         {/* Nav Links */}
         <nav className="flex-1 px-3 py-4 space-y-1">
-          <a
-            href="/profile"
+          <Link
+            to="/profile"
             onClick={onClose}
             className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition"
           >
@@ -98,9 +99,9 @@ export default function ProfileSlideout({ open, onClose }: Props) {
               <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
             </svg>
             <span className="text-sm font-bold uppercase tracking-wider">Profile</span>
-          </a>
-          <a
-            href="/swap"
+          </Link>
+          <Link
+            to="/swap"
             onClick={onClose}
             className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition"
           >
@@ -108,7 +109,7 @@ export default function ProfileSlideout({ open, onClose }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
             <span className="text-sm font-bold uppercase tracking-wider">Swaps</span>
-          </a>
+          </Link>
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 cursor-not-allowed select-none">
             <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
