@@ -94,17 +94,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const fetchWalletData = async (account: string) => {
+    const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
     try {
-      const [nftRes, tokenRes] = await Promise.all([
-        fetch(`https://mainnet-public.mirrornode.hedera.com/api/v1/accounts/${account}/nfts?token.id=${SLIME_NFT_TOKEN}&limit=100`),
-        fetch(`https://mainnet-public.mirrornode.hedera.com/api/v1/accounts/${account}/tokens?token.id=${SLIME_TOKEN}`)
-      ])
+      // Fetch token balance in parallel with NFT pagination
+      const tokenPromise = fetch(`${MIRROR}/api/v1/accounts/${account}/tokens?token.id=${SLIME_TOKEN}`)
 
-      if (nftRes.ok) {
-        const data = await nftRes.json()
-        setSlimeNFTs(data.nfts || [])
+      // Paginate NFTs — follow links.next until exhausted
+      const allNFTs: RawNFT[] = []
+      let nextPath: string | null = `/api/v1/accounts/${account}/nfts?token.id=${SLIME_NFT_TOKEN}&limit=100`
+      while (nextPath) {
+        const nftPageRes: Response = await fetch(`${MIRROR}${nextPath}`)
+        if (!nftPageRes.ok) break
+        const nftPageData: { nfts: RawNFT[]; links?: { next?: string } } = await nftPageRes.json()
+        allNFTs.push(...(nftPageData.nfts || []))
+        nextPath = nftPageData.links?.next || null
       }
+      setSlimeNFTs(allNFTs)
 
+      const tokenRes = await tokenPromise
       if (tokenRes.ok) {
         const data = await tokenRes.json()
         const token = data.tokens?.find((t: { token_id: string; balance: number }) => t.token_id === SLIME_TOKEN)
