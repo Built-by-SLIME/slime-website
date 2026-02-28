@@ -1,7 +1,14 @@
 import { useState } from 'react'
+import { useWallet } from '../context/WalletContext'
+import ProfileMenu from './ProfileMenu'
 
 export default function Hero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { isConnected, accountId, connect, disconnect } = useWallet()
+
+  const handleConnect = async () => {
+    try { await connect() } catch (err) { console.error('Connect failed:', err) }
+  }
 
   return (
     <section className="relative min-h-screen flex flex-col bg-[#2a2a2a] overflow-visible">
@@ -50,10 +57,14 @@ export default function Hero() {
               </svg>
             </a>
           </div>
-          {/* Connect Button */}
-          <button className="bg-slime-green text-black px-5 py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition">
-            CONNECT
-          </button>
+          {/* Connect / Profile */}
+          {isConnected ? (
+            <ProfileMenu />
+          ) : (
+            <button onClick={handleConnect} className="bg-slime-green text-black px-5 py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition">
+              CONNECT
+            </button>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -119,9 +130,21 @@ export default function Hero() {
             >
               TOOLS
             </a>
-            <button className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition">
-              CONNECT
-            </button>
+            {isConnected ? (
+              <div className="text-center">
+                <p className="text-slime-green font-mono text-sm mb-3">{accountId}</p>
+                <button
+                  onClick={() => { disconnect(); setMobileMenuOpen(false) }}
+                  className="text-sm text-gray-400 hover:text-red-400 transition"
+                >
+                  DISCONNECT
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => { handleConnect(); setMobileMenuOpen(false) }} className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition">
+                CONNECT
+              </button>
+            )}
 
             {/* Social Icons */}
             <div className="flex items-center gap-6 mt-8">

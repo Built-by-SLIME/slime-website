@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { CartProvider } from './context/CartContext'
+import { WalletProvider } from './context/WalletContext'
 
 // Lazy load all routes for code splitting
 const GooeyLanding = lazy(() => import('./components/GooeyLanding'))
@@ -23,19 +24,21 @@ function LoadingSpinner() {
 
 function App() {
   return (
-    <CartProvider>
-      <BrowserRouter>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Routes>
-            <Route path="/" element={<GooeyLanding />} />
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/merch" element={<MerchPage />} />
-            <Route path="/collection" element={<CollectionPage />} />
-            <Route path="/swap" element={<SwapPage />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </CartProvider>
+    <WalletProvider>
+      <CartProvider>
+        <BrowserRouter>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              <Route path="/" element={<GooeyLanding />} />
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/merch" element={<MerchPage />} />
+              <Route path="/collection" element={<CollectionPage />} />
+              <Route path="/swap" element={<SwapPage />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </CartProvider>
+    </WalletProvider>
   )
 }
 
