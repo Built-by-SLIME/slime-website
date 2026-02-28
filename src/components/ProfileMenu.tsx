@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useWallet } from '../context/WalletContext'
 import type { PfpData, SocialInfo } from '../context/WalletContext'
-import { decodeMetadata } from '../utils/nft'
 
 type Tab = 'profile' | 'rewards' | 'swaps'
 
@@ -39,28 +38,38 @@ export default function ProfileMenu() {
 
   const loadNFTImages = async () => {
     setLoadingNFTs(true)
-    const results: NFTWithImage[] = []
-    const batch = slimeNFTs.slice(0, 24)
 
-    // Process in batches of 4 to avoid rate-limiting the IPFS gateway
-    for (let i = 0; i < batch.length; i += 4) {
-      const chunk = batch.slice(i, i + 4)
-      await Promise.all(
-        chunk.map(async (nft) => {
-          if (nft.metadata) {
-            const meta = await decodeMetadata(nft.metadata)
-            if (meta) {
-              results.push({
-                serial_number: nft.serial_number,
-                name: meta.name || `SLIME #${nft.serial_number}`,
-                imageUrl: meta.image || ''
-              })
-            }
-          }
-        })
+    try {
+      const apiKey = import.meta.env.VITE_SENTX_API_KEY
+      const tokenId = import.meta.env.VITE_SLIME_TOKEN_ID
+      const serials = slimeNFTs.slice(0, 24).map(n => n.serial_number).join(',')
+
+      const response = await fetch(
+        `/api/nft-images?apikey=${apiKey}&token=${tokenId}&serials=${serials}`
       )
-      // Yield between batches so partial results can render
-      setNftsWithImages([...results].sort((a, b) => a.serial_number - b.serial_number))
+
+      if (!response.ok) throw new Error('Failed to fetch NFT images')
+
+      const data = await response.json()
+      const nftsMap: Record<number, { name: string; image: string }> = data.nfts || {}
+
+      const gateway = 'https://gateway.pinata.cloud/ipfs/'
+      const results: NFTWithImage[] = slimeNFTs.slice(0, 24).map(nft => {
+        const info = nftsMap[nft.serial_number]
+        let imageUrl = info?.image || ''
+        if (imageUrl.startsWith('ipfs://')) {
+          imageUrl = gateway + imageUrl.slice(7).replace(/#/g, '%23')
+        }
+        return {
+          serial_number: nft.serial_number,
+          name: info?.name || `SLIME #${nft.serial_number}`,
+          imageUrl
+        }
+      }).sort((a, b) => a.serial_number - b.serial_number)
+
+      setNftsWithImages(results)
+    } catch (err) {
+      console.error('Failed to load NFT images:', err)
     }
 
     setLoadingNFTs(false)
