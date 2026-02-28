@@ -32,10 +32,6 @@ export default function Hero() {
             <a href="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</a>
             <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">TOOLS</a>
           </div>
-          {/* Connect Wallet Button */}
-          <button className="bg-slime-green text-black px-5 py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition">
-            CONNECT WALLET
-          </button>
           {/* Social Icons */}
           <div className="flex items-center gap-4">
             <a href="https://github.com/Built-by-SLIME" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">
@@ -54,6 +50,10 @@ export default function Hero() {
               </svg>
             </a>
           </div>
+          {/* Connect Button */}
+          <button className="bg-slime-green text-black px-5 py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition">
+            CONNECT
+          </button>
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -120,7 +120,7 @@ export default function Hero() {
               TOOLS
             </a>
             <button className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition">
-              CONNECT WALLET
+              CONNECT
             </button>
 
             {/* Social Icons */}
