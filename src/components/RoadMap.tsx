@@ -28,7 +28,7 @@ export default function RoadMap() {
       phase: "PHASE 5",
       title: "SLIME DAPP",
       description: "Deploy the dApp: Stake your SLIME, claim rewards, build your profile, & register domains",
-      status: "IN PROGRESS"
+      status: "COMPLETE"
     },
     {
       phase: "PHASE 6",
