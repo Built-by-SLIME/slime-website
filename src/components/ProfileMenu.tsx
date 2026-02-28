@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useWallet, PfpData, SocialInfo } from '../context/WalletContext'
+import { useWallet } from '../context/WalletContext'
+import type { PfpData, SocialInfo } from '../context/WalletContext'
 import { decodeMetadata } from '../utils/nft'
 
 type Tab = 'profile' | 'rewards' | 'swaps'
@@ -39,24 +40,29 @@ export default function ProfileMenu() {
   const loadNFTImages = async () => {
     setLoadingNFTs(true)
     const results: NFTWithImage[] = []
+    const batch = slimeNFTs.slice(0, 24)
 
-    await Promise.all(
-      slimeNFTs.slice(0, 24).map(async (nft) => {
-        if (nft.metadata) {
-          const meta = await decodeMetadata(nft.metadata)
-          if (meta) {
-            results.push({
-              serial_number: nft.serial_number,
-              name: meta.name || `SLIME #${nft.serial_number}`,
-              imageUrl: meta.image || ''
-            })
+    // Process in batches of 4 to avoid rate-limiting the IPFS gateway
+    for (let i = 0; i < batch.length; i += 4) {
+      const chunk = batch.slice(i, i + 4)
+      await Promise.all(
+        chunk.map(async (nft) => {
+          if (nft.metadata) {
+            const meta = await decodeMetadata(nft.metadata)
+            if (meta) {
+              results.push({
+                serial_number: nft.serial_number,
+                name: meta.name || `SLIME #${nft.serial_number}`,
+                imageUrl: meta.image || ''
+              })
+            }
           }
-        }
-      })
-    )
+        })
+      )
+      // Yield between batches so partial results can render
+      setNftsWithImages([...results].sort((a, b) => a.serial_number - b.serial_number))
+    }
 
-    results.sort((a, b) => a.serial_number - b.serial_number)
-    setNftsWithImages(results)
     setLoadingNFTs(false)
   }
 
