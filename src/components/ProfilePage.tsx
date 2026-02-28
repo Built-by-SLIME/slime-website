@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useWallet } from '../context/WalletContext'
-import type { PfpData, SocialInfo } from '../context/WalletContext'
+import type { PfpData } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
@@ -14,13 +14,11 @@ interface NFTWithImage {
 export default function ProfilePage() {
   const {
     isConnected, accountId, slimeNFTs, slimeTokenBalance,
-    pfp, socialInfo, connect, disconnect, setPfp, setSocialInfo
+    pfp, connect, disconnect, setPfp
   } = useWallet()
 
   const [nftsWithImages, setNftsWithImages] = useState<NFTWithImage[]>([])
   const [loadingNFTs, setLoadingNFTs] = useState(false)
-  const [editingSocial, setEditingSocial] = useState(false)
-  const [socialDraft, setSocialDraft] = useState<SocialInfo>({ twitter: '', discord: '', bio: '' })
   const [expandedNFT, setExpandedNFT] = useState<NFTWithImage | null>(null)
 
   useEffect(() => {
@@ -163,7 +161,7 @@ export default function ProfilePage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slime-green" />
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
                 {nftsWithImages.map(nft => (
                   <button
                     key={nft.serial_number}
@@ -199,81 +197,6 @@ export default function ProfilePage() {
             <p className="text-gray-500 text-sm">No SLIME NFTs found in this wallet.</p>
           </div>
         )}
-
-        {/* Social Info */}
-        <div className="mb-10 bg-black/20 border border-gray-800 rounded-2xl p-5 md:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Social</h2>
-            {!editingSocial && (
-              <button
-                onClick={() => { setEditingSocial(true); setSocialDraft({ ...socialInfo }) }}
-                className="text-xs text-slime-green hover:underline"
-              >
-                EDIT
-              </button>
-            )}
-          </div>
-          {editingSocial ? (
-            <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="Twitter / X handle"
-                value={socialDraft.twitter}
-                onChange={e => setSocialDraft(d => ({ ...d, twitter: e.target.value }))}
-                className="w-full bg-black/30 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-slime-green focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Discord handle"
-                value={socialDraft.discord}
-                onChange={e => setSocialDraft(d => ({ ...d, discord: e.target.value }))}
-                className="w-full bg-black/30 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-slime-green focus:outline-none"
-              />
-              <textarea
-                placeholder="Bio"
-                value={socialDraft.bio}
-                onChange={e => setSocialDraft(d => ({ ...d, bio: e.target.value }))}
-                rows={3}
-                className="w-full bg-black/30 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-slime-green focus:outline-none resize-none"
-              />
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => { setSocialInfo(socialDraft); setEditingSocial(false) }}
-                  className="flex-1 bg-slime-green text-black py-2 rounded-lg text-xs font-bold hover:bg-[#00cc33] transition"
-                >
-                  SAVE
-                </button>
-                <button
-                  onClick={() => setEditingSocial(false)}
-                  className="flex-1 bg-gray-800 text-gray-400 py-2 rounded-lg text-xs font-bold hover:bg-gray-700 transition"
-                >
-                  CANCEL
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {socialInfo.twitter && (
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <span className="text-gray-600 text-xs w-12">X</span>
-                  <span>@{socialInfo.twitter}</span>
-                </div>
-              )}
-              {socialInfo.discord && (
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <span className="text-gray-600 text-xs w-12">Discord</span>
-                  <span>{socialInfo.discord}</span>
-                </div>
-              )}
-              {socialInfo.bio && (
-                <p className="text-sm text-gray-400 pt-1">{socialInfo.bio}</p>
-              )}
-              {!socialInfo.twitter && !socialInfo.discord && !socialInfo.bio && (
-                <p className="text-xs text-gray-600">No social info added yet.</p>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* Disconnect */}
         <div className="text-center pb-8">
