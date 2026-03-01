@@ -37,11 +37,11 @@ export default function Hero() {
               SLIME is a development collective dedicated to delivering production-grade FOSS to the Hedera ecosystem. We scout, and mentor new builders - then ship production-ready FOSS for Hedera, governed 100% by our DAO.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="https://sentx.io/nft-marketplace/slime" target="_blank" rel="noopener noreferrer" className="bg-slime-green text-black px-10 py-3.5 rounded-md font-bold text-sm hover:bg-[#00cc33] transition text-center">
-                BUY SLIME
-              </a>
-              <Link to="/collection" className="bg-transparent border-2 border-slime-green text-slime-green px-10 py-3.5 rounded-md font-bold text-sm hover:bg-slime-green hover:text-black transition text-center">
-                VIEW COLLECTION
+              <Link to="/mint" className="bg-slime-green text-black px-10 py-3.5 rounded-md font-bold text-sm hover:bg-[#00cc33] transition text-center">
+                MINT SLIME
+              </Link>
+              <Link to="/market" className="bg-transparent border-2 border-slime-green text-slime-green px-10 py-3.5 rounded-md font-bold text-sm hover:bg-slime-green hover:text-black transition text-center">
+                SLIME MARKET
               </Link>
             </div>
           </div>
