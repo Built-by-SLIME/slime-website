@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AccountAllowanceApproveTransaction, TokenId, NftId, AccountId } from '@hashgraph/sdk'
+import { AccountAllowanceApproveTransaction, TokenId, NftId, AccountId, TransactionResponse } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import { decodeMetadata } from '../utils/nft'
 import type { NFTMetadata } from '../utils/nft'
@@ -188,7 +188,8 @@ export default function SwapPage() {
           AccountId.fromString(OPERATOR),
           rawAmount
         )
-        await signer.call(approveTx)
+        const approveTxResponse = await signer.call(approveTx) as TransactionResponse
+        await approveTxResponse.getReceiptWithSigner(signer)
 
         setSwapStatus('executing')
         setStatusMsg('Executing swap...')
@@ -222,7 +223,8 @@ export default function SwapPage() {
             AccountId.fromString(OPERATOR)
           )
         )
-        await signer.call(approveTx)
+        const approveNftResponse = await signer.call(approveTx) as TransactionResponse
+        await approveNftResponse.getReceiptWithSigner(signer)
 
         setSwapStatus('executing')
         setStatusMsg('Executing swap...')
