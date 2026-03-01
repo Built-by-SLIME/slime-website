@@ -6,293 +6,493 @@ import type { NFTMetadata } from '../utils/nft'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
+const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
+const OPERATOR = '0.0.9348822'
+
+interface SwapProgram {
+  id: string
+  name: string
+  description: string | null
+  swap_type: 'fungible' | 'nft'
+  from_token_id: string
+  to_token_id: string
+  treasury_account_id: string
+  rate_from: number
+  rate_to: number
+  status: string
+}
+
+interface TokenInfo {
+  symbol: string
+  decimals: number
+}
+
 interface NFT {
   token_id: string
   serial_number: number
   metadata?: string
 }
 
+type SwapStatus = 'idle' | 'approving' | 'executing' | 'success' | 'error'
+
 export default function SwapPage() {
-  const { isConnected, accountId, connect, disconnect, dAppConnector } = useWallet()
+  const { isConnected, accountId, dAppConnector, connect } = useWallet()
 
-  const [oldNFTs, setOldNFTs] = useState<NFT[]>([])
+  const [programs, setPrograms] = useState<SwapProgram[]>([])
+  const [tokenInfo, setTokenInfo] = useState<Map<string, TokenInfo>>(new Map())
+  const [loadingPrograms, setLoadingPrograms] = useState(true)
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  // Fungible swap state
+  const [inputAmount, setInputAmount] = useState('')
+
+  // NFT swap state
+  const [userNFTs, setUserNFTs] = useState<NFT[]>([])
   const [nftMetadata, setNftMetadata] = useState<Map<number, NFTMetadata>>(new Map())
-  const [selectedNFTs, setSelectedNFTs] = useState<Set<number>>(new Set())
-  const [loading, setLoading] = useState(false)
-  const [swapping, setSwapping] = useState(false)
-  const [error, setError] = useState<string>('')
-  const [success, setSuccess] = useState<string>('')
+  const [loadingNFTs, setLoadingNFTs] = useState(false)
+  const [selectedSerials, setSelectedSerials] = useState<Set<number>>(new Set())
 
-  const OLD_TOKEN_ID = '0.0.8357917'
-  const NEW_TOKEN_ID = '0.0.9474754'
-  const TREASURY_ACCOUNT_ID = '0.0.10261541'
+  // Swap execution state
+  const [swapStatus, setSwapStatus] = useState<SwapStatus>('idle')
+  const [statusMsg, setStatusMsg] = useState('')
 
-  // Auto-fetch old NFTs when wallet connects
+  // Fetch programs + token info on mount
   useEffect(() => {
-    if (isConnected && accountId) {
-      fetchOldNFTs(accountId)
-    } else {
-      setOldNFTs([])
-      setSelectedNFTs(new Set())
+    const load = async () => {
+      try {
+        const res = await fetch('/api/swap-programs')
+        const data = await res.json()
+        const activePrograms: SwapProgram[] = (data.programs || []).filter(
+          (p: SwapProgram) => p.status === 'active'
+        )
+        setPrograms(activePrograms)
+
+        // Fetch token info for all unique token IDs
+        const tokenIds = new Set<string>()
+        activePrograms.forEach(p => {
+          tokenIds.add(p.from_token_id)
+          tokenIds.add(p.to_token_id)
+        })
+        const infoMap = new Map<string, TokenInfo>()
+        await Promise.all(
+          Array.from(tokenIds).map(async id => {
+            try {
+              const r = await fetch(`${MIRROR}/api/v1/tokens/${id}`)
+              if (r.ok) {
+                const t = await r.json()
+                infoMap.set(id, { symbol: t.symbol || id, decimals: Number(t.decimals) || 0 })
+              }
+            } catch { /* use token ID as fallback */ }
+          })
+        )
+        setTokenInfo(infoMap)
+      } catch {
+        // silently fail — empty programs list shown
+      } finally {
+        setLoadingPrograms(false)
+      }
     }
-  }, [isConnected, accountId])
+    load()
+  }, [])
 
-  const fetchOldNFTs = async (account: string) => {
-    setLoading(true)
-    setError('')
+  // When active program changes, reset state and load NFTs if needed
+  useEffect(() => {
+    setInputAmount('')
+    setSelectedSerials(new Set())
+    setUserNFTs([])
+    setNftMetadata(new Map())
+    setSwapStatus('idle')
+    setStatusMsg('')
 
+    const program = programs.find(p => p.id === activeId)
+    if (program && program.swap_type === 'nft' && isConnected && accountId) {
+      loadNFTs(program.from_token_id)
+    }
+  }, [activeId])
+
+  const loadNFTs = async (tokenId: string) => {
+    setLoadingNFTs(true)
     try {
-      const response = await fetch(
-        `https://mainnet-public.mirrornode.hedera.com/api/v1/accounts/${account}/nfts?token.id=${OLD_TOKEN_ID}`
-      )
+      const nfts: NFT[] = []
+      let path: string | null = `/api/v1/accounts/${accountId}/nfts?token.id=${tokenId}&limit=100`
+      while (path) {
+        const r: Response = await fetch(`${MIRROR}${path}`)
+        if (!r.ok) break
+        const d: { nfts: NFT[]; links?: { next?: string } } = await r.json()
+        nfts.push(...(d.nfts || []))
+        path = d.links?.next || null
+      }
+      setUserNFTs(nfts)
 
-      if (!response.ok) throw new Error('Failed to fetch NFTs')
-
-      const data = await response.json()
-      const nfts = data.nfts || []
-      setOldNFTs(nfts)
-
-      const metadataMap = new Map<number, NFTMetadata>()
+      const metaMap = new Map<number, NFTMetadata>()
       await Promise.all(
-        nfts.map(async (nft: NFT) => {
+        nfts.map(async nft => {
           if (nft.metadata) {
             const decoded = await decodeMetadata(nft.metadata)
-            if (decoded) metadataMap.set(nft.serial_number, decoded)
+            if (decoded) metaMap.set(nft.serial_number, decoded)
           }
         })
       )
-      setNftMetadata(metadataMap)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch NFTs')
-    } finally {
-      setLoading(false)
+      setNftMetadata(metaMap)
+    } catch { /* show empty grid */ } finally {
+      setLoadingNFTs(false)
     }
   }
 
-  const handleConnect = async () => {
-    setError('')
-    try {
-      await connect()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect wallet')
-    }
+  const toggleSerial = (serial: number) => {
+    setSelectedSerials(prev => {
+      const next = new Set(prev)
+      next.has(serial) ? next.delete(serial) : next.add(serial)
+      return next
+    })
   }
 
-  const toggleNFTSelection = (serialNumber: number) => {
-    const newSelection = new Set(selectedNFTs)
-    if (newSelection.has(serialNumber)) {
-      newSelection.delete(serialNumber)
-    } else {
-      newSelection.add(serialNumber)
-    }
-    setSelectedNFTs(newSelection)
+  const toRaw = (human: string, decimals: number): number => {
+    const n = parseFloat(human)
+    if (isNaN(n) || n <= 0) return 0
+    return Math.round(n * Math.pow(10, decimals))
   }
 
-  const selectAll = () => setSelectedNFTs(new Set(oldNFTs.map(nft => nft.serial_number)))
-  const deselectAll = () => setSelectedNFTs(new Set())
+  const toHuman = (raw: number, decimals: number): string =>
+    decimals === 0 ? String(raw) : (raw / Math.pow(10, decimals)).toLocaleString()
 
-  const swapNFTs = async () => {
-    if (selectedNFTs.size === 0) {
-      setError('Please select at least one NFT to swap')
+  const handleSwap = async () => {
+    const program = programs.find(p => p.id === activeId)
+    if (!program || !dAppConnector) return
+
+    const signer = dAppConnector.signers.find(s => s.getAccountId().toString() === accountId)
+      ?? dAppConnector.signers[0]
+    if (!signer) {
+      setSwapStatus('error')
+      setStatusMsg('Wallet signer not available — please reconnect')
       return
     }
 
-    if (!dAppConnector) {
-      setError('Wallet not connected')
-      return
-    }
-
-    setSwapping(true)
-    setError('')
-    setSuccess('')
+    setSwapStatus('approving')
+    setStatusMsg('Approving token allowance in your wallet...')
 
     try {
-      const signer = dAppConnector.signers[0]
-      if (!signer) throw new Error('No signer available')
+      if (program.swap_type === 'fungible') {
+        const decimals = tokenInfo.get(program.from_token_id)?.decimals ?? 0
+        const rawAmount = toRaw(inputAmount, decimals)
+        if (!rawAmount) {
+          setSwapStatus('error')
+          setStatusMsg('Enter a valid amount')
+          return
+        }
 
-      setSuccess('Approving NFT transfers...')
+        const approveTx = new AccountAllowanceApproveTransaction().approveTokenAllowance(
+          TokenId.fromString(program.from_token_id),
+          AccountId.fromString(accountId),
+          AccountId.fromString(OPERATOR),
+          rawAmount
+        )
+        await signer.call(approveTx)
 
-      for (const serialNumber of Array.from(selectedNFTs)) {
-        const approveTransaction = new AccountAllowanceApproveTransaction()
-          .approveTokenNftAllowance(
-            new NftId(TokenId.fromString(OLD_TOKEN_ID), serialNumber),
+        setSwapStatus('executing')
+        setStatusMsg('Executing swap...')
+
+        const res = await fetch(`/api/swap-execute?id=${program.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userAccountId: accountId, amount: rawAmount }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Swap failed')
+
+        setSwapStatus('success')
+        setStatusMsg(data.message || 'Swap successful!')
+        setInputAmount('')
+
+      } else {
+        // NFT swap
+        if (selectedSerials.size === 0) {
+          setSwapStatus('error')
+          setStatusMsg('Select at least one NFT to swap')
+          return
+        }
+
+        const serials = Array.from(selectedSerials)
+        const approveTx = new AccountAllowanceApproveTransaction()
+        serials.forEach(serial =>
+          approveTx.approveTokenNftAllowance(
+            new NftId(TokenId.fromString(program.from_token_id), serial),
             AccountId.fromString(accountId),
-            AccountId.fromString(TREASURY_ACCOUNT_ID)
+            AccountId.fromString(OPERATOR)
           )
-        await signer.call(approveTransaction)
+        )
+        await signer.call(approveTx)
+
+        setSwapStatus('executing')
+        setStatusMsg('Executing swap...')
+
+        const res = await fetch(`/api/swap-execute?id=${program.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userAccountId: accountId, serialNumbers: serials }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Swap failed')
+
+        setSwapStatus('success')
+        setStatusMsg(data.message || 'Swap successful!')
+        setSelectedSerials(new Set())
+        await loadNFTs(program.from_token_id)
       }
-
-      setSuccess('Swapping NFTs...')
-      const response = await fetch('/api/swap-nft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userAccountId: accountId,
-          serialNumbers: Array.from(selectedNFTs),
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Swap failed')
-      }
-
-      await response.json()
-      setSuccess(`Successfully swapped ${selectedNFTs.size} NFT(s)!`)
-      setSelectedNFTs(new Set())
-      await fetchOldNFTs(accountId)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Swap failed')
-    } finally {
-      setSwapping(false)
+      setSwapStatus('error')
+      setStatusMsg(err instanceof Error ? err.message : 'Swap failed')
     }
+  }
+
+  const rateLabel = (p: SwapProgram) => {
+    const from = tokenInfo.get(p.from_token_id)?.symbol ?? p.from_token_id
+    const to = tokenInfo.get(p.to_token_id)?.symbol ?? p.to_token_id
+    return `${p.rate_from} ${from} → ${p.rate_to} ${to}`
+  }
+
+  const expectedOut = (p: SwapProgram): string => {
+    const fromDec = tokenInfo.get(p.from_token_id)?.decimals ?? 0
+    const toDec = tokenInfo.get(p.to_token_id)?.decimals ?? 0
+    const toSymbol = tokenInfo.get(p.to_token_id)?.symbol ?? p.to_token_id
+    const raw = toRaw(inputAmount, fromDec)
+    if (!raw || !p.rate_from) return '—'
+    const outRaw = Math.floor((raw / p.rate_from) * p.rate_to)
+    return `${toHuman(outRaw, toDec)} ${toSymbol}`
   }
 
   return (
-    <div className="min-h-screen bg-[#2a2a2a] text-white flex flex-col">
-      {/* Dot pattern background */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(0, 255, 64, 1) 1px, transparent 1px)',
-        backgroundSize: '50px 50px',
-        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)'
-      }}></div>
-
+    <div className="min-h-screen bg-[#2a2a2a] flex flex-col">
       <Navigation />
 
-      <div className="relative max-w-7xl mx-auto px-8 py-16 flex-grow">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-black mb-4">SLIME SWAP</h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Swap SLIME {OLD_TOKEN_ID} for SLIME {NEW_TOKEN_ID}.
-            <br />
-            Same serial numbers, same traits, upgraded collection!
-          </p>
+      <main className="flex-1 px-4 py-20 max-w-4xl mx-auto w-full">
+        <div className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">SWAP</h1>
+          <p className="text-gray-500 text-sm mt-1">Active swap programs powered by slime.tools</p>
         </div>
 
-        {/* Wallet Connection */}
-        {!isConnected ? (
-          <div className="max-w-md mx-auto text-center">
+        {/* Not connected */}
+        {!isConnected && (
+          <div className="bg-[#1a1a1a] rounded-2xl p-8 border border-gray-800 text-center">
+            <p className="text-gray-400 text-sm mb-5">Connect your wallet to use swap programs.</p>
             <button
-              onClick={handleConnect}
-              className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition"
+              onClick={() => connect().catch(() => {})}
+              className="bg-slime-green text-black px-8 py-3 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition"
             >
               CONNECT WALLET
             </button>
-            {error && (
-              <div className="mt-4 bg-red-500/10 border border-red-500 rounded p-3 text-red-500 text-sm">
-                {error}
-              </div>
-            )}
           </div>
-        ) : (
-          <div>
-            {/* Connected Wallet Info */}
-            <div className="bg-black/20 border border-slime-green/30 rounded-lg p-6 mb-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-400">CONNECTED WALLET</p>
-                  <p className="text-lg font-mono text-slime-green">{accountId}</p>
-                </div>
-                <button
-                  onClick={() => disconnect()}
-                  className="text-sm text-gray-400 hover:text-red-500 transition"
-                >
-                  DISCONNECT
-                </button>
-              </div>
-            </div>
+        )}
 
-            {loading && (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-slime-green"></div>
-                <p className="text-gray-400 mt-4">Loading your NFTs...</p>
+        {/* Connected */}
+        {isConnected && (
+          <>
+            {loadingPrograms && (
+              <div className="flex items-center justify-center h-48">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slime-green" />
               </div>
             )}
 
-            {!loading && oldNFTs.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-400 text-lg">No old SLIME NFTs found in your wallet.</p>
-                <p className="text-gray-500 text-sm mt-2">Token ID: {OLD_TOKEN_ID}</p>
+            {!loadingPrograms && programs.length === 0 && (
+              <div className="text-center py-24 text-gray-500">
+                <p className="font-bold text-white mb-1">No active swap programs</p>
+                <p className="text-sm">Check back soon.</p>
               </div>
             )}
 
-            {!loading && oldNFTs.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="text-gray-400">
-                    <span className="text-slime-green font-bold">{oldNFTs.length}</span> NFT{oldNFTs.length !== 1 ? 's' : ''} found
-                    {selectedNFTs.size > 0 && (
-                      <span className="ml-4">
-                        <span className="text-slime-green font-bold">{selectedNFTs.size}</span> selected
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={selectAll} className="text-sm text-slime-green hover:underline">Select All</button>
-                    <button onClick={deselectAll} className="text-sm text-gray-400 hover:underline">Deselect All</button>
-                  </div>
-                </div>
+            {!loadingPrograms && programs.length > 0 && (
+              <div className="flex flex-col gap-4">
+                {programs.map(p => {
+                  const isActive = activeId === p.id
+                  const fromSymbol = tokenInfo.get(p.from_token_id)?.symbol ?? p.from_token_id
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                  {oldNFTs.map((nft) => {
-                    const metadata = nftMetadata.get(nft.serial_number)
-                    const isSelected = selectedNFTs.has(nft.serial_number)
-                    return (
-                      <div
-                        key={nft.serial_number}
-                        onClick={() => toggleNFTSelection(nft.serial_number)}
-                        className={`bg-black/30 border-2 rounded-lg overflow-hidden cursor-pointer transition ${
-                          isSelected ? 'border-slime-green' : 'border-gray-700/50 hover:border-slime-green/50'
-                        }`}
-                      >
-                        <div className="aspect-square bg-black/50 relative">
-                          {metadata?.image ? (
-                            <img
-                              src={metadata.image}
-                              alt={metadata.name || `SLIME #${nft.serial_number}`}
-                              className="w-full h-full object-cover"
-                              crossOrigin="anonymous"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-600">No Image</div>
+                  return (
+                    <div key={p.id} className="bg-[#1a1a1a] rounded-2xl border border-gray-800 overflow-hidden">
+                      {/* Program header row */}
+                      <div className="flex items-center justify-between p-6">
+                        <div>
+                          <p className="text-white font-bold text-lg">{p.name}</p>
+                          {p.description && (
+                            <p className="text-gray-500 text-xs mt-0.5">{p.description}</p>
                           )}
-                          {isSelected && (
-                            <div className="absolute top-2 right-2 bg-slime-green text-black rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                              ✓
+                          <p className="text-slime-green font-mono text-xs mt-1">{rateLabel(p)}</p>
+                        </div>
+                        <button
+                          onClick={() => setActiveId(isActive ? null : p.id)}
+                          className="bg-slime-green text-black px-5 py-2 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition flex-shrink-0 ml-4"
+                        >
+                          {isActive ? 'CLOSE' : 'SWAP'}
+                        </button>
+                      </div>
+
+                      {/* Expanded swap UI */}
+                      {isActive && (
+                        <div className="border-t border-gray-800 p-6">
+                          {/* Status banner */}
+                          {(swapStatus === 'approving' || swapStatus === 'executing') && (
+                            <div className="flex items-center gap-3 mb-5 text-sm text-gray-400">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slime-green flex-shrink-0" />
+                              {statusMsg}
+                            </div>
+                          )}
+                          {swapStatus === 'success' && (
+                            <div className="mb-5 bg-slime-green/10 border border-slime-green/30 rounded-xl px-4 py-3">
+                              <p className="text-slime-green text-sm">{statusMsg}</p>
+                            </div>
+                          )}
+                          {swapStatus === 'error' && (
+                            <div className="mb-5 bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">
+                              <p className="text-red-400 text-sm">{statusMsg}</p>
+                            </div>
+                          )}
+
+                          {/* Fungible input */}
+                          {p.swap_type === 'fungible' && (
+                            <div className="flex flex-col gap-4">
+                              <div>
+                                <label className="text-xs text-gray-500 uppercase tracking-widest block mb-2">
+                                  Amount ({fromSymbol})
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={inputAmount}
+                                  onChange={e => setInputAmount(e.target.value)}
+                                  placeholder="0"
+                                  className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white text-lg font-mono focus:outline-none focus:border-slime-green transition"
+                                />
+                              </div>
+                              {inputAmount && parseFloat(inputAmount) > 0 && (
+                                <p className="text-xs text-gray-500">
+                                  You receive:{' '}
+                                  <span className="text-slime-green font-mono">{expectedOut(p)}</span>
+                                </p>
+                              )}
+                              <button
+                                onClick={handleSwap}
+                                disabled={
+                                  swapStatus === 'approving' ||
+                                  swapStatus === 'executing' ||
+                                  !inputAmount ||
+                                  parseFloat(inputAmount) <= 0
+                                }
+                                className="w-full bg-slime-green text-black py-3.5 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {swapStatus === 'approving' || swapStatus === 'executing'
+                                  ? 'SWAPPING...'
+                                  : 'APPROVE & SWAP'}
+                              </button>
+                            </div>
+                          )}
+
+                          {/* NFT selection grid */}
+                          {p.swap_type === 'nft' && (
+                            <div>
+                              {loadingNFTs && (
+                                <div className="flex items-center justify-center h-32">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slime-green" />
+                                </div>
+                              )}
+
+                              {!loadingNFTs && userNFTs.length === 0 && (
+                                <p className="text-gray-500 text-sm py-6 text-center">
+                                  No {fromSymbol} NFTs found in your wallet.
+                                </p>
+                              )}
+
+                              {!loadingNFTs && userNFTs.length > 0 && (
+                                <div className="flex flex-col gap-4">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs text-gray-500">
+                                      {selectedSerials.size > 0
+                                        ? `${selectedSerials.size} selected`
+                                        : `${userNFTs.length} NFT${userNFTs.length !== 1 ? 's' : ''} available`}
+                                    </p>
+                                    <div className="flex gap-3 text-xs">
+                                      <button
+                                        onClick={() => setSelectedSerials(new Set(userNFTs.map(n => n.serial_number)))}
+                                        className="text-slime-green hover:underline"
+                                      >
+                                        Select all
+                                      </button>
+                                      <button
+                                        onClick={() => setSelectedSerials(new Set())}
+                                        className="text-gray-500 hover:underline"
+                                      >
+                                        Clear
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                    {userNFTs.map(nft => {
+                                      const meta = nftMetadata.get(nft.serial_number)
+                                      const selected = selectedSerials.has(nft.serial_number)
+                                      return (
+                                        <div
+                                          key={nft.serial_number}
+                                          onClick={() => toggleSerial(nft.serial_number)}
+                                          className={`rounded-xl overflow-hidden border-2 cursor-pointer transition ${
+                                            selected
+                                              ? 'border-slime-green'
+                                              : 'border-gray-700 hover:border-gray-600'
+                                          }`}
+                                        >
+                                          <div className="aspect-square bg-black/50 relative">
+                                            {meta?.image ? (
+                                              <img
+                                                src={meta.image}
+                                                alt={meta.name || `#${nft.serial_number}`}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">
+                                                No image
+                                              </div>
+                                            )}
+                                            {selected && (
+                                              <div className="absolute top-1.5 right-1.5 bg-slime-green text-black rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                                ✓
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="p-2 bg-black/40">
+                                            <p className="text-xs font-bold text-white truncate">
+                                              {meta?.name || `#${nft.serial_number}`}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+
+                                  <button
+                                    onClick={handleSwap}
+                                    disabled={
+                                      selectedSerials.size === 0 ||
+                                      swapStatus === 'approving' ||
+                                      swapStatus === 'executing'
+                                    }
+                                    className="w-full bg-slime-green text-black py-3.5 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {swapStatus === 'approving' || swapStatus === 'executing'
+                                      ? 'SWAPPING...'
+                                      : `APPROVE & SWAP${selectedSerials.size > 0 ? ` (${selectedSerials.size})` : ''}`}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                        <div className="p-4">
-                          <h3 className="font-bold text-lg mb-1">{metadata?.name || `SLIME #${nft.serial_number}`}</h3>
-                          <p className="text-sm text-gray-400">Serial #{nft.serial_number}</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <div className="sticky bottom-8 max-w-md mx-auto">
-                  <button
-                    onClick={swapNFTs}
-                    disabled={selectedNFTs.size === 0 || swapping}
-                    className="w-full bg-slime-green text-black py-4 rounded-md font-bold text-lg hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                  >
-                    {swapping ? 'SWAPPING...' : `SWAP ${selectedNFTs.size} NFT${selectedNFTs.size !== 1 ? 'S' : ''}`}
-                  </button>
-                </div>
-
-                {error && (
-                  <div className="mt-4 bg-red-500/10 border border-red-500 rounded p-4 text-red-500">{error}</div>
-                )}
-                {success && (
-                  <div className="mt-4 bg-slime-green/10 border border-slime-green rounded p-4 text-slime-green">{success}</div>
-                )}
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
-          </div>
+          </>
         )}
-      </div>
+      </main>
 
       <Footer />
     </div>
