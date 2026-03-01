@@ -10,6 +10,8 @@ const MerchPage = lazy(() => import('./components/MerchPage'))
 const CollectionPage = lazy(() => import('./components/CollectionPage'))
 const SwapPage = lazy(() => import('./components/SwapPage'))
 const ProfilePage = lazy(() => import('./components/ProfilePage'))
+const MintPage = lazy(() => import('./components/MintPage'))
+const MarketPage = lazy(() => import('./components/MarketPage'))
 
 // Loading spinner component
 function LoadingSpinner() {
@@ -36,6 +38,8 @@ function App() {
               <Route path="/collection" element={<CollectionPage />} />
               <Route path="/swap" element={<SwapPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/mint" element={<MintPage />} />
+              <Route path="/market" element={<MarketPage />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
