@@ -195,7 +195,7 @@ export default function SwapPage() {
         const res = await fetch(`/api/swap-execute?id=${program.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userAccountId: accountId, amount: rawAmount }),
+          body: JSON.stringify({ userAccountId: accountId, amount: parseFloat(inputAmount) }),
         })
         const data = await res.json()
         if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Swap failed')
