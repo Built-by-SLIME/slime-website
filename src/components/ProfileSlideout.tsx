@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function ProfileSlideout({ open, onClose }: Props) {
-  const { accountId, slimeNFTs, slimeTokenBalance, pfp, disconnect } = useWallet()
+  const { accountId, slimeNFTs, slimeTokenBalance, disconnect } = useWallet()
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Close on outside click
@@ -61,20 +61,9 @@ export default function ProfileSlideout({ open, onClose }: Props) {
 
         {/* Account Info */}
         <div className="px-5 py-5 border-b border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-slime-green flex-shrink-0 bg-[#1f1f1f] flex items-center justify-center">
-              {pfp?.imageUrl ? (
-                <img src={pfp.imageUrl} alt="PFP" className="w-full h-full object-cover" style={{ objectPosition: 'center 75%', transform: 'scale(1.5)', transformOrigin: 'center 75%' }} />
-              ) : (
-                <svg className="w-5 h-5 text-slime-green" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                </svg>
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Connected</p>
-              <p className="text-slime-green font-mono text-sm truncate">{accountId}</p>
-            </div>
+          <div className="mb-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Connected</p>
+            <p className="text-slime-green font-mono text-sm truncate">{accountId}</p>
           </div>
           <div className="flex gap-2">
             <span className="flex-1 text-center bg-black/40 rounded-lg px-2 py-2 text-xs text-gray-400">
@@ -91,14 +80,14 @@ export default function ProfileSlideout({ open, onClose }: Props) {
         {/* Nav Links */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           <Link
-            to="/profile"
+            to="/inventory"
             onClick={onClose}
             className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition"
           >
-            <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+            <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H7m12 0l-4-4m4 4l-4 4M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
             </svg>
-            <span className="text-sm font-bold uppercase tracking-wider">Profile</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Inventory</span>
           </Link>
           <Link
             to="/swap"

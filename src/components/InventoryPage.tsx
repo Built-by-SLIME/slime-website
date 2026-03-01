@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useWallet } from '../context/WalletContext'
-import type { PfpData } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
@@ -11,11 +10,8 @@ interface NFTWithImage {
   rank?: number
 }
 
-export default function ProfilePage() {
-  const {
-    isConnected, accountId, slimeNFTs, slimeTokenBalance,
-    pfp, connect, disconnect, setPfp
-  } = useWallet()
+export default function InventoryPage() {
+  const { isConnected, accountId, slimeNFTs, slimeTokenBalance, connect, disconnect } = useWallet()
 
   const [nftsWithImages, setNftsWithImages] = useState<NFTWithImage[]>([])
   const [loadingNFTs, setLoadingNFTs] = useState(false)
@@ -30,7 +26,6 @@ export default function ProfilePage() {
     }
   }, [isConnected, slimeNFTs])
 
-  // Close modal on Escape
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpandedNFT(null) }
     if (expandedNFT) document.addEventListener('keydown', handleEsc)
@@ -76,26 +71,15 @@ export default function ProfilePage() {
     setLoadingNFTs(false)
   }
 
-  const handleSelectPfp = (nft: NFTWithImage) => {
-    const data: PfpData = { serial_number: nft.serial_number, imageUrl: nft.imageUrl, name: nft.name }
-    setPfp(data)
-  }
-
-  // Not connected — show connect prompt
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-[#2a2a2a] text-white flex flex-col">
         <Navigation />
         <div className="flex-1 flex flex-col items-center justify-center px-8 py-20">
           <div className="text-center max-w-sm">
-            <div className="w-20 h-20 rounded-full border-2 border-gray-700 flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-black mb-3">YOUR PROFILE</h1>
+            <h1 className="text-2xl font-black mb-3">YOUR INVENTORY</h1>
             <p className="text-gray-500 text-sm mb-8">
-              Connect your wallet to manage your SLIME profile, set your PFP, and more.
+              Connect your wallet to view your SLIME NFTs and token balance.
             </p>
             <button
               onClick={() => connect().catch(console.error)}
@@ -124,38 +108,26 @@ export default function ProfilePage() {
 
       <div className="relative max-w-4xl mx-auto px-4 md:px-8 py-10 flex-grow w-full">
 
-        {/* Profile Hero */}
-        <div className="flex items-center gap-5 mb-10">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-slime-green flex-shrink-0 bg-[#1f1f1f] flex items-center justify-center">
-            {pfp?.imageUrl ? (
-              <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" style={{ objectPosition: 'center 75%', transform: 'scale(1.5)', transformOrigin: 'center 75%' }} />
-            ) : (
-              <svg className="w-10 h-10 text-slime-green" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-              </svg>
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Connected Wallet</p>
-            <p className="text-slime-green font-mono text-sm md:text-base font-bold truncate">{accountId}</p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <span className="text-xs bg-black/30 border border-gray-700 rounded-full px-3 py-1 text-gray-400">
-                <span className="text-white font-bold">{slimeNFTs.length}</span> SLIME NFTs
-              </span>
-              <span className="text-xs bg-black/30 border border-gray-700 rounded-full px-3 py-1 text-gray-400">
-                <span className="text-white font-bold">{Number(slimeTokenBalance).toLocaleString()}</span> $SLIME
-              </span>
-            </div>
+        {/* Inventory Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-1">INVENTORY</h1>
+          <p className="text-slime-green font-mono text-sm truncate mb-5">{accountId}</p>
+          <div className="flex gap-3">
+            <span className="flex-1 text-center bg-black/40 rounded-lg px-2 py-3 text-xs text-gray-400 border border-gray-800">
+              <span className="block text-white font-bold text-xl">{slimeNFTs.length}</span>
+              NFTs
+            </span>
+            <span className="flex-1 text-center bg-black/40 rounded-lg px-2 py-3 text-xs text-gray-400 border border-gray-800">
+              <span className="block text-white font-bold text-xl">{Number(slimeTokenBalance).toLocaleString()}</span>
+              $SLIME
+            </span>
           </div>
         </div>
 
         {/* NFT Gallery */}
         {slimeNFTs.length > 0 && (
           <div className="mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Your NFTs</h2>
-              <p className="text-xs text-gray-600">Click to view &amp; set PFP</p>
-            </div>
+            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Your NFTs</h2>
             {loadingNFTs ? (
               <div className="flex justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slime-green" />
@@ -167,22 +139,13 @@ export default function ProfilePage() {
                     key={nft.serial_number}
                     onClick={() => setExpandedNFT(nft)}
                     title={nft.name}
-                    className={`relative aspect-square rounded-xl overflow-hidden border-2 transition hover:scale-105 ${
-                      pfp?.serial_number === nft.serial_number
-                        ? 'border-slime-green ring-2 ring-slime-green/30'
-                        : 'border-gray-700 hover:border-slime-green/50'
-                    }`}
+                    className="relative aspect-square rounded-xl overflow-hidden border-2 border-gray-700 hover:border-slime-green/50 transition hover:scale-105"
                   >
                     {nft.imageUrl ? (
                       <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-cover" style={{ objectPosition: 'center 65%' }} />
                     ) : (
                       <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-600">
                         #{nft.serial_number}
-                      </div>
-                    )}
-                    {pfp?.serial_number === nft.serial_number && (
-                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-slime-green text-black text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap">
-                        PFP
                       </div>
                     )}
                   </button>
@@ -221,7 +184,6 @@ export default function ProfilePage() {
             className="relative bg-[#1a1a1a] border border-gray-800 rounded-2xl overflow-hidden w-full max-w-xs"
             onClick={e => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               onClick={() => setExpandedNFT(null)}
               className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-gray-400 hover:text-white transition"
@@ -232,7 +194,6 @@ export default function ProfilePage() {
               </svg>
             </button>
 
-            {/* Image */}
             <div className="aspect-square w-full bg-gray-900">
               {expandedNFT.imageUrl ? (
                 <img src={expandedNFT.imageUrl} alt={expandedNFT.name} className="w-full h-full object-cover" />
@@ -243,36 +204,14 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Info + actions */}
             <div className="p-4">
               <p className="text-white font-bold text-sm mb-0.5">{expandedNFT.name}</p>
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3">
                 <p className="text-gray-500 text-xs">Serial #{expandedNFT.serial_number}</p>
                 {expandedNFT.rank && (
                   <p className="text-xs text-slime-green font-bold">Rank #{expandedNFT.rank}</p>
                 )}
               </div>
-
-              {pfp?.serial_number === expandedNFT.serial_number ? (
-                <div className="flex gap-2">
-                  <div className="flex-1 flex items-center justify-center text-xs font-bold text-slime-green border border-slime-green/40 rounded-lg py-2.5">
-                    CURRENT PFP
-                  </div>
-                  <button
-                    onClick={() => { setPfp(null); setExpandedNFT(null) }}
-                    className="flex-1 bg-gray-800 text-gray-400 py-2.5 rounded-lg text-xs font-bold hover:text-red-400 hover:bg-red-900/20 transition"
-                  >
-                    REMOVE
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => { handleSelectPfp(expandedNFT); setExpandedNFT(null) }}
-                  className="w-full bg-slime-green text-black py-2.5 rounded-lg text-xs font-bold hover:bg-[#00cc33] transition"
-                >
-                  SET AS PFP
-                </button>
-              )}
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import ProfileSlideout from './ProfileSlideout'
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [slideoutOpen, setSlideoutOpen] = useState(false)
-  const { isConnected, pfp, connect } = useWallet()
+  const { isConnected, connect } = useWallet()
 
   const handleConnect = async () => {
     try { await connect() } catch (err) { console.error('Connect failed:', err) }
@@ -55,20 +55,16 @@ export default function Navigation() {
               </svg>
             </a>
           </div>
-          {/* Desktop: Connect button or PFP avatar → slideout */}
+          {/* Desktop: Connect button or generic profile icon → slideout */}
           {isConnected ? (
             <button
               onClick={() => setSlideoutOpen(true)}
-              className="w-11 h-11 rounded-full overflow-hidden border-2 border-slime-green hover:border-[#00cc33] transition flex items-center justify-center bg-[#1f1f1f] flex-shrink-0"
+              className="w-11 h-11 rounded-full border-2 border-slime-green hover:border-[#00cc33] transition flex items-center justify-center bg-[#1f1f1f] flex-shrink-0"
               aria-label="Open profile"
             >
-              {pfp?.imageUrl ? (
-                <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" style={{ objectPosition: 'center 75%', transform: 'scale(1.5)', transformOrigin: 'center 75%' }} />
-              ) : (
-                <svg className="w-5 h-5 text-slime-green" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                </svg>
-              )}
+              <svg className="w-5 h-5 text-slime-green" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+              </svg>
             </button>
           ) : (
             <button
@@ -80,40 +76,22 @@ export default function Navigation() {
           )}
         </div>
 
-        {/* Mobile: PFP (connected → slideout) or hamburger (disconnected → nav overlay) */}
-        {isConnected ? (
-          <button
-            className="md:hidden transition z-50 flex items-center justify-center"
-            onClick={() => setSlideoutOpen(true)}
-            aria-label="Open profile"
-          >
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slime-green flex items-center justify-center bg-[#1f1f1f]">
-              {pfp?.imageUrl ? (
-                <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" style={{ objectPosition: 'center 75%', transform: 'scale(1.5)', transformOrigin: 'center 75%' }} />
-              ) : (
-                <svg className="w-4 h-4 text-slime-green" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                </svg>
-              )}
-            </div>
-          </button>
-        ) : (
-          <button
-            className="md:hidden transition z-50 flex items-center justify-center"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? (
-              <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6 text-gray-300 hover:text-slime-green transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
-        )}
+        {/* Mobile: hamburger always — connected opens slideout, disconnected opens nav overlay */}
+        <button
+          className="md:hidden transition z-50 flex items-center justify-center"
+          onClick={() => isConnected ? setSlideoutOpen(true) : setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? (
+            <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6 text-gray-300 hover:text-slime-green transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
       </nav>
 
       {/* Mobile Menu Overlay */}
