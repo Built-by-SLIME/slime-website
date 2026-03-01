@@ -1,5 +1,5 @@
 // GET /api/mint-events
-// Proxies SentX affiliate mintevents endpoint, filtered to SLIME NFT token
+// Proxies SentX public mintevents endpoint, filtered to SLIME NFT token
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
   try {
     const params = new URLSearchParams({ apikey, tokenAddress: '0.0.9474754' })
-    const upstream = await fetch(`https://api.sentx.io/v1/affiliate/launchpad/mintevents?${params}`)
+    const upstream = await fetch(`https://api.sentx.io/v1/public/launchpad/mintevents?${params}`)
     const data = await upstream.json()
     return res.status(upstream.status).json(data)
   } catch (err) {
