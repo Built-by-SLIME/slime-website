@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Transaction } from '@hashgraph/sdk'
 import Navigation from './Navigation'
+import Footer from './Footer'
 import { useWallet } from '../context/WalletContext'
 
 interface MintEvent {
@@ -269,6 +270,8 @@ export default function MintPage() {
           </div>
         )}
       </main>
+
+      <Footer />
 
       {/* Success modal */}
       {status === 'success' && mintResult && (
