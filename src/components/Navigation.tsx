@@ -123,20 +123,19 @@ export default function Navigation() {
 
           <div className="flex flex-col items-center justify-center flex-1 gap-6 text-center px-8">
             {/* Nav Links — always visible */}
-            <Link to="/home" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>HOME</Link>
-            <Link to="/mint" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>MINT</Link>
-            <Link to="/market" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>MARKET</Link>
-            <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>TOOLS</a>
-            <Link to="/collection" className="text-gray-300 hover:text-slime-green transition text-2xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</Link>
-            <span className="text-gray-600 cursor-not-allowed select-none text-2xl font-medium">$SLIME</span>
+            <Link to="/home" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>HOME</Link>
+            <Link to="/mint" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MINT</Link>
+            <Link to="/market" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MARKET</Link>
+            <Link to="/collection" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</Link>
+            <span className="text-gray-600 cursor-not-allowed select-none text-xl font-medium">$SLIME</span>
 
             {isConnected ? (
               <>
                 <div className="w-12 border-t border-gray-700 my-1" />
-                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-slime-green transition text-2xl font-medium">PROFILE</Link>
-                <span className="text-gray-600 cursor-not-allowed select-none text-2xl font-medium">REWARDS</span>
-                <Link to="/swap" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-slime-green transition text-2xl font-medium">SWAPS</Link>
-                <span className="text-gray-600 cursor-not-allowed select-none text-2xl font-medium">DOMAINS</span>
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-slime-green transition text-xl font-medium">PROFILE</Link>
+                <span className="text-gray-600 cursor-not-allowed select-none text-xl font-medium">REWARDS</span>
+                <Link to="/swap" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-slime-green transition text-xl font-medium">SWAPS</Link>
+                <span className="text-gray-600 cursor-not-allowed select-none text-xl font-medium">DOMAINS</span>
                 <button
                   onClick={() => { disconnect(); setMobileMenuOpen(false) }}
                   className="text-sm text-gray-400 hover:text-red-400 transition mt-2"
