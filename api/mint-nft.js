@@ -12,9 +12,14 @@ export default async function handler(req, res) {
   if (!apikey) return res.status(500).json({ error: 'API key not configured' })
 
   try {
-    const params = new URLSearchParams({ apikey, user_address, mintCode, price })
-    const upstream = await fetch(`https://api.sentx.io/v1/affiliate/launchpad/mintnft?${params}`, { method: 'POST' })
+    const body = new URLSearchParams({ apikey, user_address, mintCode, price })
+    const upstream = await fetch('https://api.sentx.io/v1/affiliate/launchpad/mintnft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
     const data = await upstream.json()
+    res.setHeader('Cache-Control', 'no-store')
     return res.status(upstream.status).json(data)
   } catch (err) {
     return res.status(500).json({ error: err.message })
