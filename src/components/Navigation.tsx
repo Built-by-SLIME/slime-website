@@ -23,7 +23,7 @@ export default function Navigation() {
         `}</style>
         <div className="flex items-center md:mt-[4px]">
           <Link to="/">
-            <img src="/Assets/SPLAT.png" alt="SLIME" className="h-auto w-10 md:w-12" />
+            <img src="/Assets/SPLAT.png" alt="SLIME" className="h-auto w-8 md:w-9" />
           </Link>
         </div>
 
