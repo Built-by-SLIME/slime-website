@@ -188,8 +188,7 @@ export default function SwapPage() {
           AccountId.fromString(OPERATOR),
           rawAmount
         )
-        await approveTx.freezeWithSigner(signer)
-        await approveTx.executeWithSigner(signer)
+        await signer.call(approveTx)
 
         setSwapStatus('executing')
         setStatusMsg('Executing swap...')
@@ -223,8 +222,7 @@ export default function SwapPage() {
             AccountId.fromString(OPERATOR)
           )
         )
-        await approveTx.freezeWithSigner(signer)
-        await approveTx.executeWithSigner(signer)
+        await signer.call(approveTx)
 
         setSwapStatus('executing')
         setStatusMsg('Executing swap...')
