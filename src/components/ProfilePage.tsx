@@ -128,7 +128,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-5 mb-10">
           <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-slime-green flex-shrink-0 bg-[#1f1f1f] flex items-center justify-center">
             {pfp?.imageUrl ? (
-              <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" style={{ objectPosition: 'center 65%' }} />
+              <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" style={{ objectPosition: 'center 75%', transform: 'scale(1.8)', transformOrigin: 'center 75%' }} />
             ) : (
               <svg className="w-10 h-10 text-slime-green" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
