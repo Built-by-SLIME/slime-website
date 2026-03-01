@@ -89,7 +89,7 @@ export default function ProfileSlideout({ open, onClose }: Props) {
         </div>
 
         {/* Nav Links */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           <Link
             to="/profile"
             onClick={onClose}
