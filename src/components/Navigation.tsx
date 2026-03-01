@@ -6,7 +6,7 @@ import ProfileSlideout from './ProfileSlideout'
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [slideoutOpen, setSlideoutOpen] = useState(false)
-  const { isConnected, pfp, connect, disconnect } = useWallet()
+  const { isConnected, pfp, connect } = useWallet()
 
   const handleConnect = async () => {
     try { await connect() } catch (err) { console.error('Connect failed:', err) }
@@ -80,17 +80,13 @@ export default function Navigation() {
           )}
         </div>
 
-        {/* Mobile: hamburger (disconnected) or PFP avatar (connected) — same button, different icon */}
-        <button
-          className="md:hidden transition z-50 flex items-center justify-center"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? (
-            <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : isConnected ? (
+        {/* Mobile: PFP (connected → slideout) or hamburger (disconnected → nav overlay) */}
+        {isConnected ? (
+          <button
+            className="md:hidden transition z-50 flex items-center justify-center"
+            onClick={() => setSlideoutOpen(true)}
+            aria-label="Open profile"
+          >
             <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slime-green flex items-center justify-center bg-[#1f1f1f]">
               {pfp?.imageUrl ? (
                 <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" style={{ objectPosition: 'center 75%', transform: 'scale(1.5)', transformOrigin: 'center 75%' }} />
@@ -100,12 +96,24 @@ export default function Navigation() {
                 </svg>
               )}
             </div>
-          ) : (
-            <svg className="w-6 h-6 text-gray-300 hover:text-slime-green transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
+          </button>
+        ) : (
+          <button
+            className="md:hidden transition z-50 flex items-center justify-center"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6 text-gray-300 hover:text-slime-green transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        )}
       </nav>
 
       {/* Mobile Menu Overlay */}
@@ -129,28 +137,12 @@ export default function Navigation() {
             <Link to="/collection" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</Link>
             <span className="text-gray-600 cursor-not-allowed select-none text-xl font-medium">$SLIME</span>
 
-            {isConnected ? (
-              <>
-                <div className="w-12 border-t border-gray-700 my-1" />
-                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-slime-green transition text-xl font-medium">PROFILE</Link>
-                <span className="text-gray-600 cursor-not-allowed select-none text-xl font-medium">REWARDS</span>
-                <Link to="/swap" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-slime-green transition text-xl font-medium">SWAPS</Link>
-                <span className="text-gray-600 cursor-not-allowed select-none text-xl font-medium">DOMAINS</span>
-                <button
-                  onClick={() => { disconnect(); setMobileMenuOpen(false) }}
-                  className="text-sm text-gray-400 hover:text-red-400 transition mt-2"
-                >
-                  DISCONNECT
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => { handleConnect(); setMobileMenuOpen(false) }}
-                className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
-              >
-                CONNECT
-              </button>
-            )}
+            <button
+              onClick={() => { handleConnect(); setMobileMenuOpen(false) }}
+              className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
+            >
+              CONNECT
+            </button>
 
             {/* Social Icons */}
             <div className="flex items-center gap-6 mt-4">

@@ -41,7 +41,7 @@ export default function ProfileSlideout({ open, onClose }: Props) {
       {/* Panel */}
       <div
         ref={panelRef}
-        className={`fixed top-0 right-0 h-full w-72 bg-[#1a1a1a] border-l border-gray-800 z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-full md:w-72 bg-[#1a1a1a] border-l border-gray-800 z-50 flex flex-col transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -125,6 +125,25 @@ export default function ProfileSlideout({ open, onClose }: Props) {
             <span className="ml-auto text-xs bg-gray-800/80 text-gray-600 px-2 py-0.5 rounded-full">SOON</span>
           </div>
         </nav>
+
+        {/* Nav Links */}
+        <div className="px-3 pb-2 border-t border-gray-800 pt-3 space-y-1">
+          <Link to="/home" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition">
+            <span className="text-xs font-bold uppercase tracking-wider">Home</span>
+          </Link>
+          <Link to="/mint" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition">
+            <span className="text-xs font-bold uppercase tracking-wider">Mint</span>
+          </Link>
+          <Link to="/market" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition">
+            <span className="text-xs font-bold uppercase tracking-wider">Market</span>
+          </Link>
+          <Link to="/collection" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition">
+            <span className="text-xs font-bold uppercase tracking-wider">Collection</span>
+          </Link>
+          <span className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-600 cursor-not-allowed select-none">
+            <span className="text-xs font-bold uppercase tracking-wider">$SLIME</span>
+          </span>
+        </div>
 
         {/* Disconnect */}
         <div className="px-5 py-5 border-t border-gray-800">
