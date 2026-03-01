@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   try {
     const params = new URLSearchParams({ apikey, user_address, mintCode, price })
-    const upstream = await fetch(`https://api.sentx.io/v1/affiliate/launchpad/mintnft?${params}`)
+    const upstream = await fetch(`https://api.sentx.io/v1/affiliate/launchpad/mintnft?${params}`, { method: 'POST' })
     const data = await upstream.json()
     return res.status(upstream.status).json(data)
   } catch (err) {
