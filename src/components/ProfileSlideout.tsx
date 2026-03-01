@@ -124,26 +124,41 @@ export default function ProfileSlideout({ open, onClose }: Props) {
             <span className="text-sm font-bold uppercase tracking-wider">Domains</span>
             <span className="ml-auto text-xs bg-gray-800/80 text-gray-600 px-2 py-0.5 rounded-full">SOON</span>
           </div>
-        </nav>
 
-        {/* Nav Links */}
-        <div className="px-3 pb-2 border-t border-gray-800 pt-3 space-y-1">
-          <Link to="/home" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition">
-            <span className="text-xs font-bold uppercase tracking-wider">Home</span>
-          </Link>
-          <Link to="/mint" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition">
-            <span className="text-xs font-bold uppercase tracking-wider">Mint</span>
-          </Link>
-          <Link to="/market" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition">
-            <span className="text-xs font-bold uppercase tracking-wider">Market</span>
-          </Link>
-          <Link to="/collection" onClick={onClose} className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition">
-            <span className="text-xs font-bold uppercase tracking-wider">Collection</span>
-          </Link>
-          <span className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-600 cursor-not-allowed select-none">
-            <span className="text-xs font-bold uppercase tracking-wider">$SLIME</span>
-          </span>
-        </div>
+          {/* Mobile-only nav links — hidden on desktop where they live in the header */}
+          <div className="md:hidden">
+            <Link to="/home" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
+              <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span className="text-sm font-bold uppercase tracking-wider">Home</span>
+            </Link>
+            <Link to="/mint" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
+              <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="text-sm font-bold uppercase tracking-wider">Mint</span>
+            </Link>
+            <Link to="/market" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
+              <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="text-sm font-bold uppercase tracking-wider">Market</span>
+            </Link>
+            <Link to="/collection" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
+              <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <span className="text-sm font-bold uppercase tracking-wider">Collection</span>
+            </Link>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 cursor-not-allowed select-none">
+              <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+              </svg>
+              <span className="text-sm font-bold uppercase tracking-wider">$SLIME</span>
+            </div>
+          </div>
+        </nav>
 
         {/* Disconnect */}
         <div className="px-5 py-5 border-t border-gray-800">
