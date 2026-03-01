@@ -59,7 +59,7 @@ export default function Navigation() {
           {isConnected ? (
             <button
               onClick={() => setSlideoutOpen(true)}
-              className="w-10 h-10 rounded-full overflow-hidden border-2 border-slime-green hover:border-[#00cc33] transition flex items-center justify-center bg-[#1f1f1f] flex-shrink-0"
+              className="w-11 h-11 rounded-full overflow-hidden border-2 border-slime-green hover:border-[#00cc33] transition flex items-center justify-center bg-[#1f1f1f] flex-shrink-0"
               aria-label="Open profile"
             >
               {pfp?.imageUrl ? (
@@ -91,7 +91,7 @@ export default function Navigation() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : isConnected ? (
-            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-slime-green flex items-center justify-center bg-[#1f1f1f]">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slime-green flex items-center justify-center bg-[#1f1f1f]">
               {pfp?.imageUrl ? (
                 <img src={pfp.imageUrl} alt="Profile" className="w-full h-full object-cover" style={{ objectPosition: 'center 75%', transform: 'scale(1.5)', transformOrigin: 'center 75%' }} />
               ) : (
