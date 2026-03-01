@@ -106,7 +106,7 @@ export default function SwapPage() {
 
     const program = programs.find(p => p.id === activeId)
     if (program && program.swap_type === 'nft' && isConnected && accountId) {
-      loadNFTs(program.from_token_id)
+      loadNFTs(program.to_token_id)
     }
   }, [activeId])
 
@@ -173,7 +173,8 @@ export default function SwapPage() {
 
     try {
       if (program.swap_type === 'fungible') {
-        const decimals = tokenInfo.get(program.from_token_id)?.decimals ?? 0
+        // to_token_id = what the user gives to Railway
+        const decimals = tokenInfo.get(program.to_token_id)?.decimals ?? 0
         const rawAmount = toRaw(inputAmount, decimals)
         if (!rawAmount) {
           setSwapStatus('error')
@@ -182,7 +183,7 @@ export default function SwapPage() {
         }
 
         const approveTx = new AccountAllowanceApproveTransaction().approveTokenAllowance(
-          TokenId.fromString(program.from_token_id),
+          TokenId.fromString(program.to_token_id),
           AccountId.fromString(accountId),
           AccountId.fromString(OPERATOR),
           rawAmount
@@ -216,7 +217,7 @@ export default function SwapPage() {
         const approveTx = new AccountAllowanceApproveTransaction()
         serials.forEach(serial =>
           approveTx.approveTokenNftAllowance(
-            new NftId(TokenId.fromString(program.from_token_id), serial),
+            new NftId(TokenId.fromString(program.to_token_id), serial),
             AccountId.fromString(accountId),
             AccountId.fromString(OPERATOR)
           )
@@ -237,7 +238,7 @@ export default function SwapPage() {
         setSwapStatus('success')
         setStatusMsg(data.message || 'Swap successful!')
         setSelectedSerials(new Set())
-        await loadNFTs(program.from_token_id)
+        await loadNFTs(program.to_token_id)
       }
     } catch (err) {
       setSwapStatus('error')
@@ -246,19 +247,21 @@ export default function SwapPage() {
   }
 
   const rateLabel = (p: SwapProgram) => {
-    const from = tokenInfo.get(p.from_token_id)?.symbol ?? p.from_token_id
-    const to = tokenInfo.get(p.to_token_id)?.symbol ?? p.to_token_id
-    return `${p.rate_from} ${from} → ${p.rate_to} ${to}`
+    // to_token = what user gives, from_token = what user receives
+    const give = tokenInfo.get(p.to_token_id)?.symbol ?? p.to_token_id
+    const receive = tokenInfo.get(p.from_token_id)?.symbol ?? p.from_token_id
+    return `${p.rate_to} ${give} → ${p.rate_from} ${receive}`
   }
 
   const expectedOut = (p: SwapProgram): string => {
-    const fromDec = tokenInfo.get(p.from_token_id)?.decimals ?? 0
-    const toDec = tokenInfo.get(p.to_token_id)?.decimals ?? 0
-    const toSymbol = tokenInfo.get(p.to_token_id)?.symbol ?? p.to_token_id
-    const raw = toRaw(inputAmount, fromDec)
-    if (!raw || !p.rate_from) return '—'
-    const outRaw = Math.floor((raw / p.rate_from) * p.rate_to)
-    return `${toHuman(outRaw, toDec)} ${toSymbol}`
+    // user enters amount of to_token (gives), receives from_token
+    const giveDec = tokenInfo.get(p.to_token_id)?.decimals ?? 0
+    const receiveDec = tokenInfo.get(p.from_token_id)?.decimals ?? 0
+    const receiveSymbol = tokenInfo.get(p.from_token_id)?.symbol ?? p.from_token_id
+    const raw = toRaw(inputAmount, giveDec)
+    if (!raw || !p.rate_to) return '—'
+    const outRaw = Math.floor((raw / p.rate_to) * p.rate_from)
+    return `${toHuman(outRaw, receiveDec)} ${receiveSymbol}`
   }
 
   return (
@@ -304,7 +307,8 @@ export default function SwapPage() {
               <div className="flex flex-col gap-4">
                 {programs.map(p => {
                   const isActive = activeId === p.id
-                  const fromSymbol = tokenInfo.get(p.from_token_id)?.symbol ?? p.from_token_id
+                  // to_token = what user gives, from_token = what user receives
+                  const giveSymbol = tokenInfo.get(p.to_token_id)?.symbol ?? p.to_token_id
 
                   return (
                     <div key={p.id} className="bg-[#1a1a1a] rounded-2xl border border-gray-800 overflow-hidden">
@@ -351,7 +355,7 @@ export default function SwapPage() {
                             <div className="flex flex-col gap-4">
                               <div>
                                 <label className="text-xs text-gray-500 uppercase tracking-widest block mb-2">
-                                  Amount ({fromSymbol})
+                                  Amount ({giveSymbol})
                                 </label>
                                 <input
                                   type="number"
@@ -396,7 +400,7 @@ export default function SwapPage() {
 
                               {!loadingNFTs && userNFTs.length === 0 && (
                                 <p className="text-gray-500 text-sm py-6 text-center">
-                                  No {fromSymbol} NFTs found in your wallet.
+                                  No {giveSymbol} NFTs found in your wallet.
                                 </p>
                               )}
 
