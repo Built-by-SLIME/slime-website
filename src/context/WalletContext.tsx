@@ -96,6 +96,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               setAccountId(account)
               setIsConnected(true)
               await fetchWalletData(account)
+              syncPfpFromDB(account)
             }
           }
         }
@@ -150,6 +151,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setAccountId(account)
         setIsConnected(true)
         await fetchWalletData(account)
+        syncPfpFromDB(account)
       }
     }
   }
@@ -162,9 +164,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setSlimeTokenBalance('0')
   }
 
+  const syncPfpFromDB = async (account: string) => {
+    try {
+      const res = await fetch(`/api/profile?account=${account}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.pfp !== undefined) {
+        setPfpState(data.pfp)
+        localStorage.setItem(STORAGE_KEY_PFP, JSON.stringify(data.pfp))
+      }
+    } catch {
+      // DB sync failure is non-fatal — localStorage value remains
+    }
+  }
+
   const setPfp = (data: PfpData | null) => {
     setPfpState(data)
     localStorage.setItem(STORAGE_KEY_PFP, JSON.stringify(data))
+    // Persist to DB (fire and forget — UI already updated optimistically)
+    fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account_id: accountId, pfp: data })
+    }).catch(console.error)
   }
 
   const setSocialInfo = (info: SocialInfo) => {
