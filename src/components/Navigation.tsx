@@ -6,7 +6,7 @@ import ProfileSlideout from './ProfileSlideout'
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [slideoutOpen, setSlideoutOpen] = useState(false)
-  const { isConnected, accountId, slimeNFTs, slimeTokenBalance, pfp, connect, disconnect } = useWallet()
+  const { isConnected, pfp, connect, disconnect } = useWallet()
 
   const handleConnect = async () => {
     try { await connect() } catch (err) { console.error('Connect failed:', err) }
@@ -133,23 +133,13 @@ export default function Navigation() {
             {isConnected ? (
               <>
                 <div className="w-12 border-t border-gray-700 my-1" />
-                <div className="text-center">
-                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Connected</p>
-                  <p className="text-slime-green font-mono text-sm">{accountId}</p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {slimeNFTs.length} NFTs &nbsp;·&nbsp; {Number(slimeTokenBalance).toLocaleString()} $SLIME
-                  </p>
-                </div>
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="bg-slime-green text-black px-8 py-3 rounded-md font-bold text-sm hover:bg-[#00cc33] transition"
-                >
-                  PROFILE
-                </Link>
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-slime-green transition text-2xl font-medium">PROFILE</Link>
+                <span className="text-gray-600 cursor-not-allowed select-none text-2xl font-medium">REWARDS</span>
+                <Link to="/swap" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-slime-green transition text-2xl font-medium">SWAPS</Link>
+                <span className="text-gray-600 cursor-not-allowed select-none text-2xl font-medium">DOMAINS</span>
                 <button
                   onClick={() => { disconnect(); setMobileMenuOpen(false) }}
-                  className="text-sm text-gray-400 hover:text-red-400 transition"
+                  className="text-sm text-gray-400 hover:text-red-400 transition mt-2"
                 >
                   DISCONNECT
                 </button>
