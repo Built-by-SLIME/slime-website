@@ -133,7 +133,7 @@ export default function MintPage() {
     <div className="min-h-screen bg-[#2a2a2a] flex flex-col">
       <Navigation />
 
-      <main className="flex-1 px-4 py-10 max-w-4xl mx-auto w-full">
+      <main className="flex-1 px-4 py-20 max-w-4xl mx-auto w-full">
         {/* Header */}
         <div className="mb-10">
           <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">MINT SLIME</h1>
