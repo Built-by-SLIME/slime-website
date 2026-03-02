@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AccountAllowanceApproveTransaction, TokenId, NftId, AccountId, TransactionResponse } from '@hashgraph/sdk'
+import { AccountAllowanceApproveTransaction, Transaction, TokenId, NftId, AccountId, TransactionResponse } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import { decodeMetadata } from '../utils/nft'
 import type { NFTMetadata } from '../utils/nft'
@@ -169,7 +169,6 @@ export default function SwapPage() {
     }
 
     setSwapStatus('approving')
-    setStatusMsg('Approving token allowance in your wallet...')
 
     try {
       if (program.swap_type === 'fungible') {
@@ -182,28 +181,35 @@ export default function SwapPage() {
           return
         }
 
-        const approveTx = new AccountAllowanceApproveTransaction().approveTokenAllowance(
-          TokenId.fromString(program.from_token_id),
-          AccountId.fromString(accountId),
-          AccountId.fromString(OPERATOR),
-          rawAmount
-        )
-        const approveTxResponse = await signer.call(approveTx) as TransactionResponse
-        await approveTxResponse.getReceiptWithSigner(signer)
-
-        setSwapStatus('executing')
-        setStatusMsg('Executing swap...')
-
-        const res = await fetch(`/api/swap-execute?id=${program.id}`, {
+        // Step 1: prepare — Railway builds and operator-signs the tx
+        setStatusMsg('Preparing swap...')
+        const prepareRes = await fetch(`/api/swap-prepare?id=${program.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userAccountId: accountId, amount: rawAmount }),
+          body: JSON.stringify({ userAccountId: accountId, amount: String(rawAmount) }),
         })
-        const data = await res.json()
-        if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Swap failed')
+        const prepareData = await prepareRes.json()
+        if (!prepareRes.ok || !prepareData.success) throw new Error(prepareData.error || 'Failed to prepare swap')
+
+        // Step 2: user signs in wallet (sign only, do not execute)
+        setStatusMsg('Sign the swap in your wallet...')
+        const tx = Transaction.fromBytes(Buffer.from(prepareData.txBytes, 'base64'))
+        const signedTx = await tx.signWithSigner(signer)
+        const signedBytes = Buffer.from(signedTx.toBytes()).toString('base64')
+
+        // Step 3: submit signed bytes
+        setSwapStatus('executing')
+        setStatusMsg('Submitting swap...')
+        const submitRes = await fetch(`/api/swap-submit?id=${program.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txBytes: signedBytes, userAccountId: accountId, amount: String(rawAmount) }),
+        })
+        const submitData = await submitRes.json()
+        if (!submitRes.ok || !submitData.success) throw new Error(submitData.error || submitData.message || 'Swap failed')
 
         setSwapStatus('success')
-        setStatusMsg(data.message || 'Swap successful!')
+        setStatusMsg(submitData.message || 'Swap successful!')
         setInputAmount('')
 
       } else {
