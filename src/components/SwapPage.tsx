@@ -183,7 +183,7 @@ export default function SwapPage() {
 
         // Step 1: prepare — Railway builds and operator-signs the tx
         setStatusMsg('Preparing swap...')
-        const prepareRes = await fetch(`/api/swap-prepare?id=${program.id}`, {
+        const prepareRes = await fetch(`/api/swap-programs/${program.id}/prepare`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userAccountId: accountId, amount: String(rawAmount) }),
@@ -197,13 +197,13 @@ export default function SwapPage() {
         const txBytes = new Uint8Array(binaryStr.length)
         for (let i = 0; i < binaryStr.length; i++) txBytes[i] = binaryStr.charCodeAt(i)
         const tx = Transaction.fromBytes(txBytes)
-        const signedTx = await tx.signWithSigner(signer)
+        const signedTx = await signer.signTransaction(tx)
         const signedBytes = btoa(Array.from(signedTx.toBytes()).map(b => String.fromCharCode(b)).join(''))
 
         // Step 3: submit signed bytes
         setSwapStatus('executing')
         setStatusMsg('Submitting swap...')
-        const submitRes = await fetch(`/api/swap-submit?id=${program.id}`, {
+        const submitRes = await fetch(`/api/swap-programs/${program.id}/submit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ txBytes: signedBytes, userAccountId: accountId, amount: String(rawAmount) }),
