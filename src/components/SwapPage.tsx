@@ -193,13 +193,12 @@ export default function SwapPage() {
 
         // Step 2: user signs in wallet (sign only, do not execute)
         setStatusMsg('Sign the swap in your wallet...')
-        const txBytes = Uint8Array.from(atob(prepareData.txBytes), c => c.charCodeAt(0))
+        const binaryStr = atob(prepareData.txBytes)
+        const txBytes = new Uint8Array(binaryStr.length)
+        for (let i = 0; i < binaryStr.length; i++) txBytes[i] = binaryStr.charCodeAt(i)
         const tx = Transaction.fromBytes(txBytes)
         const signedTx = await tx.signWithSigner(signer)
-        const raw = signedTx.toBytes()
-        let bin = ''
-        for (let i = 0; i < raw.length; i++) bin += String.fromCharCode(raw[i])
-        const signedBytes = btoa(bin)
+        const signedBytes = btoa(Array.from(signedTx.toBytes()).map(b => String.fromCharCode(b)).join(''))
 
         // Step 3: submit signed bytes
         setSwapStatus('executing')
