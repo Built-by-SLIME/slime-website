@@ -41,18 +41,26 @@ function calculateRarityScore(nft, frequencies) {
 async function buildSerialMap(apiKey, tokenId) {
   const allNFTs = []
   const limit = 100
-  let page = 1
-  let hasMore = true
 
-  while (hasMore) {
-    const url = `https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=${page}&sortBy=rarity&sortDirection=ASC`
-    const response = await fetch(url)
-    if (!response.ok) throw new Error(`SentX API error: ${response.status}`)
-    const data = await response.json()
-    if (!data.success || !data.nfts) throw new Error('Invalid SentX response')
-    allNFTs.push(...data.nfts)
-    hasMore = data.nfts.length === limit && allNFTs.length < 5000
-    page++
+  const fetchPage = (page) =>
+    fetch(`https://api.sentx.io/v1/public/token/nfts?apikey=${apiKey}&token=${tokenId}&limit=${limit}&page=${page}&sortBy=rarity&sortDirection=ASC`)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+
+  // Fetch pages in parallel batches of 10 to avoid sequential timeouts.
+  // For a 1000-NFT collection this takes ~1–2 s vs ~10+ s sequential.
+  // Stops when a full batch returns no new NFTs (collection exhausted).
+  for (let batchStart = 1; batchStart <= 5000; batchStart += 10 * limit) {
+    const pageNums = Array.from({ length: 10 }, (_, i) => Math.floor(batchStart / limit) + i + 1)
+    const results = await Promise.all(pageNums.map(fetchPage))
+    let gotAny = false
+    for (const data of results) {
+      if (data?.success && data.nfts?.length > 0) {
+        allNFTs.push(...data.nfts)
+        gotAny = true
+      }
+    }
+    if (!gotAny) break
   }
 
   // Compute corrected ranks using the same logic as collection-rarity.js

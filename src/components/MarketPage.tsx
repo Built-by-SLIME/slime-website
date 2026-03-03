@@ -17,8 +17,9 @@ function ipfsToHttp(url: string): string {
   return raw.substring(0, slash + 1) + raw.substring(slash + 1).replace(/#/g, '%23')
 }
 
-// Uses /api/nft-images (SentX token/nfts with 30-min server cache) —
-// the same data source CollectionPage uses, proven reliable.
+// Fetches images from /api/nft-images (SentX-backed, server-side cached).
+// The endpoint now builds its serialMap using parallel page fetches so
+// cold-start latency is ~1–2 s instead of 10+ s.
 async function loadNFTImages(serials: number[]): Promise<Map<number, string>> {
   const apiKey = import.meta.env.VITE_SENTX_API_KEY as string
   if (!apiKey || serials.length === 0) return new Map()
@@ -38,6 +39,19 @@ async function loadNFTImages(serials: number[]): Promise<Map<number, string>> {
     return map
   } catch {
     return new Map()
+  }
+}
+
+// Loads images in sequential batches of 50 (mirrors CollectionPage's 50-at-a-time
+// approach) so the first images appear quickly and the rest fill in progressively.
+async function loadImagesBatched(
+  serials: number[],
+  onBatch: (map: Map<number, string>) => void
+) {
+  const BATCH = 50
+  for (let i = 0; i < serials.length; i += BATCH) {
+    const map = await loadNFTImages(serials.slice(i, i + BATCH))
+    if (map.size > 0) onBatch(map)
   }
 }
 
@@ -151,7 +165,7 @@ export default function MarketPage() {
       const items: Listing[] = d.marketListings || []
       setListings(items)
       if (items.length > 0) {
-        loadNFTImages(items.map(l => l.serialId)).then(map =>
+        loadImagesBatched(items.map(l => l.serialId), map =>
           setNftImages(prev => new Map([...prev, ...map]))
         )
       }
@@ -176,7 +190,7 @@ export default function MarketPage() {
       const items: ActivityItem[] = d.marketActivity || []
       setActivity(items)
       if (items.length > 0) {
-        loadNFTImages(items.map(a => a.nftSerialId)).then(map =>
+        loadImagesBatched(items.map(a => a.nftSerialId), map =>
           setNftImages(prev => new Map([...prev, ...map]))
         )
       }
@@ -210,7 +224,7 @@ export default function MarketPage() {
       setMyListings(myItems)
       setMyNFTs(mirrorNFTs)
       if (myItems.length > 0) {
-        loadNFTImages(myItems.map(l => l.serialId)).then(map =>
+        loadImagesBatched(myItems.map(l => l.serialId), map =>
           setNftImages(prev => new Map([...prev, ...map]))
         )
       }
