@@ -6,15 +6,21 @@ import Footer from './Footer'
 
 const SLIME_TOKEN = '0.0.9474754'
 const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
-const IPFS_GATEWAY = (import.meta.env.VITE_IPFS_GATEWAY as string) || 'https://ipfs.io/ipfs/'
+const PUBLIC_GATEWAY = 'https://gateway.pinata.cloud/ipfs/'
 
-// Identical to CollectionPage's getNFTImage — keeps URL handling in sync.
 function toImageUrl(image: string): string {
-  if (!image) return ''
+  if (!image) return '/Assets/SPLAT.png'
+  // Rewrite private dedicated Pinata gateway URLs to the public gateway
+  if (image.includes('.mypinata.cloud/ipfs/')) {
+    const cid = image.split('/ipfs/')[1] || ''
+    return PUBLIC_GATEWAY + cid
+  }
   if (image.startsWith('ipfs://')) {
-    const raw = image.replace('ipfs://', IPFS_GATEWAY)
-    const slash = raw.lastIndexOf('/')
-    return raw.substring(0, slash + 1) + raw.substring(slash + 1).replace(/#/g, '%23')
+    const path = image.replace('ipfs://', '')
+    const slash = path.lastIndexOf('/')
+    const dir = path.substring(0, slash + 1)
+    const file = path.substring(slash + 1).replace(/#/g, '%23')
+    return PUBLIC_GATEWAY + dir + file
   }
   return image
 }
@@ -31,11 +37,13 @@ async function loadNFTImages(serials: number[]): Promise<Map<number, string>> {
     if (!r.ok) return new Map()
     const d = await r.json()
     if (!d.success || !d.nfts) return new Map()
-    const serialSet = new Set(serials)
+    // Normalize to numbers — SentX may return serialId as number or string in JSON
+    const serialSet = new Set(serials.map(Number))
     const map = new Map<number, string>()
-    for (const nft of d.nfts as Array<{ serialId: number; image: string }>) {
-      if (serialSet.has(nft.serialId) && nft.image) {
-        map.set(nft.serialId, toImageUrl(nft.image))
+    for (const nft of d.nfts as Array<{ serialId: number | string; image: string }>) {
+      const serial = Number(nft.serialId)
+      if (serialSet.has(serial)) {
+        map.set(serial, toImageUrl(nft.image))
       }
     }
     return map
@@ -553,18 +561,14 @@ export default function MarketPage() {
                     >
                       {/* NFT image */}
                       <div className="aspect-square bg-black/40 relative overflow-hidden">
-                        {nftImages.get(listing.serialId) ? (
-                          <img
-                            src={nftImages.get(listing.serialId)}
-                            alt={listing.nftName || `SLIME #${listing.serialId}`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={(e) => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">
-                            Loading...
-                          </div>
-                        )}
+                        <img
+                          src={nftImages.get(listing.serialId) ?? '/Assets/SPLAT.png'}
+                          alt={listing.nftName || `SLIME #${listing.serialId}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                          crossOrigin="anonymous"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
+                        />
                         {/* Serial badge */}
                         <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
                           <span className="text-gray-300 text-xs font-mono">#{listing.serialId}</span>
@@ -759,14 +763,14 @@ export default function MarketPage() {
                             className="bg-[#1a1a1a] rounded-2xl border border-gray-800 overflow-hidden flex flex-col"
                           >
                             <div className="aspect-square bg-black/40 relative overflow-hidden">
-                              {nftImages.get(listing.serialId) ? (
-                                <img
-                                  src={nftImages.get(listing.serialId)}
-                                  alt={listing.nftName}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
-                                />
-                              ) : null}
+                              <img
+                                src={nftImages.get(listing.serialId) ?? '/Assets/SPLAT.png'}
+                                alt={listing.nftName}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                                crossOrigin="anonymous"
+                                onError={(e) => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
+                              />
                               <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
                                 <span className="text-gray-300 text-xs font-mono">#{listing.serialId}</span>
                               </div>
