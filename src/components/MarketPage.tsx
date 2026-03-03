@@ -8,9 +8,16 @@ const SLIME_TOKEN = '0.0.9474754'
 const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
 const IPFS_GATEWAY = (import.meta.env.VITE_IPFS_GATEWAY as string) || 'https://ipfs.io/ipfs/'
 
-// Same conversion CollectionPage uses — one hop straight to the image file.
+// Converts any IPFS image URL to a public HTTP URL.
+// Handles both ipfs:// URIs and private Pinata dedicated gateway URLs
+// (e.g. *.mypinata.cloud) since SentX stores images in mixed formats.
 function ipfsToHttp(url: string): string {
   if (!url) return ''
+  // Rewrite private Pinata dedicated gateway to the public gateway
+  const pinataIdx = url.indexOf('.mypinata.cloud/ipfs/')
+  if (pinataIdx !== -1) {
+    return IPFS_GATEWAY + url.slice(pinataIdx + '.mypinata.cloud/ipfs/'.length)
+  }
   if (!url.startsWith('ipfs://')) return url
   const raw = url.replace('ipfs://', IPFS_GATEWAY)
   const slash = raw.lastIndexOf('/')
