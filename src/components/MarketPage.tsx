@@ -1,31 +1,44 @@
 import { useState, useEffect } from 'react'
 import { Transaction } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
-import { decodeMetadata } from '../utils/nft'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
 const SLIME_TOKEN = '0.0.9474754'
 const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
+const IPFS_GATEWAY = (import.meta.env.VITE_IPFS_GATEWAY as string) || 'https://ipfs.io/ipfs/'
 
-// Fetch images from the Hedera mirror node for a list of serial numbers.
-// SentX's listings API often has null nftImage for SLIME NFTs, so we pull
-// metadata directly from the chain and use decodeMetadata (same as SwapPage).
+// Same conversion CollectionPage uses — one hop straight to the image file.
+function ipfsToHttp(url: string): string {
+  if (!url) return ''
+  if (!url.startsWith('ipfs://')) return url
+  const raw = url.replace('ipfs://', IPFS_GATEWAY)
+  const slash = raw.lastIndexOf('/')
+  return raw.substring(0, slash + 1) + raw.substring(slash + 1).replace(/#/g, '%23')
+}
+
+// Uses /api/nft-images (SentX token/nfts with 30-min server cache) —
+// the same data source CollectionPage uses, proven reliable.
 async function loadNFTImages(serials: number[]): Promise<Map<number, string>> {
-  const map = new Map<number, string>()
-  await Promise.all(
-    serials.map(async serial => {
-      try {
-        const r = await fetch(`${MIRROR}/api/v1/tokens/${SLIME_TOKEN}/nfts/${serial}`)
-        if (!r.ok) return
-        const nft = await r.json()
-        if (!nft.metadata) return
-        const decoded = await decodeMetadata(nft.metadata)
-        if (decoded?.image) map.set(serial, decoded.image)
-      } catch { /* skip */ }
-    })
-  )
-  return map
+  const apiKey = import.meta.env.VITE_SENTX_API_KEY as string
+  if (!apiKey || serials.length === 0) return new Map()
+  try {
+    const r = await fetch(
+      `/api/nft-images?apikey=${apiKey}&token=${SLIME_TOKEN}&serials=${serials.join(',')}`
+    )
+    if (!r.ok) return new Map()
+    const d = await r.json()
+    if (!d.success) return new Map()
+    const map = new Map<number, string>()
+    for (const [serial, info] of Object.entries(
+      d.nfts as Record<string, { image: string; name: string }>
+    )) {
+      if (info?.image) map.set(Number(serial), ipfsToHttp(info.image))
+    }
+    return map
+  } catch {
+    return new Map()
+  }
 }
 
 function timeAgo(dateStr: string): string {
