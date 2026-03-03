@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# API docs (local reference only)
+SENTX_MARKET_API.md
