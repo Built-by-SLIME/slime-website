@@ -8,57 +8,39 @@ const SLIME_TOKEN = '0.0.9474754'
 const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
 const IPFS_GATEWAY = (import.meta.env.VITE_IPFS_GATEWAY as string) || 'https://ipfs.io/ipfs/'
 
-// Converts any IPFS image URL to a public HTTP URL.
-// Handles both ipfs:// URIs and private Pinata dedicated gateway URLs
-// (e.g. *.mypinata.cloud) since SentX stores images in mixed formats.
-function ipfsToHttp(url: string): string {
-  if (!url) return ''
-  // Rewrite private Pinata dedicated gateway to the public gateway
-  const pinataIdx = url.indexOf('.mypinata.cloud/ipfs/')
-  if (pinataIdx !== -1) {
-    return IPFS_GATEWAY + url.slice(pinataIdx + '.mypinata.cloud/ipfs/'.length)
+// Identical to CollectionPage's getNFTImage — keeps URL handling in sync.
+function toImageUrl(image: string): string {
+  if (!image) return ''
+  if (image.startsWith('ipfs://')) {
+    const raw = image.replace('ipfs://', IPFS_GATEWAY)
+    const slash = raw.lastIndexOf('/')
+    return raw.substring(0, slash + 1) + raw.substring(slash + 1).replace(/#/g, '%23')
   }
-  if (!url.startsWith('ipfs://')) return url
-  const raw = url.replace('ipfs://', IPFS_GATEWAY)
-  const slash = raw.lastIndexOf('/')
-  return raw.substring(0, slash + 1) + raw.substring(slash + 1).replace(/#/g, '%23')
+  return image
 }
 
-// Fetches images from /api/nft-images (SentX-backed, server-side cached).
-// The endpoint now builds its serialMap using parallel page fetches so
-// cold-start latency is ~1–2 s instead of 10+ s.
+// Uses the same /api/collection-rarity endpoint as CollectionPage so image
+// URLs are guaranteed to be identical to the ones that work there.
 async function loadNFTImages(serials: number[]): Promise<Map<number, string>> {
   const apiKey = import.meta.env.VITE_SENTX_API_KEY as string
   if (!apiKey || serials.length === 0) return new Map()
   try {
     const r = await fetch(
-      `/api/nft-images?apikey=${apiKey}&token=${SLIME_TOKEN}&serials=${serials.join(',')}`
+      `/api/collection-rarity?apikey=${apiKey}&token=${SLIME_TOKEN}&limit=1000&page=1`
     )
     if (!r.ok) return new Map()
     const d = await r.json()
-    if (!d.success) return new Map()
+    if (!d.success || !d.nfts) return new Map()
+    const serialSet = new Set(serials)
     const map = new Map<number, string>()
-    for (const [serial, info] of Object.entries(
-      d.nfts as Record<string, { image: string; name: string }>
-    )) {
-      if (info?.image) map.set(Number(serial), ipfsToHttp(info.image))
+    for (const nft of d.nfts as Array<{ serialId: number; image: string }>) {
+      if (serialSet.has(nft.serialId) && nft.image) {
+        map.set(nft.serialId, toImageUrl(nft.image))
+      }
     }
     return map
   } catch {
     return new Map()
-  }
-}
-
-// Loads images in sequential batches of 50 (mirrors CollectionPage's 50-at-a-time
-// approach) so the first images appear quickly and the rest fill in progressively.
-async function loadImagesBatched(
-  serials: number[],
-  onBatch: (map: Map<number, string>) => void
-) {
-  const BATCH = 50
-  for (let i = 0; i < serials.length; i += BATCH) {
-    const map = await loadNFTImages(serials.slice(i, i + BATCH))
-    if (map.size > 0) onBatch(map)
   }
 }
 
@@ -172,7 +154,7 @@ export default function MarketPage() {
       const items: Listing[] = d.marketListings || []
       setListings(items)
       if (items.length > 0) {
-        loadImagesBatched(items.map(l => l.serialId), map =>
+        loadNFTImages(items.map(l => l.serialId)).then(map =>
           setNftImages(prev => new Map([...prev, ...map]))
         )
       }
@@ -197,7 +179,7 @@ export default function MarketPage() {
       const items: ActivityItem[] = d.marketActivity || []
       setActivity(items)
       if (items.length > 0) {
-        loadImagesBatched(items.map(a => a.nftSerialId), map =>
+        loadNFTImages(items.map(a => a.nftSerialId)).then(map =>
           setNftImages(prev => new Map([...prev, ...map]))
         )
       }
@@ -231,7 +213,7 @@ export default function MarketPage() {
       setMyListings(myItems)
       setMyNFTs(mirrorNFTs)
       if (myItems.length > 0) {
-        loadImagesBatched(myItems.map(l => l.serialId), map =>
+        loadNFTImages(myItems.map(l => l.serialId)).then(map =>
           setNftImages(prev => new Map([...prev, ...map]))
         )
       }
