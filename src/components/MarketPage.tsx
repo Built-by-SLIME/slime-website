@@ -569,6 +569,7 @@ export default function MarketPage() {
                             src={nftImages.get(listing.serialId)}
                             alt={listing.nftName || `SLIME #${listing.serialId}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">
@@ -774,6 +775,7 @@ export default function MarketPage() {
                                   src={nftImages.get(listing.serialId)}
                                   alt={listing.nftName}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
                                 />
                               ) : null}
                               <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
