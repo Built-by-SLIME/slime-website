@@ -1,17 +1,31 @@
 import { useState, useEffect } from 'react'
 import { Transaction } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
+import { decodeMetadata } from '../utils/nft'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
 const SLIME_TOKEN = '0.0.9474754'
 const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
-const IPFS_GATEWAY = (import.meta.env.VITE_IPFS_GATEWAY as string) || 'https://ipfs.io/ipfs/'
 
-function toHttp(url: string): string {
-  if (!url) return ''
-  if (url.startsWith('ipfs://')) return url.replace('ipfs://', IPFS_GATEWAY)
-  return url
+// Fetch images from the Hedera mirror node for a list of serial numbers.
+// SentX's listings API often has null nftImage for SLIME NFTs, so we pull
+// metadata directly from the chain and use decodeMetadata (same as SwapPage).
+async function loadNFTImages(serials: number[]): Promise<Map<number, string>> {
+  const map = new Map<number, string>()
+  await Promise.all(
+    serials.map(async serial => {
+      try {
+        const r = await fetch(`${MIRROR}/api/v1/tokens/${SLIME_TOKEN}/nfts/${serial}`)
+        if (!r.ok) return
+        const nft = await r.json()
+        if (!nft.metadata) return
+        const decoded = await decodeMetadata(nft.metadata)
+        if (decoded?.image) map.set(serial, decoded.image)
+      } catch { /* skip */ }
+    })
+  )
+  return map
 }
 
 function timeAgo(dateStr: string): string {
@@ -86,6 +100,10 @@ export default function MarketPage() {
   const [sortBy, setSortBy] = useState<'price' | 'listingDate' | 'serialId'>('price')
   const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('ASC')
 
+  // NFT images keyed by serial — populated from mirror node since SentX
+  // listings often have null nftImage for SLIME NFTs
+  const [nftImages, setNftImages] = useState<Map<number, string>>(new Map())
+
   // Activity
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [loadingActivity, setLoadingActivity] = useState(false)
@@ -117,7 +135,13 @@ export default function MarketPage() {
       const params = new URLSearchParams({ sortBy: sort, sortDirection: dir, limit: '100' })
       const r = await fetch(`/api/market-listings?${params}`)
       const d = await r.json()
-      setListings(d.marketListings || [])
+      const items: Listing[] = d.marketListings || []
+      setListings(items)
+      if (items.length > 0) {
+        loadNFTImages(items.map(l => l.serialId)).then(map =>
+          setNftImages(prev => new Map([...prev, ...map]))
+        )
+      }
     } catch { /* show empty */ } finally {
       setLoadingListings(false)
     }
@@ -136,7 +160,13 @@ export default function MarketPage() {
     try {
       const r = await fetch('/api/market-activity?amount=50&activityFilter=All')
       const d = await r.json()
-      setActivity(d.marketActivity || [])
+      const items: ActivityItem[] = d.marketActivity || []
+      setActivity(items)
+      if (items.length > 0) {
+        loadNFTImages(items.map(a => a.nftSerialId)).then(map =>
+          setNftImages(prev => new Map([...prev, ...map]))
+        )
+      }
     } catch { /* show empty */ } finally {
       setLoadingActivity(false)
       setActivityLoaded(true)
@@ -163,8 +193,14 @@ export default function MarketPage() {
         fetch(`/api/market-listings?filterUserAccount=${accountId}&limit=100`).then(r => r.json()),
         fetchWalletNFTs(),
       ])
-      setMyListings(listRes.marketListings || [])
+      const myItems: Listing[] = listRes.marketListings || []
+      setMyListings(myItems)
       setMyNFTs(mirrorNFTs)
+      if (myItems.length > 0) {
+        loadNFTImages(myItems.map(l => l.serialId)).then(map =>
+          setNftImages(prev => new Map([...prev, ...map]))
+        )
+      }
     } catch { /* show empty */ } finally {
       setLoadingMine(false)
     }
@@ -501,16 +537,15 @@ export default function MarketPage() {
                     >
                       {/* NFT image */}
                       <div className="aspect-square bg-black/40 relative overflow-hidden">
-                        {listing.nftImage ? (
+                        {nftImages.get(listing.serialId) ? (
                           <img
-                            src={toHttp(listing.nftImage)}
+                            src={nftImages.get(listing.serialId)}
                             alt={listing.nftName || `SLIME #${listing.serialId}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">
-                            No image
+                            Loading...
                           </div>
                         )}
                         {/* Serial badge */}
@@ -590,12 +625,11 @@ export default function MarketPage() {
                   >
                     {/* Thumbnail */}
                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 border border-gray-800">
-                      {a.nftImage ? (
+                      {nftImages.get(a.nftSerialId) ? (
                         <img
-                          src={toHttp(a.nftImage)}
+                          src={nftImages.get(a.nftSerialId)}
                           alt={a.nftName}
                           className="w-full h-full object-cover"
-                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                         />
                       ) : null}
                     </div>
@@ -708,12 +742,11 @@ export default function MarketPage() {
                             className="bg-[#1a1a1a] rounded-2xl border border-gray-800 overflow-hidden flex flex-col"
                           >
                             <div className="aspect-square bg-black/40 relative overflow-hidden">
-                              {listing.nftImage ? (
+                              {nftImages.get(listing.serialId) ? (
                                 <img
-                                  src={toHttp(listing.nftImage)}
+                                  src={nftImages.get(listing.serialId)}
                                   alt={listing.nftName}
                                   className="w-full h-full object-cover"
-                                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                                 />
                               ) : null}
                               <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
