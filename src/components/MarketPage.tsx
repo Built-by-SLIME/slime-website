@@ -182,12 +182,31 @@ export default function MarketPage() {
   const fetchActivity = async () => {
     setLoadingActivity(true)
     try {
-      const r = await fetch('/api/market-activity?amount=50&activityFilter=All')
-      const d = await r.json()
-      const items: ActivityItem[] = d.marketActivity || []
-      setActivity(items)
-      if (items.length > 0) {
-        loadNFTImages(items.map(a => a.nftSerialId)).then(map =>
+      const [marketRes, launchpadRes] = await Promise.all([
+        fetch('/api/market-activity?amount=50&activityFilter=All').then(r => r.json()),
+        fetch('/api/launchpad-activity?limit=50').then(r => r.json()),
+      ])
+      const marketItems: ActivityItem[] = marketRes.marketActivity || []
+      const launchpadItems: ActivityItem[] = (launchpadRes.response || []).map(
+        (m: { saletype: string; salePrice: number; salePriceSymbol: string; saleDate: string; buyerAddress: string; nftName: string; nftSerialId: number; nftImage: string }) => ({
+          saletype: m.saletype,
+          salePrice: m.salePrice,
+          salePriceSymbol: m.salePriceSymbol,
+          saleDate: m.saleDate,
+          buyerAddress: m.buyerAddress,
+          sellerAddress: '',
+          nftName: m.nftName,
+          nftSerialId: m.nftSerialId,
+          nftImage: m.nftImage,
+        })
+      )
+      const combined = [...marketItems, ...launchpadItems].sort(
+        (a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime()
+      )
+      setActivity(combined)
+      const serials = combined.map(a => a.nftSerialId).filter(Boolean)
+      if (serials.length > 0) {
+        loadNFTImages(serials).then(map =>
           setNftImages(prev => new Map([...prev, ...map]))
         )
       }
@@ -646,13 +665,11 @@ export default function MarketPage() {
                   >
                     {/* Thumbnail */}
                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 border border-gray-800">
-                      {nftImages.get(a.nftSerialId) ? (
-                        <img
-                          src={nftImages.get(a.nftSerialId)}
-                          alt={a.nftName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : null}
+                      <img
+                        src={nftImages.get(a.nftSerialId) ?? '/Assets/$SLIME.png'}
+                        alt={a.nftName || 'SLIME'}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
 
                     {/* Info */}
