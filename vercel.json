@@ -5,6 +5,10 @@
       "destination": "/api/market-:path*"
     },
     {
+      "source": "/api/launchpad-:path*",
+      "destination": "/api/launchpad-:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://hedera-nft-toolkit-production.up.railway.app/api/:path*"
     },

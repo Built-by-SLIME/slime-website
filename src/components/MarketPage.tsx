@@ -173,10 +173,12 @@ export default function MarketPage() {
   const fetchActivity = async () => {
     setLoadingActivity(true)
     try {
-      const [marketRes, launchpadRes] = await Promise.all([
+      const [marketResult, launchpadResult] = await Promise.allSettled([
         fetch('/api/market-activity?amount=50&activityFilter=All').then(r => r.json()),
         fetch('/api/launchpad-activity?limit=50').then(r => r.json()),
       ])
+      const marketRes = marketResult.status === 'fulfilled' ? marketResult.value : {}
+      const launchpadRes = launchpadResult.status === 'fulfilled' ? launchpadResult.value : {}
       const marketItems: ActivityItem[] = marketRes.marketActivity || []
       const launchpadItems: ActivityItem[] = (launchpadRes.response || []).map(
         (m: { saletype: string; salePrice: number; salePriceSymbol: string; saleDate: string; buyerAddress: string; nftName: string; nftSerialId: number; nftImage: string }) => ({
@@ -213,11 +215,20 @@ export default function MarketPage() {
       const end = new Date()
       const start = new Date(end.getTime() - period * 86400000)
       const fmt = (d: Date) => d.toISOString().split('T')[0]
-      const r = await fetch(`/api/market-stats?startDate=${fmt(start)}&endDate=${fmt(end)}`)
-      const d = await r.json()
-      const records: StatRecord[] = (d.data || []).filter(
-        (rec: StatRecord) => rec.token === '0.0.9474754'
-      )
+      const base = `/api/market-stats?startDate=${fmt(start)}&endDate=${fmt(end)}`
+      const first = await fetch(`${base}&page=1`).then(r => r.json())
+      const allData: StatRecord[] = [...(first.data || [])]
+      const totalRecords: number = first.totalRecords || 0
+      if (totalRecords > 500) {
+        const extraPages = Math.ceil((totalRecords - 500) / 500)
+        const rest = await Promise.all(
+          Array.from({ length: extraPages }, (_, i) =>
+            fetch(`${base}&page=${i + 2}`).then(r => r.json()).then(d => d.data || [])
+          )
+        )
+        rest.forEach(page => allData.push(...page))
+      }
+      const records = allData.filter((rec: StatRecord) => rec.token === '0.0.9474754')
       setStats(records)
     } catch { /* show empty */ } finally {
       setLoadingStats(false)
