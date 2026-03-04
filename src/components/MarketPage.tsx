@@ -5,7 +5,6 @@ import Navigation from './Navigation'
 import Footer from './Footer'
 
 const SLIME_TOKEN = '0.0.9474754'
-const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
 const PUBLIC_GATEWAY = 'https://gateway.pinata.cloud/ipfs/'
 
 function toImageUrl(image: string): string {
@@ -103,11 +102,7 @@ interface Offer {
   serialId: number
 }
 
-interface MirrorNFT {
-  serial_number: number
-}
-
-type Tab = 'listings' | 'activity' | 'offers' | 'mylistings'
+type Tab = 'listings' | 'activity' | 'offers'
 type TxStatus = 'idle' | 'preparing' | 'signing' | 'confirming' | 'success' | 'error'
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -137,13 +132,6 @@ export default function MarketPage() {
   const [offers, setOffers] = useState<Offer[]>([])
   const [loadingOffers, setLoadingOffers] = useState(false)
   const [offersLoaded, setOffersLoaded] = useState(false)
-
-  // My Listings
-  const [myListings, setMyListings] = useState<Listing[]>([])
-  const [myNFTs, setMyNFTs] = useState<MirrorNFT[]>([])
-  const [loadingMine, setLoadingMine] = useState(false)
-  const [listSerial, setListSerial] = useState('')
-  const [listPrice, setListPrice] = useState('')
 
   // Transaction state
   const [txStatus, setTxStatus] = useState<TxStatus>('idle')
@@ -228,40 +216,6 @@ export default function MarketPage() {
     }
   }
 
-  const fetchMine = async () => {
-    if (!accountId) return
-    setLoadingMine(true)
-    try {
-      const [listRes, mirrorNFTs] = await Promise.all([
-        fetch(`/api/market-listings?filterUserAccount=${accountId}&limit=100`).then(r => r.json()),
-        fetchWalletNFTs(),
-      ])
-      const myItems: Listing[] = listRes.marketListings || []
-      setMyListings(myItems)
-      setMyNFTs(mirrorNFTs)
-      if (myItems.length > 0) {
-        loadNFTImages(myItems.map(l => l.serialId)).then(map =>
-          setNftImages(prev => new Map([...prev, ...map]))
-        )
-      }
-    } catch { /* show empty */ } finally {
-      setLoadingMine(false)
-    }
-  }
-
-  const fetchWalletNFTs = async (): Promise<MirrorNFT[]> => {
-    const nfts: MirrorNFT[] = []
-    let path: string | null = `/api/v1/accounts/${accountId}/nfts?token.id=${SLIME_TOKEN}&limit=100`
-    while (path) {
-      const r = await fetch(`${MIRROR}${path}`)
-      if (!r.ok) break
-      const d: { nfts: MirrorNFT[]; links?: { next?: string } } = await r.json()
-      nfts.push(...(d.nfts || []))
-      path = d.links?.next || null
-    }
-    return nfts
-  }
-
   // Initial load
   useEffect(() => {
     fetchListings()
@@ -279,7 +233,6 @@ export default function MarketPage() {
   useEffect(() => {
     if (tab === 'activity' && !activityLoaded) fetchActivity()
     if (tab === 'offers' && !offersLoaded) fetchOffers()
-    if (tab === 'mylistings' && isConnected) fetchMine()
   }, [tab, isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Transaction helpers ─────────────────────────────────────────────────────
@@ -350,93 +303,14 @@ export default function MarketPage() {
     }
   }
 
-  // ── List ────────────────────────────────────────────────────────────────────
-
-  const handleList = async () => {
-    if (!isConnected || !accountId || !listSerial || !listPrice) return
-    setTxStatus('preparing')
-    setTxMsg('Preparing listing...')
-    setSuccessMsg('')
-    try {
-      const r = await fetch('/api/market-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serial_number: listSerial, price: listPrice, user_address: accountId }),
-      })
-      const d = await r.json()
-      if (!d.success) throw new Error(d.apimessage || d.error || 'Failed to prepare listing')
-
-      setTxStatus('signing')
-      setTxMsg('Approve the allowance in your wallet...')
-      await execTx(d.transBytes.data)
-
-      setTxStatus('confirming')
-      setTxMsg('Confirming listing...')
-      const resR = await fetch(`/api/market-list-res?saleVerificationCode=${encodeURIComponent(d.saleVerificationCode)}`)
-      const resD = await resR.json()
-      if (!resD.success) throw new Error(resD.apimessage || resD.error || 'Listing confirmation failed')
-
-      setTxStatus('success')
-      setSuccessMsg(`SLIME #${listSerial} listed for ${Number(listPrice).toLocaleString()} ℏ!`)
-      setListSerial('')
-      setListPrice('')
-      fetchMine()
-    } catch (err) {
-      setTxStatus('error')
-      setTxMsg(err instanceof Error ? err.message : 'Listing failed')
-    }
-  }
-
-  // ── Unlist ──────────────────────────────────────────────────────────────────
-
-  const handleUnlist = async (serial: number) => {
-    if (!isConnected || !accountId) return
-    setActiveTxSerial(serial)
-    setTxStatus('preparing')
-    setTxMsg('Preparing unlist...')
-    setSuccessMsg('')
-    try {
-      const r = await fetch('/api/market-unlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serial_number: String(serial), user_address: accountId }),
-      })
-      const d = await r.json()
-      if (!d.success) throw new Error(d.apimessage || d.error || 'Failed to prepare unlist')
-
-      setTxStatus('signing')
-      setTxMsg('Approve the unlist in your wallet...')
-      await execTx(d.transBytes.data)
-
-      setTxStatus('confirming')
-      setTxMsg('Confirming unlist...')
-      const resR = await fetch(`/api/market-unlist-res?saleVerificationCode=${encodeURIComponent(d.saleVerificationCode)}`)
-      const resD = await resR.json()
-      if (!resD.success) throw new Error(resD.apimessage || resD.error || 'Unlist confirmation failed')
-
-      setTxStatus('success')
-      setSuccessMsg(`SLIME #${serial} has been unlisted.`)
-      fetchMine()
-      fetchListings()
-    } catch (err) {
-      setTxStatus('error')
-      setTxMsg(err instanceof Error ? err.message : 'Unlist failed')
-    } finally {
-      setActiveTxSerial(null)
-    }
-  }
-
   // ── Derived state ────────────────────────────────────────────────────────────
 
   const isTxBusy = txStatus === 'preparing' || txStatus === 'signing' || txStatus === 'confirming'
-  const listedSerials = new Set(myListings.map(l => l.serialId))
-  const unlistedNFTs = myNFTs.filter(n => !listedSerials.has(n.serial_number))
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'listings', label: 'Listings' },
     { id: 'activity', label: 'Activity' },
     { id: 'offers', label: 'Offers' },
-    ...(isConnected ? [{ id: 'mylistings' as Tab, label: 'My Listings' }] : []),
   ]
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -744,147 +618,6 @@ export default function MarketPage() {
                     </span>
                   </div>
                 ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ════════════════════ MY LISTINGS ════════════════════ */}
-        {tab === 'mylistings' && isConnected && (
-          <>
-            {loadingMine && (
-              <div className="flex items-center justify-center h-72">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slime-green" />
-              </div>
-            )}
-
-            {!loadingMine && (
-              <div className="flex flex-col gap-10">
-
-                {/* Active listings */}
-                <div>
-                  <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-lg font-black text-white">Your Active Listings</h2>
-                    <span className="text-xs text-gray-500">{myListings.length} listed</span>
-                  </div>
-
-                  {myListings.length === 0 ? (
-                    <p className="text-gray-500 text-sm">You have no active listings.</p>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {myListings.map(listing => {
-                        const isThisBusy = isTxBusy && activeTxSerial === listing.serialId
-                        return (
-                          <div
-                            key={listing.marketplaceListingId}
-                            className="bg-[#1a1a1a] rounded-2xl border border-gray-800 overflow-hidden flex flex-col"
-                          >
-                            <div className="aspect-square bg-black/40 relative overflow-hidden">
-                              <img
-                                src={nftImages.get(listing.serialId) ?? '/Assets/SPLAT.png'}
-                                alt={listing.nftName}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                                crossOrigin="anonymous"
-                                onError={(e) => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
-                              />
-                              <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
-                                <span className="text-gray-300 text-xs font-mono">#{listing.serialId}</span>
-                              </div>
-                            </div>
-                            <div className="p-3 flex flex-col gap-2.5 flex-1">
-                              <p className="text-white text-xs font-bold truncate">
-                                {listing.nftName || `SLIME #${listing.serialId}`}
-                              </p>
-                              <p className="text-slime-green font-mono font-black text-base leading-none">
-                                {listing.salePrice.toLocaleString()} ℏ
-                              </p>
-                              <button
-                                onClick={() => handleUnlist(listing.serialId)}
-                                disabled={isTxBusy}
-                                className="mt-auto w-full bg-red-500/10 border border-red-500/30 text-red-400 py-2 rounded-xl font-bold text-xs hover:bg-red-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                              >
-                                {isThisBusy ? (
-                                  <span className="flex items-center justify-center gap-1.5">
-                                    <span className="inline-block w-3 h-3 border-b-2 border-red-400 rounded-full animate-spin" />
-                                    UNLISTING
-                                  </span>
-                                ) : 'UNLIST'}
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Divider */}
-                <div className="border-t border-gray-800" />
-
-                {/* List a new NFT */}
-                <div>
-                  <h2 className="text-lg font-black text-white mb-5">List an NFT</h2>
-
-                  {unlistedNFTs.length === 0 && myNFTs.length === 0 && (
-                    <p className="text-gray-500 text-sm">No SLIME NFTs found in your wallet.</p>
-                  )}
-                  {unlistedNFTs.length === 0 && myNFTs.length > 0 && (
-                    <p className="text-gray-500 text-sm">All your SLIME NFTs are already listed.</p>
-                  )}
-
-                  {unlistedNFTs.length > 0 && (
-                    <div className="bg-[#1a1a1a] rounded-2xl border border-gray-800 p-6 max-w-sm">
-                      <div className="flex flex-col gap-5">
-                        <div>
-                          <label className="text-xs text-gray-500 uppercase tracking-widest block mb-2">
-                            Select NFT
-                          </label>
-                          <select
-                            value={listSerial}
-                            onChange={e => setListSerial(e.target.value)}
-                            className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-slime-green transition"
-                          >
-                            <option value="">Choose a serial number</option>
-                            {unlistedNFTs.map(n => (
-                              <option key={n.serial_number} value={String(n.serial_number)}>
-                                SLIME #{n.serial_number}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-xs text-gray-500 uppercase tracking-widest block mb-2">
-                            List Price (ℏ)
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            value={listPrice}
-                            onChange={e => setListPrice(e.target.value)}
-                            placeholder="e.g. 500"
-                            className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-lg focus:outline-none focus:border-slime-green transition"
-                          />
-                        </div>
-
-                        <button
-                          onClick={handleList}
-                          disabled={isTxBusy || !listSerial || !listPrice || parseFloat(listPrice) <= 0}
-                          className="w-full bg-slime-green text-black py-3.5 rounded-xl font-black text-sm hover:bg-[#00cc33] transition disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {isTxBusy && !activeTxSerial ? (
-                            <span className="flex items-center justify-center gap-2">
-                              <span className="inline-block w-4 h-4 border-b-2 border-black rounded-full animate-spin" />
-                              LISTING...
-                            </span>
-                          ) : 'LIST NFT'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </>
