@@ -9,11 +9,13 @@ export default async function handler(req, res) {
   const { saleVerificationCode } = req.query
   if (!saleVerificationCode) return res.status(400).json({ error: 'Missing saleVerificationCode' })
 
-  const params = new URLSearchParams({ apikey, saleVerificationCode })
+  const body = new URLSearchParams({ saleVerificationCode })
 
   try {
-    const upstream = await fetch(`https://api.sentx.io/v1/affiliate/market/listnftres?${params}`, {
+    const upstream = await fetch(`https://api.sentx.io/v1/affiliate/market/listnftres?apikey=${encodeURIComponent(apikey)}`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
     })
     const data = await upstream.json()
     res.setHeader('Cache-Control', 'no-store')
