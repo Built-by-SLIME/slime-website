@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const { startDate, endDate, page = '1' } = req.query
   if (!startDate || !endDate) return res.status(400).json({ error: 'Missing required params: startDate, endDate' })
 
-  const params = new URLSearchParams({ apikey, startDate, endDate, limit: '500', page })
+  const params = new URLSearchParams({ apikey, dateFrom: startDate, dateTo: endDate, limit: '500', page })
 
   try {
     const upstream = await fetch(`https://api.sentx.io/v1/public/market/stats/token?${params}`)
