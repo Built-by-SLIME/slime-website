@@ -15,8 +15,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required parameters: serial_number, price, user_address' })
   }
 
-  const params = new URLSearchParams({
-    apikey,
+  const body = new URLSearchParams({
     token_address: SLIME_TOKEN,
     serial_number: String(serial_number),
     price: String(price),
@@ -24,8 +23,10 @@ export default async function handler(req, res) {
   })
 
   try {
-    const upstream = await fetch(`https://api.sentx.io/v1/affiliate/market/listnft?${params}`, {
+    const upstream = await fetch(`https://api.sentx.io/v1/affiliate/market/listnft?apikey=${encodeURIComponent(apikey)}`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
     })
     const data = await upstream.json()
     res.setHeader('Cache-Control', 'no-store')
