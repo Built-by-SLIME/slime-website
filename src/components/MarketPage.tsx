@@ -92,17 +92,19 @@ interface ActivityItem {
   nftImage: string
 }
 
-interface Offer {
-  buyerAccount: string
-  sellerAccount: string
-  offeredPrice: number
-  offerDate: string
-  statusName: string
-  listedPrice: number
-  serialId: number
+interface StatRecord {
+  token: string
+  datetime: string
+  volume: number
+  floor: number
+  avgSale: number
+  sales: number
+  maxSale: number
+  minSale: number
+  listings: number
 }
 
-type Tab = 'listings' | 'activity' | 'offers'
+type Tab = 'listings' | 'activity' | 'stats'
 type TxStatus = 'idle' | 'preparing' | 'signing' | 'confirming' | 'success' | 'error'
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -128,10 +130,11 @@ export default function MarketPage() {
   const [loadingActivity, setLoadingActivity] = useState(false)
   const [activityLoaded, setActivityLoaded] = useState(false)
 
-  // Offers
-  const [offers, setOffers] = useState<Offer[]>([])
-  const [loadingOffers, setLoadingOffers] = useState(false)
-  const [offersLoaded, setOffersLoaded] = useState(false)
+  // Stats
+  const [stats, setStats] = useState<StatRecord[]>([])
+  const [loadingStats, setLoadingStats] = useState(false)
+  const [statsLoaded, setStatsLoaded] = useState(false)
+  const [statsPeriod, setStatsPeriod] = useState<7 | 30 | 90>(30)
 
   // Transaction state
   const [txStatus, setTxStatus] = useState<TxStatus>('idle')
@@ -204,15 +207,21 @@ export default function MarketPage() {
     }
   }
 
-  const fetchOffers = async () => {
-    setLoadingOffers(true)
+  const fetchStats = async (period: 7 | 30 | 90 = statsPeriod) => {
+    setLoadingStats(true)
     try {
-      const r = await fetch('/api/market-offers')
+      const end = new Date()
+      const start = new Date(end.getTime() - period * 86400000)
+      const fmt = (d: Date) => d.toISOString().split('T')[0]
+      const r = await fetch(`/api/market-stats?startDate=${fmt(start)}&endDate=${fmt(end)}`)
       const d = await r.json()
-      setOffers(d.response || [])
+      const records: StatRecord[] = (d.data || []).filter(
+        (rec: StatRecord) => rec.token === '0.0.9474754'
+      )
+      setStats(records)
     } catch { /* show empty */ } finally {
-      setLoadingOffers(false)
-      setOffersLoaded(true)
+      setLoadingStats(false)
+      setStatsLoaded(true)
     }
   }
 
@@ -232,8 +241,16 @@ export default function MarketPage() {
   // Lazy-load tab data
   useEffect(() => {
     if (tab === 'activity' && !activityLoaded) fetchActivity()
-    if (tab === 'offers' && !offersLoaded) fetchOffers()
+    if (tab === 'stats' && !statsLoaded) fetchStats()
   }, [tab, isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch stats when period changes
+  useEffect(() => {
+    if (tab === 'stats') {
+      setStatsLoaded(false)
+      fetchStats(statsPeriod)
+    }
+  }, [statsPeriod]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Transaction helpers ─────────────────────────────────────────────────────
 
@@ -310,7 +327,7 @@ export default function MarketPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'listings', label: 'Listings' },
     { id: 'activity', label: 'Activity' },
-    { id: 'offers', label: 'Offers' },
+    { id: 'stats', label: 'Stats' },
   ]
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -578,47 +595,77 @@ export default function MarketPage() {
           </>
         )}
 
-        {/* ════════════════════ OFFERS ════════════════════ */}
-        {tab === 'offers' && (
+        {/* ════════════════════ STATS ════════════════════ */}
+        {tab === 'stats' && (
           <>
-            {loadingOffers && (
+            {/* Period picker */}
+            <div className="flex items-center gap-2 mb-8">
+              <span className="text-xs text-gray-500 uppercase tracking-widest mr-1">Period</span>
+              {([7, 30, 90] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setStatsPeriod(p)}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-bold transition ${
+                    statsPeriod === p
+                      ? 'bg-slime-green text-black'
+                      : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-gray-800'
+                  }`}
+                >
+                  {p}D
+                </button>
+              ))}
+            </div>
+
+            {loadingStats && (
               <div className="flex items-center justify-center h-72">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slime-green" />
               </div>
             )}
 
-            {!loadingOffers && offers.length === 0 && (
+            {!loadingStats && stats.length === 0 && (
               <div className="text-center py-32 text-gray-500">
-                <p className="text-lg font-bold text-white mb-2">No active offers</p>
-                <p className="text-sm">Offers on SLIME NFTs will appear here.</p>
+                <p className="text-lg font-bold text-white mb-2">No data available</p>
+                <p className="text-sm">No trade activity found for this period.</p>
               </div>
             )}
 
-            {!loadingOffers && offers.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {offers.map((o, i) => (
-                  <div
-                    key={i}
-                    className="bg-[#1a1a1a] rounded-2xl border border-gray-800 p-4 flex items-center gap-4 hover:border-gray-700 transition"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-bold">SLIME #{o.serialId}</p>
-                      <p className="text-gray-600 text-xs mt-0.5">Buyer: {shortAddr(o.buyerAccount)}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-slime-green font-mono font-black text-base">
-                        {o.offeredPrice.toLocaleString()} ℏ
+            {!loadingStats && stats.length > 0 && (() => {
+              const totalVolume = stats.reduce((s, r) => s + (r.volume || 0), 0)
+              const totalSales = stats.reduce((s, r) => s + (r.sales || 0), 0)
+              const avgSale = totalSales > 0 ? Math.round(totalVolume / totalSales) : 0
+              const maxSale = Math.max(...stats.map(r => r.maxSale || 0))
+              const minPrices = stats.map(r => r.minSale).filter(v => v > 0)
+              const minSale = minPrices.length > 0 ? Math.min(...minPrices) : 0
+              const latestFloor = stats[0]?.floor ?? floor
+
+              const cards = [
+                { label: 'Total Volume', value: totalVolume.toLocaleString(), suffix: 'ℏ', highlight: true },
+                { label: 'Total Sales', value: totalSales.toLocaleString(), suffix: null, highlight: false },
+                { label: 'Avg Sale Price', value: avgSale.toLocaleString(), suffix: 'ℏ', highlight: false },
+                { label: 'Highest Sale', value: maxSale.toLocaleString(), suffix: 'ℏ', highlight: false },
+                { label: 'Lowest Sale', value: minSale > 0 ? minSale.toLocaleString() : '—', suffix: minSale > 0 ? 'ℏ' : null, highlight: false },
+                { label: 'Floor Price', value: latestFloor != null ? latestFloor.toLocaleString() : '—', suffix: latestFloor != null ? 'ℏ' : null, highlight: false },
+              ]
+
+              return (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {cards.map(card => (
+                    <div key={card.label} className="bg-[#1a1a1a] rounded-2xl border border-gray-800 p-5 flex flex-col gap-2">
+                      <span className="text-xs text-gray-500 uppercase tracking-widest">{card.label}</span>
+                      <p className={`font-mono font-black text-2xl leading-none ${card.highlight ? 'text-slime-green' : 'text-white'}`}>
+                        {card.value}
+                        {card.suffix && <span className="text-base ml-1">{card.suffix}</span>}
                       </p>
-                      {o.listedPrice > 0 && (
-                        <p className="text-gray-600 text-xs">Listed: {o.listedPrice.toLocaleString()} ℏ</p>
-                      )}
                     </div>
-                    <span className="text-xs bg-gray-800 text-gray-400 px-2.5 py-1 rounded-full font-bold flex-shrink-0">
-                      {o.statusName}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
+            })()}
+
+            {!loadingStats && (
+              <p className="text-xs text-gray-600 mt-6 text-center">
+                Stats for the last {statsPeriod} days · Powered by SentX
+              </p>
             )}
           </>
         )}
