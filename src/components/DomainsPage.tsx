@@ -174,7 +174,7 @@ export default function DomainsPage() {
 
           <div className="flex items-center gap-3 mb-5">
             <span className="font-mono text-xs text-gray-400 uppercase tracking-widest">Years</span>
-            {[1, 2, 3].map(y => (
+            {[1, 3, 5, 10].map(y => (
               <button
                 key={y}
                 onClick={() => setYears(y)}
