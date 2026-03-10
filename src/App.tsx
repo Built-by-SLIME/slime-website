@@ -12,6 +12,7 @@ const SwapPage = lazy(() => import('./components/SwapPage'))
 const InventoryPage = lazy(() => import('./components/InventoryPage'))
 const MintPage = lazy(() => import('./components/MintPage'))
 const MarketPage = lazy(() => import('./components/MarketPage'))
+const DomainsPage = lazy(() => import('./components/DomainsPage'))
 
 // Loading spinner component
 function LoadingSpinner() {
@@ -40,6 +41,7 @@ function App() {
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/mint" element={<MintPage />} />
               <Route path="/market" element={<MarketPage />} />
+              <Route path="/domains" element={<DomainsPage />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
