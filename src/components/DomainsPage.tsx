@@ -13,6 +13,8 @@ interface CheckResult {
   priceHbar: number
   priceUsd: number
   feeAccount: string
+  operatorAccount: string | null
+  networkFeeHbar: number
 }
 
 interface OwnedDomain {
@@ -81,6 +83,8 @@ export default function DomainsPage() {
         priceHbar: data.priceHbar,
         priceUsd: data.priceUsd,
         feeAccount: data.feeAccount,
+        operatorAccount: data.operatorAccount ?? null,
+        networkFeeHbar: data.networkFeeHbar ?? 0.5,
       })
       setStatus('idle')
     } catch (err) {
@@ -103,9 +107,13 @@ export default function DomainsPage() {
     setStatusMsg('Confirm the HBAR payment in your wallet...')
     try {
       const tinybars = Math.round(checkResult.priceHbar * 1e8)
+      const networkFeeTinybars = Math.ceil((checkResult.networkFeeHbar ?? 0.5) * 1e8)
+      const operatorAccount = checkResult.operatorAccount ?? checkResult.feeAccount
+      const totalDebit = tinybars + networkFeeTinybars
       const payTx = new TransferTransaction()
-        .addHbarTransfer(AccountId.fromString(accountId), Hbar.fromTinybars(-tinybars))
+        .addHbarTransfer(AccountId.fromString(accountId), Hbar.fromTinybars(-totalDebit))
         .addHbarTransfer(AccountId.fromString(checkResult.feeAccount), Hbar.fromTinybars(tinybars))
+        .addHbarTransfer(AccountId.fromString(operatorAccount), Hbar.fromTinybars(networkFeeTinybars))
       const response = await signer.call(payTx)
       const txId = response.transactionId?.toString() ?? ''
 
