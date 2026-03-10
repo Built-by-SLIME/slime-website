@@ -12,7 +12,7 @@ interface CheckResult {
   available: boolean
   priceHbar: number
   priceUsd: number
-  feeAccountId: string
+  feeAccount: string
 }
 
 interface OwnedDomain {
@@ -80,7 +80,7 @@ export default function DomainsPage() {
         available: data.available,
         priceHbar: data.priceHbar,
         priceUsd: data.priceUsd,
-        feeAccountId: data.feeAccountId,
+        feeAccount: data.feeAccount,
       })
       setStatus('idle')
     } catch (err) {
@@ -105,7 +105,7 @@ export default function DomainsPage() {
       const tinybars = Math.round(checkResult.priceHbar * 1e8)
       const payTx = new TransferTransaction()
         .addHbarTransfer(AccountId.fromString(accountId), Hbar.fromTinybars(-tinybars))
-        .addHbarTransfer(AccountId.fromString(checkResult.feeAccountId), Hbar.fromTinybars(tinybars))
+        .addHbarTransfer(AccountId.fromString(checkResult.feeAccount), Hbar.fromTinybars(tinybars))
       const response = await signer.call(payTx)
       const txId = response.transactionId?.toString() ?? ''
 
