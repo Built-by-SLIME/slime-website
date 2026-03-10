@@ -154,7 +154,7 @@ export default function DomainsPage() {
             <input
               type="text"
               value={name}
-              onChange={e => setName(e.target.value.replace(/[^a-z0-9-]/gi, '').toLowerCase())}
+              onChange={e => setName(e.target.value.replace(/\s/g, '').toLowerCase())}
               onKeyDown={e => e.key === 'Enter' && !busy && handleCheck()}
               placeholder="yourname"
               disabled={busy}
