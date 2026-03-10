@@ -135,8 +135,6 @@ export default function DomainsPage() {
 
       setStatus('success')
       setStatusMsg(`${name.trim().toLowerCase()}.${tld} is yours! NFT minted to your wallet.`)
-      setName('')
-      setCheckResult(null)
       await loadOwnedDomains()
     } catch (err) {
       setStatus('error')
@@ -234,8 +232,17 @@ export default function DomainsPage() {
           )}
 
           {/* Status Messages */}
-          {statusMsg && (
-            <p className={`mt-3 text-sm font-mono ${ status === 'error' ? 'text-red-400' : status === 'success' ? 'text-green-400' : 'text-gray-400' }`}>
+          {status === 'success' && statusMsg && (
+            <div className="mt-4 rounded-xl px-5 py-4 flex items-start gap-3" style={{ backgroundColor: 'rgba(0,255,64,0.08)', border: '1px solid rgba(0,255,64,0.35)' }}>
+              <span className="text-xl leading-none" style={{ color: '#00ff40' }}>✓</span>
+              <div>
+                <p className="font-mono font-bold text-sm" style={{ color: '#00ff40' }}>REGISTRATION COMPLETE</p>
+                <p className="font-mono text-xs mt-1 text-gray-300">{statusMsg}</p>
+              </div>
+            </div>
+          )}
+          {status !== 'success' && statusMsg && (
+            <p className={`mt-3 text-sm font-mono ${ status === 'error' ? 'text-red-400' : 'text-gray-400' }`}>
               {statusMsg}
             </p>
           )}
