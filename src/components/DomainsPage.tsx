@@ -156,7 +156,7 @@ export default function DomainsPage() {
         {/* Search Card */}
         <div className="rounded-2xl p-6 mb-6" style={{ backgroundColor: '#1a1a1a' }}>
           <label className="font-mono text-xs text-gray-400 uppercase tracking-widest mb-3 block">Domain Name</label>
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
             <input
               type="text"
               value={name}
@@ -170,7 +170,7 @@ export default function DomainsPage() {
               value={tld}
               onChange={e => setTld(e.target.value as Tld)}
               disabled={busy}
-              className="bg-gray-800 border border-gray-600 rounded-xl px-3 py-3 text-green-400 font-mono focus:outline-none focus:border-green-400 disabled:opacity-50"
+              className="w-full sm:w-auto bg-gray-800 border border-gray-600 rounded-xl px-3 py-3 text-green-400 font-mono focus:outline-none focus:border-green-400 disabled:opacity-50"
             >
               {SUPPORTED_TLDS.map(t => (
                 <option key={t} value={t}>.{t}</option>
