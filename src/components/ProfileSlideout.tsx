@@ -113,7 +113,7 @@ export default function ProfileSlideout({ open, onClose }: Props) {
             <span className="ml-auto text-xs bg-gray-800/80 text-gray-600 px-2 py-0.5 rounded-full">SOON</span>
           </div>
           <Link to="/domains" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
             </svg>
             <span className="text-sm font-bold uppercase tracking-wider">Domains</span>
