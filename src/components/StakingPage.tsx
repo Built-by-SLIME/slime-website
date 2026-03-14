@@ -140,7 +140,11 @@ export default function StakingPage() {
       })
       const regData = await regRes.json()
       if (!regRes.ok || !regData.success) throw new Error(regData.error || 'Registration failed')
-      setRegStatus('success'); setStatusMsg('Registered! Your first reward has been sent. Future rewards will arrive each drip cycle.')
+      const dripOk = regData.drip?.success === true
+      setRegStatus('success')
+      setStatusMsg(dripOk
+        ? 'Registered! Your first reward has been sent to your wallet.'
+        : `Registered! Reward distribution encountered an issue: ${regData.drip?.error ?? 'unknown error'}. You are in the program — future drips will include you.`)
     } catch (err) {
       setRegStatus('error'); setStatusMsg(err instanceof Error ? err.message : 'Registration failed')
     }
