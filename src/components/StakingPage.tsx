@@ -32,6 +32,10 @@ export default function StakingPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [regStatus, setRegStatus] = useState<RegStatus>('idle')
   const [statusMsg, setStatusMsg] = useState('')
+  const [holdingsMap, setHoldingsMap] = useState<Map<string, { count: number; loading: boolean }>>(new Map())
+
+  const freqDays = (f: string): number =>
+    ({ '1d': 1, '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '365d': 365 } as Record<string, number>)[f] ?? 7
 
   useEffect(() => {
     const load = async () => {
@@ -61,6 +65,40 @@ export default function StakingPage() {
   }, [])
 
   useEffect(() => { setRegStatus('idle'); setStatusMsg('') }, [activeId])
+
+  useEffect(() => {
+    if (!activeId || !isConnected || !accountId) return
+    const program = programs.find(p => p.id === activeId)
+    if (!program) return
+    setHoldingsMap(prev => new Map(prev).set(activeId, { count: 0, loading: true }))
+    const fetchHoldings = async () => {
+      try {
+        let count = 0
+        if (program.stake_token_type === 'NFT') {
+          let url: string | null = `${MIRROR}/api/v1/accounts/${accountId}/nfts?token.id=${program.stake_token_id}&limit=100`
+          while (url) {
+            const r = await fetch(url)
+            if (!r.ok) break
+            const d = await r.json()
+            count += (d.nfts || []).length
+            url = d.links?.next ? `${MIRROR}${d.links.next}` : null
+          }
+        } else {
+          const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/tokens?token.id=${program.stake_token_id}&limit=1`)
+          if (r.ok) {
+            const d = await r.json()
+            const raw = d.tokens?.[0]?.balance ?? 0
+            const decimals = tokenInfo.get(program.stake_token_id)?.decimals ?? 0
+            count = decimals > 0 ? raw / Math.pow(10, decimals) : raw
+          }
+        }
+        setHoldingsMap(prev => new Map(prev).set(activeId, { count, loading: false }))
+      } catch {
+        setHoldingsMap(prev => new Map(prev).set(activeId, { count: 0, loading: false }))
+      }
+    }
+    fetchHoldings()
+  }, [activeId, isConnected, accountId])
 
   const freqLabel = (f: string) =>
     ({ '1d': 'Daily', '7d': 'Weekly', '14d': 'Bi-Weekly', '30d': 'Monthly', '90d': 'Quarterly', '180d': 'Bi-Annually', '365d': 'Annually' } as Record<string, string>)[f] ?? f
@@ -148,6 +186,11 @@ export default function StakingPage() {
               const rewardSymbol = tokenInfo.get(p.reward_token_id)?.symbol ?? p.reward_token_id
               const busy = isActive && (regStatus === 'checking' || regStatus === 'associating' || regStatus === 'registering')
               const done = isActive && (regStatus === 'success' || regStatus === 'already')
+              const holdingsInfo = isActive ? holdingsMap.get(p.id) : undefined
+              const holdingsLoading = isActive && (holdingsInfo?.loading ?? false)
+              const userHoldings = holdingsInfo?.count ?? 0
+              const meetsMin = userHoldings >= Number(p.min_stake_amount)
+              const estPayout = userHoldings * Number(p.reward_rate_per_day) * freqDays(p.frequency)
 
               return (
                 <div key={p.id} className="bg-[#1a1a1a] rounded-2xl border border-gray-800 overflow-hidden">
@@ -190,14 +233,15 @@ export default function StakingPage() {
                         </div>
                       )}
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                      {/* Program details */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                         <div className="bg-black/30 rounded-xl p-3">
                           <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Stake Token</p>
                           <p className="text-white font-bold text-sm">{stakeSymbol}</p>
                           <p className="text-gray-600 text-xs">{p.stake_token_type}</p>
                         </div>
                         <div className="bg-black/30 rounded-xl p-3">
-                          <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Reward</p>
+                          <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Reward Token</p>
                           <p className="text-white font-bold text-sm">{rewardSymbol}</p>
                           <p className="text-slime-green text-xs">+{p.reward_rate_per_day}/day per unit</p>
                         </div>
@@ -210,8 +254,39 @@ export default function StakingPage() {
                         </div>
                         <div className="bg-black/30 rounded-xl p-3">
                           <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Min Stake</p>
-                          <p className="text-white font-bold text-sm">{p.min_stake_amount}</p>
+                          <p className="text-white font-bold text-sm">{p.min_stake_amount} {stakeSymbol}</p>
                         </div>
+                      </div>
+
+                      {/* Your position */}
+                      <div className="bg-black/20 rounded-xl p-4 mb-4 border border-gray-800/60">
+                        <p className="text-gray-500 text-xs uppercase tracking-widest mb-3">Your Position</p>
+                        {holdingsLoading ? (
+                          <div className="flex items-center gap-2 text-gray-500 text-sm">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b border-slime-green flex-shrink-0" />
+                            Checking holdings...
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">You Hold</p>
+                              <p className="text-white font-bold text-sm">{userHoldings.toLocaleString()} {stakeSymbol}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Eligible</p>
+                              {meetsMin
+                                ? <p className="text-slime-green font-bold text-sm">✓ Yes</p>
+                                : <p className="text-red-400 font-bold text-sm">✗ Need {p.min_stake_amount}+</p>
+                              }
+                            </div>
+                            <div>
+                              <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Est. per Cycle</p>
+                              <p className="text-slime-green font-bold text-sm">
+                                {estPayout > 0 ? estPayout.toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—'} {rewardSymbol}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <p className="text-gray-600 text-xs mb-4">
@@ -220,10 +295,10 @@ export default function StakingPage() {
 
                       <button
                         onClick={() => handleRegister(p)}
-                        disabled={busy || done}
+                        disabled={busy || done || (!holdingsLoading && !meetsMin)}
                         className="w-full bg-slime-green text-black py-3 px-5 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {busy ? 'PROCESSING...' : done ? 'REGISTERED ✓' : 'REGISTER FOR REWARDS'}
+                        {busy ? 'PROCESSING...' : done ? 'REGISTERED ✓' : (!holdingsLoading && !meetsMin) ? `NEED ${p.min_stake_amount}+ ${stakeSymbol} TO QUALIFY` : 'REGISTER FOR REWARDS'}
                       </button>
                     </div>
                   )}
