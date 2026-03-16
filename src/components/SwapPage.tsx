@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AccountAllowanceApproveTransaction, Transaction, TokenId, AccountId, TransactionResponse } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
-import { decodeMetadata } from '../utils/nft'
+import { decodeMetadata, decodeSwapMetadata } from '../utils/nft'
 import type { NFTMetadata } from '../utils/nft'
 import Navigation from './Navigation'
 import Footer from './Footer'
@@ -128,7 +128,7 @@ export default function SwapPage() {
       await Promise.all(
         nfts.map(async nft => {
           if (nft.metadata) {
-            const decoded = await decodeMetadata(nft.metadata)
+            const decoded = await decodeSwapMetadata(nft.metadata)
             if (decoded) metaMap.set(nft.serial_number, decoded)
           }
         })

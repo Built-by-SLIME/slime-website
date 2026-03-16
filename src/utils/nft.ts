@@ -40,3 +40,40 @@ export async function decodeMetadata(base64: string): Promise<NFTMetadata | null
     return null
   }
 }
+
+// ── Swap-specific gateway ────────────────────────────────────────────────────
+// Uses VITE_SWAP_IPFS_GATEWAY so the swap page can reach Kabila-pinned CIDs
+// without affecting HotNFTs, CollectionPage, or any other part of the site.
+const SWAP_IPFS_GATEWAY = import.meta.env.VITE_SWAP_IPFS_GATEWAY || 'https://nftstorage.link/ipfs/'
+
+function toSwapPublicUrl(url: string): string {
+  if (!url) return url
+  if (url.startsWith('ipfs://')) {
+    return SWAP_IPFS_GATEWAY + url.slice(7).replace(/#/g, '%23')
+  }
+  const pinataIdx = url.indexOf('.mypinata.cloud/ipfs/')
+  if (pinataIdx !== -1) {
+    return SWAP_IPFS_GATEWAY + url.slice(pinataIdx + '.mypinata.cloud/ipfs/'.length)
+  }
+  return url
+}
+
+export async function decodeSwapMetadata(base64: string): Promise<NFTMetadata | null> {
+  try {
+    const decoded = atob(base64)
+    if (decoded.startsWith('ipfs://')) {
+      const metadataUrl = toSwapPublicUrl(decoded)
+      const response = await fetch(metadataUrl)
+      if (!response.ok) return null
+      const metadata = await response.json()
+      if (metadata.image) metadata.image = toSwapPublicUrl(metadata.image)
+      return metadata
+    } else {
+      const metadata = JSON.parse(decoded)
+      if (metadata.image) metadata.image = toSwapPublicUrl(metadata.image)
+      return metadata
+    }
+  } catch {
+    return null
+  }
+}
