@@ -44,7 +44,7 @@ export async function decodeMetadata(base64: string): Promise<NFTMetadata | null
 // ── Swap-specific gateway ────────────────────────────────────────────────────
 // Uses VITE_SWAP_IPFS_GATEWAY so the swap page can reach Kabila-pinned CIDs
 // without affecting HotNFTs, CollectionPage, or any other part of the site.
-const SWAP_IPFS_GATEWAY = import.meta.env.VITE_SWAP_IPFS_GATEWAY || 'https://nftstorage.link/ipfs/'
+const SWAP_IPFS_GATEWAY = import.meta.env.VITE_SWAP_IPFS_GATEWAY || 'https://dweb.link/ipfs/'
 
 function toSwapPublicUrl(url: string): string {
   if (!url) return url
