@@ -5,6 +5,7 @@ import { LedgerId } from '@hashgraph/sdk'
 
 const SLIME_NFT_TOKEN = '0.0.9474754'
 const SLIME_TOKEN = '0.0.10294707'
+const SLIME_TOKEN_DECIMALS = 8  // raw Mirror Node balance ÷ 10^8 = whole tokens
 const STORAGE_KEY_PFP = 'slime_pfp'
 const STORAGE_KEY_SOCIAL = 'slime_social'
 
@@ -131,7 +132,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (tokenRes.ok) {
         const data = await tokenRes.json()
         const token = data.tokens?.find((t: { token_id: string; balance: number }) => t.token_id === SLIME_TOKEN)
-        setSlimeTokenBalance(token ? String(token.balance) : '0')
+        setSlimeTokenBalance(token ? String(token.balance / Math.pow(10, SLIME_TOKEN_DECIMALS)) : '0')
       }
     } catch (err) {
       console.error('Failed to fetch wallet data:', err)
