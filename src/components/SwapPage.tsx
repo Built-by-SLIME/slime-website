@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AccountAllowanceApproveTransaction, Transaction, TokenId, NftId, AccountId, TransactionResponse } from '@hashgraph/sdk'
+import { AccountAllowanceApproveTransaction, Transaction, TokenId, AccountId, TransactionResponse } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import { decodeMetadata } from '../utils/nft'
 import type { NFTMetadata } from '../utils/nft'
@@ -216,38 +216,65 @@ export default function SwapPage() {
         setInputAmount('')
 
       } else {
-        // NFT swap
+        // NFT SWAP: approve -> prepare -> sign -> submit
         if (selectedSerials.size === 0) {
           setSwapStatus('error')
           setStatusMsg('Select at least one NFT to swap')
           return
         }
 
-        const serials = Array.from(selectedSerials)
+        const serials = Array.from(selectedSerials).sort((a, b) => a - b)
+
+        // Step 1: Grant operator a blanket allowance over the entire fromToken collection.
+        // approveTokenNftAllowanceAllSerials counts as a single allowance operation,
+        // so it works regardless of how many serials the user owns (no 20-op limit).
+        setStatusMsg('Step 1 of 3 - Approve NFT transfer in your wallet...')
         const approveTx = new AccountAllowanceApproveTransaction()
-        serials.forEach(serial =>
-          approveTx.approveTokenNftAllowance(
-            new NftId(TokenId.fromString(program.from_token_id), serial),
+          .approveTokenNftAllowanceAllSerials(
+            TokenId.fromString(program.from_token_id),
             AccountId.fromString(accountId),
             AccountId.fromString(OPERATOR)
           )
-        )
         const approveNftResponse = await signer.call(approveTx) as TransactionResponse
         await approveNftResponse.getReceiptWithSigner(signer)
 
-        setSwapStatus('executing')
-        setStatusMsg('Executing swap...')
-
-        const res = await fetch(`/api/swap-execute?id=${program.id}`, {
+        // Step 2: Backend builds the atomic TransferTransaction.
+        setStatusMsg('Step 2 of 3 - Preparing swap transaction...')
+        const prepareRes = await fetch(`/api/swap-programs/${program.id}/prepare`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userAccountId: accountId, serialNumbers: serials }),
         })
-        const data = await res.json()
-        if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Swap failed')
+        const prepareData = await prepareRes.json()
+        if (!prepareRes.ok || !prepareData.success) throw new Error(prepareData.error || 'Failed to prepare swap')
+
+        // Show the fee breakdown so the user knows what they are signing
+        const feeTotal = prepareData.fees?.total ?? ''
+        const feeMsg = feeTotal ? ` (fees: ${feeTotal})` : ''
+
+        // Step 3a: User signs the tx in their wallet.
+        // Their signature covers ONLY the HBAR debit from their account.
+        setStatusMsg(`Step 3 of 3 - Sign swap in your wallet${feeMsg}...`)
+        const binaryStr = atob(prepareData.txBytes)
+        const txBytes = new Uint8Array(binaryStr.length)
+        for (let i = 0; i < binaryStr.length; i++) txBytes[i] = binaryStr.charCodeAt(i)
+        const tx = Transaction.fromBytes(txBytes)
+        const signedTx = await signer.signTransaction(tx)
+        const signedBytes = btoa(Array.from(signedTx.toBytes()).map(b => String.fromCharCode(b)).join(''))
+
+        // Step 3b: Backend countersigns and submits.
+        setSwapStatus('executing')
+        setStatusMsg('Submitting swap to Hedera...')
+        const submitRes = await fetch(`/api/swap-programs/${program.id}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txBytes: signedBytes, userAccountId: accountId, serialNumbers: serials }),
+        })
+        const submitData = await submitRes.json()
+        if (!submitRes.ok || !submitData.success) throw new Error(submitData.error || submitData.message || 'Swap failed')
 
         setSwapStatus('success')
-        setStatusMsg(data.message || 'Swap successful!')
+        setStatusMsg(`Swap complete! ${serials.length} NFT${serials.length !== 1 ? 's' : ''} swapped successfully.`)
         setSelectedSerials(new Set())
         await loadNFTs(program.from_token_id)
       }
