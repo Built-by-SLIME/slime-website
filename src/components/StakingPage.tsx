@@ -21,7 +21,7 @@ interface StakingProgram {
 }
 
 interface TokenInfo { symbol: string; decimals: number }
-type RegStatus = 'idle' | 'checking' | 'associating' | 'registering' | 'success' | 'already' | 'error'
+type RegStatus = 'idle' | 'checking' | 'associating' | 'registering' | 'success' | 'already' | 'already_dripped' | 'error'
 
 export default function StakingPage() {
   const { isConnected, accountId, dAppConnector, connect } = useWallet()
@@ -139,7 +139,18 @@ export default function StakingPage() {
         body: JSON.stringify({ accountId }),
       })
       const regData = await regRes.json()
-      if (!regRes.ok || !regData.success) throw new Error(regData.error || 'Registration failed')
+      if (!regRes.ok || !regData.success) {
+        const errMsg = regData.error || 'Registration failed'
+        if (errMsg.includes('already received rewards')) {
+          const nextDate = regData.next_eligible_date
+            ? new Date(regData.next_eligible_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            : 'the next period'
+          setRegStatus('already_dripped')
+          setStatusMsg(`Your NFT already received its drip for this period — you'll be eligible again on ${nextDate}. Future drips will include you automatically!`)
+          return
+        }
+        throw new Error(errMsg)
+      }
       const dripOk = regData.drip?.success === true
       setRegStatus('success')
       setStatusMsg(dripOk
@@ -234,6 +245,11 @@ export default function StakingPage() {
                       {regStatus === 'error' && (
                         <div className="mb-5 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
                           <p className="text-red-400 text-sm">{statusMsg}</p>
+                        </div>
+                      )}
+                      {regStatus === 'already_dripped' && (
+                        <div className="mb-5 bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3">
+                          <p className="text-yellow-400 text-sm font-bold">⏳ {statusMsg}</p>
                         </div>
                       )}
 
