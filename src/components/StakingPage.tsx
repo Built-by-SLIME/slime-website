@@ -112,13 +112,29 @@ export default function StakingPage() {
       ?? dAppConnector.signers[0]
     if (!signer) { setRegStatus('error'); setStatusMsg('Wallet signer not available — please reconnect'); return }
 
-    setRegStatus('checking'); setStatusMsg('Checking registration status...')
+    setRegStatus('checking'); setStatusMsg('Checking eligibility...')
     try {
+      // STEP 1: Check if already registered
       const partRes = await fetch(`/api/staking-programs/${program.id}/participants`)
       const partData = await partRes.json()
       const alreadyIn = (partData.participants || []).some((p: { account_id: string }) => p.account_id === accountId)
       if (alreadyIn) { setRegStatus('already'); setStatusMsg('You are already registered in this program!'); return }
 
+      // STEP 2: PRE-CHECK ELIGIBILITY - Backend will verify NFT serials haven't been credited
+      setStatusMsg('Verifying eligibility...')
+      const preCheckRes = await fetch(`/api/staking-programs/${program.id}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId }),
+      })
+      const preCheckData = await preCheckRes.json()
+      
+      // If backend rejects (e.g., all NFT serials already credited this period), stop here
+      if (!preCheckRes.ok || !preCheckData.success) {
+        throw new Error(preCheckData.error || 'Registration failed')
+      }
+
+      // STEP 3: If eligible, check token association
       setStatusMsg('Checking token association...')
       const assocRes = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/tokens?token.id=${program.reward_token_id}&limit=1`)
       const assocData = await assocRes.json()
@@ -132,19 +148,12 @@ export default function StakingPage() {
         await signer.call(assocTx)
       }
 
-      setRegStatus('registering'); setStatusMsg('Registering...')
-      const regRes = await fetch(`/api/staking-programs/${program.id}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId }),
-      })
-      const regData = await regRes.json()
-      if (!regRes.ok || !regData.success) throw new Error(regData.error || 'Registration failed')
-      const dripOk = regData.drip?.success === true
+      // Success! The backend already processed the drip in step 2
+      const dripOk = preCheckData.drip?.distributed > 0
       setRegStatus('success')
       setStatusMsg(dripOk
         ? 'Registered! Your first reward has been sent to your wallet.'
-        : `Registered! Reward distribution encountered an issue: ${regData.drip?.error ?? 'unknown error'}. You are in the program — future drips will include you.`)
+        : `Registered! You are in the program — rewards will arrive at the next drip cycle.`)
     } catch (err) {
       setRegStatus('error'); setStatusMsg(err instanceof Error ? err.message : 'Registration failed')
     }
