@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
@@ -10,7 +11,7 @@ export default function FAQ() {
     },
     {
       question: "HOW DO I GET A SLIME?",
-      answer: "You can mint a SLIME on Altlantis market - or you can purchase a SLIME off secondary through SentX - in the future we will integrate native minting solutions"
+      answer: <>You can mint a SLIME NFT directly from the <span className="text-slime-green font-bold">Mint</span> button in our top menu, or head over to SentX.io. If you'd rather buy on the secondary market, you can find listings on SentX.io or visit the <span className="text-slime-green font-bold">Market</span> page right here on our website.</>
     },
     {
       question: "WHAT ARE THE BENEFITS OF OWNING A SLIME?",
@@ -18,7 +19,8 @@ export default function FAQ() {
     },
     {
       question: "WHEN IS THE MINT DATE?",
-      answer: <>We are currently minting on SentX! <a href="https://sentx.io/launchpad/slime-public?filter=all" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">Click here to mint!</a></>
+      answer: <>We are currently minting! Click Here to <Link to="/mint" className="text-slime-green hover:underline font-bold">Mint</Link></>
+
     },
     {
       question: "WHAT IS THE MINT PRICE?",

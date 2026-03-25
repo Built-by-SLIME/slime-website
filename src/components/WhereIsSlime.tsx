@@ -16,10 +16,10 @@ export default function WhatIsSlime() {
           <div className="space-y-6">
             <h2 className="text-4xl md:text-5xl font-black">WHAT IS SLIME?</h2>
             <p className="text-gray-400 text-base md:text-lg leading-relaxed">
-              One part development group, one part community DAO, one part NFT project - SLIME exists to train new builders, ship open-source solutions, and partner with every corner of Hedera to lift the whole ecosystem higher, together.
+              We built the Hedera Creator Kit — a complete suite featuring art generation, collection deployment, token tools, staking and swap configuration, domain registration, ERC token support, and much more — all designed to help creators and developers ship high-quality projects with ease.
             </p>
             <p className="text-gray-400 text-base md:text-lg leading-relaxed">
-              Hold a SLIME NFT to stake for your equal slice of HBAR rewards (treasury adds 100+ SLIME per epoch, takes zero cut). No gatekeepers, no middlemen - just open code, open collaboration, and shared upside for everyone who holds SLIME.
+              Hold a SLIME NFT and the full Creator Kit unlocks for you: no subscriptions, no complicated requirements, just seamless access to pro-level tools in one place. Whether you're launching collections, configuring tokens, or registering domains, everything you need is right there. This is how we shape the future of Hedera — together, one tool at a time.
             </p>
             <div className="grid grid-cols-3 gap-6 pt-6">
               <div className="text-center">

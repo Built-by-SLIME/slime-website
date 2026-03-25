@@ -34,7 +34,7 @@ export default function Hero() {
               JOIN SLIME.
             </h1>
             <p className="text-gray-400 text-base md:text-lg mb-8 max-w-2xl mx-auto">
-              SLIME is a development collective dedicated to delivering production-grade FOSS to the Hedera ecosystem. We scout, and mentor new builders - then ship production-ready FOSS for Hedera, governed 100% by our DAO.
+              SLIME is a builder collective on Hedera dedicated to creating powerful infrastructure and tools that make building and creating on the network simpler, faster, and more powerful.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/mint" className="bg-slime-green text-black px-10 py-3.5 rounded-md font-bold text-sm hover:bg-[#00cc33] transition text-center">
