@@ -5,21 +5,21 @@ import Navigation from './Navigation'
 import Footer from './Footer'
 
 const SLIME_TOKEN = '0.0.9474754'
-const PUBLIC_GATEWAY = 'https://gateway.pinata.cloud/ipfs/'
+const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
 
 function toImageUrl(image: string): string {
   if (!image) return '/Assets/SPLAT.png'
-  // Rewrite private dedicated Pinata gateway URLs to the public gateway
+  // Rewrite private dedicated Pinata gateway URLs to the configured gateway
   if (image.includes('.mypinata.cloud/ipfs/')) {
     const cid = image.split('/ipfs/')[1] || ''
-    return PUBLIC_GATEWAY + cid
+    return IPFS_GATEWAY + cid
   }
   if (image.startsWith('ipfs://')) {
     const path = image.replace('ipfs://', '')
     const slash = path.lastIndexOf('/')
     const dir = path.substring(0, slash + 1)
     const file = path.substring(slash + 1).replace(/#/g, '%23')
-    return PUBLIC_GATEWAY + dir + file
+    return IPFS_GATEWAY + dir + file
   }
   return image
 }
