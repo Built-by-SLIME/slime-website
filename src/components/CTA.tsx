@@ -7,7 +7,7 @@ export default function CTA() {
             {/* Left - Image */}
             <div className="flex justify-center">
               <img
-                src="/Assets/slimelogonft.png"
+                src="/Assets/SLIMEGraphic.png"
                 alt="Join SLIME"
                 className="w-full h-full object-cover rounded-xl"
               />
@@ -32,20 +32,7 @@ export default function CTA() {
                 </a>
               </div>
 
-              <div className="pt-6 grid grid-cols-3 gap-4 md:gap-6">
-                <div>
-                  <div className="text-2xl md:text-3xl font-black text-slime-green">5+</div>
-                  <div className="text-xs text-gray-500 font-medium mt-1">REPOSITORIES</div>
-                </div>
-                <div>
-                  <div className="text-2xl md:text-3xl font-black text-slime-green">75+</div>
-                  <div className="text-xs text-gray-500 font-medium mt-1">HOLDERS</div>
-                </div>
-                <div>
-                  <div className="text-2xl md:text-3xl font-black text-slime-green">1K+</div>
-                  <div className="text-xs text-gray-500 font-medium mt-1">X FOLLOWERS</div>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
