@@ -35,7 +35,6 @@ export default function Navigation() {
             <Link to="/market" className="text-gray-300 hover:text-slime-green transition">MARKET</Link>
             <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">TOOLS</a>
             <Link to="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</Link>
-            <Link to="/staking" className="text-gray-300 hover:text-slime-green transition">STAKING</Link>
             <span className="text-gray-600 cursor-not-allowed select-none">$SLIME</span>
           </div>
           {/* Social Icons */}
@@ -114,7 +113,6 @@ export default function Navigation() {
             <Link to="/mint" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MINT</Link>
             <Link to="/market" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MARKET</Link>
             <Link to="/collection" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</Link>
-            <Link to="/staking" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>STAKING</Link>
             <span className="text-gray-600 cursor-not-allowed select-none text-xl font-medium">$SLIME</span>
 
             <button
