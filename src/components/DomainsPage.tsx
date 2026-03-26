@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TransferTransaction, AccountId, Hbar } from '@hashgraph/sdk'
+import { TransferTransaction, TokenAssociateTransaction, TokenId, AccountId, Hbar } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
@@ -15,6 +15,7 @@ interface CheckResult {
   feeAccount: string
   operatorAccount: string | null
   networkFeeHbar: number
+  nftTokenId: string | null
 }
 
 interface OwnedDomain {
@@ -85,6 +86,7 @@ export default function DomainsPage() {
         feeAccount: data.feeAccount,
         operatorAccount: data.operatorAccount ?? null,
         networkFeeHbar: data.networkFeeHbar ?? 0.5,
+        nftTokenId: data.nftTokenId ?? null,
       })
       setStatus('idle')
     } catch (err) {
@@ -104,8 +106,26 @@ export default function DomainsPage() {
     }
 
     setStatus('paying')
-    setStatusMsg('Confirm the HBAR payment in your wallet...')
     try {
+      // [FIX T2] Check Mirror Node for token association before payment
+      if (checkResult.nftTokenId) {
+        const assocRes = await fetch(
+          `https://mainnet-public.mirrornode.hedera.com/api/v1/accounts/${accountId}/tokens?token.id=${checkResult.nftTokenId}&limit=1`
+        )
+        const assocData = await assocRes.json()
+        const isAssociated = Array.isArray(assocData.tokens) && assocData.tokens.length > 0
+        if (!isAssociated) {
+          setStatusMsg('Associating your wallet with domain NFTs — please confirm in your wallet...')
+          const associateTx = new TokenAssociateTransaction()
+            .setAccountId(AccountId.fromString(accountId))
+            .setTokenIds([TokenId.fromString(checkResult.nftTokenId)])
+          await associateTx.freezeWithSigner(signer)
+          await signer.call(associateTx)
+        }
+      }
+
+      // [FIX T3] Freeze tx before signer.call() so transactionId is stable
+      setStatusMsg('Confirm the HBAR payment in your wallet...')
       const tinybars = Math.round(checkResult.priceHbar * 1e8)
       const networkFeeTinybars = Math.ceil((checkResult.networkFeeHbar ?? 0.5) * 1e8)
       const operatorAccount = checkResult.operatorAccount ?? checkResult.feeAccount
@@ -114,8 +134,9 @@ export default function DomainsPage() {
         .addHbarTransfer(AccountId.fromString(accountId), Hbar.fromTinybars(-totalDebit))
         .addHbarTransfer(AccountId.fromString(checkResult.feeAccount), Hbar.fromTinybars(tinybars))
         .addHbarTransfer(AccountId.fromString(operatorAccount), Hbar.fromTinybars(networkFeeTinybars))
-      const response = await signer.call(payTx)
-      const txId = response.transactionId?.toString() ?? ''
+      await payTx.freezeWithSigner(signer)
+      const txId = payTx.transactionId?.toString() ?? ''
+      await signer.call(payTx)
 
       setStatus('registering')
       setStatusMsg('Minting your domain NFT...')
