@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TransferTransaction, TokenAssociateTransaction, TokenId, AccountId, Hbar, TransactionId } from '@hashgraph/sdk'
+import { TransferTransaction, TokenAssociateTransaction, TokenId, AccountId, Hbar } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
@@ -123,21 +123,17 @@ export default function DomainsPage() {
         }
       }
 
-      // [FIX T3] Pre-generate txId — avoids freezeWithSigner which requires
-      // node account info that DAppSigner/WalletConnect does not expose.
       setStatusMsg('Confirm the HBAR payment in your wallet...')
       const tinybars = Math.round(checkResult.priceHbar * 1e8)
       const networkFeeTinybars = Math.ceil((checkResult.networkFeeHbar ?? 0.5) * 1e8)
       const operatorAccount = checkResult.operatorAccount ?? checkResult.feeAccount
       const totalDebit = tinybars + networkFeeTinybars
-      const txIdObj = TransactionId.generate(AccountId.fromString(accountId))
-      const txId = txIdObj.toString()
       const payTx = new TransferTransaction()
-        .setTransactionId(txIdObj)
         .addHbarTransfer(AccountId.fromString(accountId), Hbar.fromTinybars(-totalDebit))
         .addHbarTransfer(AccountId.fromString(checkResult.feeAccount), Hbar.fromTinybars(tinybars))
         .addHbarTransfer(AccountId.fromString(operatorAccount), Hbar.fromTinybars(networkFeeTinybars))
-      await signer.call(payTx)
+      const response = await signer.call(payTx)
+      const txId = response.transactionId?.toString() ?? ''
 
       setStatus('registering')
       setStatusMsg('Minting your domain NFT...')
