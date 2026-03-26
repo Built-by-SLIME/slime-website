@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TransferTransaction, TokenAssociateTransaction, TokenId, AccountId, Hbar } from '@hashgraph/sdk'
+import { TransferTransaction, TokenAssociateTransaction, TokenId, AccountId, Hbar, TransactionId } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
@@ -119,23 +119,24 @@ export default function DomainsPage() {
           const associateTx = new TokenAssociateTransaction()
             .setAccountId(AccountId.fromString(accountId))
             .setTokenIds([TokenId.fromString(checkResult.nftTokenId)])
-          await associateTx.freezeWithSigner(signer)
           await signer.call(associateTx)
         }
       }
 
-      // [FIX T3] Freeze tx before signer.call() so transactionId is stable
+      // [FIX T3] Pre-generate txId — avoids freezeWithSigner which requires
+      // node account info that DAppSigner/WalletConnect does not expose.
       setStatusMsg('Confirm the HBAR payment in your wallet...')
       const tinybars = Math.round(checkResult.priceHbar * 1e8)
       const networkFeeTinybars = Math.ceil((checkResult.networkFeeHbar ?? 0.5) * 1e8)
       const operatorAccount = checkResult.operatorAccount ?? checkResult.feeAccount
       const totalDebit = tinybars + networkFeeTinybars
+      const txIdObj = TransactionId.generate(AccountId.fromString(accountId))
+      const txId = txIdObj.toString()
       const payTx = new TransferTransaction()
+        .setTransactionId(txIdObj)
         .addHbarTransfer(AccountId.fromString(accountId), Hbar.fromTinybars(-totalDebit))
         .addHbarTransfer(AccountId.fromString(checkResult.feeAccount), Hbar.fromTinybars(tinybars))
         .addHbarTransfer(AccountId.fromString(operatorAccount), Hbar.fromTinybars(networkFeeTinybars))
-      await payTx.freezeWithSigner(signer)
-      const txId = payTx.transactionId?.toString() ?? ''
       await signer.call(payTx)
 
       setStatus('registering')
