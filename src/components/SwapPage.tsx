@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AccountAllowanceApproveTransaction, Transaction, TokenId, AccountId, TransactionResponse, TransactionId } from '@hashgraph/sdk'
+import { AccountAllowanceApproveTransaction, Transaction, TokenId, AccountId, TransactionId, Client } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import { decodeMetadata, decodeSwapMetadata } from '../utils/nft'
 import type { NFTMetadata } from '../utils/nft'
@@ -229,6 +229,11 @@ export default function SwapPage() {
         // approveTokenNftAllowanceAllSerials counts as a single allowance operation,
         // so it works regardless of how many serials the user owns (no 20-op limit).
         setStatusMsg('Step 1 of 3 - Approve NFT transfer in your wallet...')
+        // Use signTransaction (hedera_signTransaction) instead of signer.call()
+        // (hedera_signAndExecuteTransaction). HashPack has a known issue where
+        // AccountAllowanceApproveTransaction submitted via signAndExecute returns
+        // TRANSACTION_EXPIRED. Signing only + direct submission via Client.forMainnet()
+        // (the same pattern DAppSigner uses for its own receipt queries) avoids this.
         const approveTx = new AccountAllowanceApproveTransaction()
           .setTransactionId(TransactionId.generate(AccountId.fromString(accountId)))
           .approveTokenNftAllowanceAllSerials(
@@ -236,8 +241,14 @@ export default function SwapPage() {
             AccountId.fromString(accountId),
             AccountId.fromString(OPERATOR)
           )
-        const approveNftResponse = await signer.call(approveTx) as TransactionResponse
-        await approveNftResponse.getReceiptWithSigner(signer)
+        const signedApproveTx = await signer.signTransaction(approveTx)
+        const hederaClient = Client.forMainnet()
+        try {
+          const approveResponse = await signedApproveTx.execute(hederaClient)
+          await approveResponse.getReceipt(hederaClient)
+        } finally {
+          hederaClient.close()
+        }
 
         // Step 2: Backend builds the atomic TransferTransaction.
         setStatusMsg('Step 2 of 3 - Preparing swap transaction...')
