@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AccountAllowanceApproveTransaction, Transaction, TokenId, AccountId, TransactionResponse } from '@hashgraph/sdk'
+import { AccountAllowanceApproveTransaction, Transaction, TokenId, AccountId, TransactionResponse, TransactionId } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import { decodeMetadata, decodeSwapMetadata } from '../utils/nft'
 import type { NFTMetadata } from '../utils/nft'
@@ -230,6 +230,7 @@ export default function SwapPage() {
         // so it works regardless of how many serials the user owns (no 20-op limit).
         setStatusMsg('Step 1 of 3 - Approve NFT transfer in your wallet...')
         const approveTx = new AccountAllowanceApproveTransaction()
+          .setTransactionId(TransactionId.generate(AccountId.fromString(accountId)))
           .approveTokenNftAllowanceAllSerials(
             TokenId.fromString(program.from_token_id),
             AccountId.fromString(accountId),
