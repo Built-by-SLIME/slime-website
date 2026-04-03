@@ -46,7 +46,7 @@ export default function TokenPage() {
 
         {/* Header */}
         <div className="mb-12">
-          <span className="text-slime-green text-xs font-bold uppercase tracking-widest">White Lite Paper</span>
+          <span className="text-slime-green text-xs font-bold uppercase tracking-widest">Token Details</span>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mt-2">$SLIME TOKEN</h1>
           <p className="text-gray-400 text-base mt-3 max-w-2xl leading-relaxed">
             The utility reward token for the{' '}
@@ -133,6 +133,47 @@ export default function TokenPage() {
             ))}
           </div>
         </div>
+
+        {/* Liquidity */}
+        <h2 className="text-xl font-black text-white uppercase tracking-wider mb-4">Community-Funded & Liquidity</h2>
+        <div className="bg-[#1a1a1a] rounded-2xl border border-gray-800 p-6 mb-10">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-7 h-7 rounded-full bg-slime-green/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-slime-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm mb-0.5">100% Community Funded</p>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                $SLIME is 100% community funded. The initial liquidity pool was created and seeded in the{' '}
+                <span className="text-slime-green font-bold">HBAR / $SLIME</span> pair at launch.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-7 h-7 rounded-full bg-slime-green/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-slime-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm mb-0.5">Add Liquidity</p>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Community members can add liquidity to existing pools or create new token pairings directly through{' '}
+                <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">SLIME Tools</a>{' '}
+                or via{' '}
+                <a href="https://www.saucerswap.finance/" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">SaucerSwap</a>.
+              </p>
+            </div>
+          </div>
+          <div className="bg-black/30 rounded-xl px-4 py-3 border border-slime-green/10">
+            <p className="text-slime-green/80 text-xs leading-relaxed">
+              This fully decentralized approach ensures all liquidity comes from the community — with no pre-allocated team or VC allocations for liquidity provision.
+            </p>
+          </div>
+        </div>
+
         {/* Utility & Perks */}
         <h2 className="text-xl font-black text-white uppercase tracking-wider mb-4">Utility & Perks</h2>
         <div className="bg-[#1a1a1a] rounded-2xl border border-gray-800 p-6 mb-6">
