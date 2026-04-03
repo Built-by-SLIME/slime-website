@@ -138,19 +138,33 @@ export default function TokenPage() {
         <div className="bg-[#1a1a1a] rounded-2xl border border-gray-800 p-6 mb-6">
           <p className="text-gray-400 text-sm mb-4">Holding $SLIME is optional but rewarding:</p>
           <div className="flex flex-col gap-3">
-            {[
-              { icon: '⚡', title: 'Staking Rewards', desc: 'Weekly distributions from the 2M initial pool to all SLIME NFT holders.' },
-              { icon: '🗳️', title: 'Governance Voting Rights', desc: 'Vote on features, treasury use, reward parameters, and future upgrades.' },
-              { icon: '🛍️', title: 'Merch Discounts', desc: 'Exclusive discounts on SLIME merchandise for token holders.' },
-            ].map(item => (
-              <div key={item.title} className="flex items-start gap-4 p-4 bg-black/30 rounded-xl">
-                <span className="text-xl flex-shrink-0">{item.icon}</span>
-                <div>
-                  <p className="text-white font-bold text-sm">{item.title}</p>
-                  <p className="text-gray-500 text-sm mt-0.5">{item.desc}</p>
-                </div>
+            <div className="flex items-start gap-4 p-4 bg-black/30 rounded-xl">
+              <svg className="w-5 h-5 text-slime-green flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-white font-bold text-sm">Staking Rewards</p>
+                <p className="text-gray-500 text-sm mt-0.5">Weekly distributions from the 2M initial pool to all SLIME NFT holders.</p>
               </div>
-            ))}
+            </div>
+            <div className="flex items-start gap-4 p-4 bg-black/30 rounded-xl">
+              <svg className="w-5 h-5 text-slime-green flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              <div>
+                <p className="text-white font-bold text-sm">Governance Voting Rights</p>
+                <p className="text-gray-500 text-sm mt-0.5">Vote on features, treasury use, reward parameters, and future upgrades.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4 p-4 bg-black/30 rounded-xl">
+              <svg className="w-5 h-5 text-slime-green flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              <div>
+                <p className="text-white font-bold text-sm">Merch Discounts</p>
+                <p className="text-gray-500 text-sm mt-0.5">Exclusive discounts on SLIME merchandise for token holders.</p>
+              </div>
+            </div>
           </div>
           <p className="text-gray-600 text-xs mt-4 italic">
             Core slime.tools functionality remains available with just your SLIME NFT — $SLIME simply makes the experience better.
@@ -161,21 +175,39 @@ export default function TokenPage() {
         <h2 className="text-xl font-black text-white uppercase tracking-wider mb-4">Rewards System</h2>
         <div className="bg-[#1a1a1a] rounded-2xl border border-gray-800 p-6 mb-6">
           <div className="flex flex-col gap-5">
-            {[
-              { tag: 'W', title: 'Weekly Staking Rewards', desc: 'From the 2M initial pool — distributed to all SLIME NFT holders.' },
-              { tag: 'M', title: 'Monthly Usage Rewards', desc: 'From the 7.5M pool, distributed based on tracked platform activity — tools used, actions completed, etc.' },
-              { tag: '⛓', title: 'Off-chain Tracking + On-chain Claims', desc: 'Efficient and fair — activity is tracked off-chain and rewards are claimed on Hedera.' },
-            ].map(item => (
-              <div key={item.title} className="flex items-start gap-4">
-                <div className="w-7 h-7 rounded-full bg-slime-green/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-slime-green text-xs font-black">{item.tag}</span>
-                </div>
-                <div>
-                  <p className="text-white font-bold text-sm">{item.title}</p>
-                  <p className="text-gray-500 text-sm mt-0.5">{item.desc}</p>
-                </div>
+            <div className="flex items-start gap-4">
+              <div className="w-7 h-7 rounded-full bg-slime-green/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-slime-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-            ))}
+              <div>
+                <p className="text-white font-bold text-sm">Weekly Staking Rewards</p>
+                <p className="text-gray-500 text-sm mt-0.5">From the 2M initial pool — distributed to all SLIME NFT holders.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-7 h-7 rounded-full bg-slime-green/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-slime-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">Monthly Usage Rewards</p>
+                <p className="text-gray-500 text-sm mt-0.5">From the 7.5M pool, distributed based on tracked platform activity — tools used, actions completed, etc.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-7 h-7 rounded-full bg-slime-green/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-slime-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">Off-chain Tracking + On-chain Claims</p>
+                <p className="text-gray-500 text-sm mt-0.5">Efficient and fair — activity is tracked off-chain and rewards are claimed on Hedera.</p>
+              </div>
+            </div>
           </div>
         </div>
 
