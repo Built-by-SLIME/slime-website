@@ -138,12 +138,12 @@ export default function ProfileSlideout({ open, onClose }: Props) {
               </svg>
               <span className="text-sm font-bold uppercase tracking-wider">Collection</span>
             </Link>
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 cursor-not-allowed select-none">
-              <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <Link to="/$slime" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
+              <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
               </svg>
               <span className="text-sm font-bold uppercase tracking-wider">$SLIME</span>
-            </div>
+            </Link>
             <Link to="/merch" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
               <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
