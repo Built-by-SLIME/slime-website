@@ -792,7 +792,7 @@ export default function MarketPage() {
                       return (
                         <div key={attr.trait_type} className="bg-[#252525] rounded-xl px-4 py-3 border border-gray-800">
                           <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">{attr.trait_type}</p>
-                          <p className="text-white font-bold text-sm mb-2">{attr.value}</p>
+                          <p className="text-white font-bold text-sm mb-2">{attr.value.charAt(0).toUpperCase() + attr.value.slice(1)}</p>
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md ${pillColor}`}>{count.toLocaleString()}</span>
                             <span className="text-gray-500 text-xs">{pct}%</span>
