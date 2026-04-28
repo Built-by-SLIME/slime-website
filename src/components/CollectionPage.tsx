@@ -346,12 +346,6 @@ export default function CollectionPage() {
                             <span className="text-gray-500">Rank</span>
                             <span className="text-slime-green font-bold">#{nft.correctedRank}</span>
                           </div>
-                          {nft.isListed && nft.listingPrice && (
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-gray-500">Price</span>
-                              <span className="text-slime-green font-bold">{nft.listingPrice} HBAR</span>
-                            </div>
-                          )}
                           <button
                             onClick={() => setSelectedNft(nft)}
                             className="block w-full bg-slime-green text-black py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center">
@@ -449,11 +443,7 @@ export default function CollectionPage() {
                       onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
                     />
                   </div>
-                  {nft.isListed && (
-                    <span className="absolute top-4 left-4 bg-slime-green text-black text-xs font-black px-3 py-1 rounded-full">
-                      LISTED
-                    </span>
-                  )}
+
                 </div>
 
                 {/* Right — Name + Details */}
@@ -478,12 +468,7 @@ export default function CollectionPage() {
                         <span className="text-gray-400 text-sm">Rarity Score</span>
                         <span className="text-white font-bold">{(nft.correctedRarity * 100).toFixed(2)}%</span>
                       </div>
-                      {nft.isListed && nft.listingPrice && (
-                        <div className="flex justify-between items-center px-4 py-3">
-                          <span className="text-gray-400 text-sm">Listed Price</span>
-                          <span className="text-slime-green font-bold">{nft.listingPrice} HBAR</span>
-                        </div>
-                      )}
+
                     </div>
                   </div>
                 </div>
