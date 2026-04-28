@@ -202,23 +202,39 @@ export default function CollectionPage() {
                   ← PREV
                 </button>
 
-                {/* Page Numbers */}
-                {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
-                  const pageNum = i + 1
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-4 py-2 rounded-md font-bold text-sm transition ${
-                        currentPage === pageNum
-                          ? 'bg-slime-green text-black'
-                          : 'bg-[#1f1f1f] border border-gray-700 hover:border-slime-green'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
+                {/* Smart Page Numbers with ellipsis */}
+                {(() => {
+                  const pages: (number | 'ellipsis-start' | 'ellipsis-end')[] = []
+                  if (totalPages <= 7) {
+                    // Show all pages if 7 or fewer
+                    for (let i = 1; i <= totalPages; i++) pages.push(i)
+                  } else {
+                    pages.push(1)
+                    if (currentPage > 3) pages.push('ellipsis-start')
+                    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                      pages.push(i)
+                    }
+                    if (currentPage < totalPages - 2) pages.push('ellipsis-end')
+                    pages.push(totalPages)
+                  }
+                  return pages.map((p, idx) =>
+                    p === 'ellipsis-start' || p === 'ellipsis-end' ? (
+                      <span key={p} className="px-2 text-gray-500 font-bold text-sm">…</span>
+                    ) : (
+                      <button
+                        key={`page-${p}`}
+                        onClick={() => handlePageChange(p as number)}
+                        className={`px-4 py-2 rounded-md font-bold text-sm transition ${
+                          currentPage === p
+                            ? 'bg-slime-green text-black'
+                            : 'bg-[#1f1f1f] border border-gray-700 hover:border-slime-green'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
                   )
-                })}
+                })()}
 
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
