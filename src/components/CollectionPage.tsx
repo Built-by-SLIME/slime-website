@@ -32,8 +32,16 @@ export default function CollectionPage() {
   const [selectedTraits, setSelectedTraits] = useState<Record<string, string[]>>({})
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [expandedType, setExpandedType] = useState<string | null>(null)
+  const [selectedNft, setSelectedNft] = useState<NFT | null>(null)
 
   useEffect(() => { fetchAllCollection() }, [])
+
+  // Close NFT modal on ESC
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedNft(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const fetchAllCollection = async () => {
     try {
@@ -344,10 +352,11 @@ export default function CollectionPage() {
                               <span className="text-slime-green font-bold">{nft.listingPrice} HBAR</span>
                             </div>
                           )}
-                          <a href={`https://sentx.io/nft-marketplace/slime/${nft.serialId}`} target="_blank" rel="noopener noreferrer"
+                          <button
+                            onClick={() => setSelectedNft(nft)}
                             className="block w-full bg-slime-green text-black py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center">
-                            {nft.isListed ? 'BUY NOW' : 'VIEW'}
-                          </a>
+                            VIEW
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -401,6 +410,125 @@ export default function CollectionPage() {
       </main>
 
       <Footer />
+
+      {/* ── NFT Detail Modal ── */}
+      {selectedNft && (() => {
+        const nft = selectedNft
+        const totalSupply = allNfts.length || 1
+        return (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            onClick={() => setSelectedNft(null)}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+
+            {/* Panel */}
+            <div
+              className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedNft(null)}
+                className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a2a2a] border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition"
+              >
+                ✕
+              </button>
+
+              <div className="flex flex-col md:flex-row gap-0">
+                {/* Left — Image */}
+                <div className="md:w-2/5 flex-shrink-0 relative">
+                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none p-6 flex items-center justify-center">
+                    <img
+                      src={getNFTImage(nft)}
+                      alt={nft.name}
+                      className="w-full h-full object-contain"
+                      crossOrigin="anonymous"
+                      onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
+                    />
+                  </div>
+                  {nft.isListed && (
+                    <span className="absolute top-4 left-4 bg-slime-green text-black text-xs font-black px-3 py-1 rounded-full">
+                      LISTED
+                    </span>
+                  )}
+                </div>
+
+                {/* Right — Details */}
+                <div className="flex-1 p-6 space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-black">{nft.name}</h2>
+                    <p className="text-gray-500 text-sm mt-1">Hedera NFT · SLIME Collection</p>
+                  </div>
+
+                  {/* Details block */}
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-3">Details</h3>
+                    <div className="bg-[#252525] rounded-xl divide-y divide-gray-800">
+                      <div className="flex justify-between items-center px-4 py-3">
+                        <span className="text-gray-400 text-sm">SLIME ID</span>
+                        <span className="text-white font-bold">#{nft.serialId}</span>
+                      </div>
+                      <div className="flex justify-between items-center px-4 py-3">
+                        <span className="text-gray-400 text-sm">Rarity Rank</span>
+                        <span className="text-slime-green font-bold">#{nft.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
+                      </div>
+                      <div className="flex justify-between items-center px-4 py-3">
+                        <span className="text-gray-400 text-sm">Rarity Score</span>
+                        <span className="text-white font-bold">{(nft.correctedRarity * 100).toFixed(2)}%</span>
+                      </div>
+                      {nft.isListed && nft.listingPrice && (
+                        <div className="flex justify-between items-center px-4 py-3">
+                          <span className="text-gray-400 text-sm">Listed Price</span>
+                          <span className="text-slime-green font-bold">{nft.listingPrice} HBAR</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Traits block */}
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400">Traits</h3>
+                      <span className="text-xs text-gray-600">{nft.attributes.length} traits</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {nft.attributes.map(attr => {
+                        const traitItems = traitOptions[attr.trait_type] || []
+                        const match = traitItems.find(i => i.value === attr.value)
+                        const count = match?.count ?? 0
+                        const pct = totalSupply > 0 ? ((count / totalSupply) * 100).toFixed(1) : '0.0'
+                        return (
+                          <div key={attr.trait_type} className="bg-[#252525] rounded-xl px-4 py-3 border border-gray-800">
+                            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">{attr.trait_type}</p>
+                            <p className="text-white font-bold text-sm">{attr.value}</p>
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <span className="bg-slime-green/20 text-slime-green text-xs font-bold px-2 py-0.5 rounded-full">
+                                {count} · {pct}%
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* SentX link (secondary, subtle) */}
+                  <a
+                    href={`https://sentx.io/nft-marketplace/slime/${nft.serialId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition"
+                  >
+                    View on SentX ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
