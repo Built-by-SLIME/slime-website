@@ -436,10 +436,11 @@ export default function CollectionPage() {
                 ✕
               </button>
 
+              {/* Top row — Image + Details side by side */}
               <div className="flex flex-col md:flex-row gap-0">
                 {/* Left — Image */}
                 <div className="md:w-2/5 flex-shrink-0 relative">
-                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none p-6 flex items-center justify-center">
+                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none p-6 flex items-center justify-center">
                     <img
                       src={getNFTImage(nft)}
                       alt={nft.name}
@@ -455,16 +456,15 @@ export default function CollectionPage() {
                   )}
                 </div>
 
-                {/* Right — Details */}
-                <div className="flex-1 p-6 space-y-6">
+                {/* Right — Name + Details */}
+                <div className="flex-1 p-6 space-y-5">
                   <div>
                     <h2 className="text-2xl font-black">{nft.name}</h2>
                     <p className="text-gray-500 text-sm mt-1">Hedera NFT · SLIME Collection</p>
                   </div>
 
-                  {/* Details block */}
                   <div>
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-3">Details</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Details</h3>
                     <div className="bg-[#252525] rounded-xl divide-y divide-gray-800">
                       <div className="flex justify-between items-center px-4 py-3">
                         <span className="text-gray-400 text-sm">SLIME ID</span>
@@ -486,40 +486,40 @@ export default function CollectionPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Traits block */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400">Traits</h3>
-                      <span className="text-xs text-gray-600">{nft.attributes.length} traits</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {nft.attributes.map(attr => {
-                        const traitItems = traitOptions[attr.trait_type] || []
-                        const match = traitItems.find(i => i.value === attr.value)
-                        const count = match?.count ?? 0
-                        const pct = totalSupply > 0 ? ((count / totalSupply) * 100).toFixed(1) : '0.0'
-                        return (
-                          <div key={attr.trait_type} className="bg-[#252525] rounded-xl px-4 py-3 border border-gray-800">
-                            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">{attr.trait_type}</p>
-                            <p className="text-white font-bold text-sm">{attr.value}</p>
-                            <div className="mt-1.5 flex items-center gap-2">
-                              <span className="bg-slime-green/20 text-slime-green text-xs font-bold px-2 py-0.5 rounded-full">
-                                {count} · {pct}%
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
+              {/* Bottom — Traits full width */}
+              <div className="px-6 pb-6 pt-2 border-t border-gray-800">
+                <div className="flex justify-between items-center py-4">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Traits</h3>
+                  <span className="text-xs text-gray-600">{nft.attributes.length} traits</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {nft.attributes.map(attr => {
+                    const traitItems = traitOptions[attr.trait_type] || []
+                    const match = traitItems.find(i => i.value === attr.value)
+                    const count = match?.count ?? 0
+                    const pct = totalSupply > 0 ? ((count / totalSupply) * 100).toFixed(1) : '0.0'
+                    return (
+                      <div key={attr.trait_type} className="bg-[#252525] rounded-xl px-4 py-3 border border-gray-800">
+                        <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">{attr.trait_type}</p>
+                        <p className="text-white font-bold text-sm mb-2">{attr.value}</p>
+                        <span className="bg-slime-green/20 text-slime-green text-xs font-bold px-2 py-0.5 rounded-full">
+                          {count} · {pct}%
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
 
-                  {/* SentX link (secondary, subtle) */}
+                {/* SentX link */}
+                <div className="mt-5 text-center">
                   <a
                     href={`https://sentx.io/nft-marketplace/slime/${nft.serialId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition"
+                    className="text-xs text-gray-600 hover:text-gray-400 transition"
                   >
                     View on SentX ↗
                   </a>
