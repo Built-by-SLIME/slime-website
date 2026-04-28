@@ -560,7 +560,7 @@ export default function MarketPage() {
 
                         <button
                           onClick={() => setSelectedListing(listing)}
-                          className="mt-auto w-full bg-[#252525] border border-gray-700 text-gray-200 py-2 rounded-xl font-bold text-xs hover:border-slime-green hover:text-slime-green transition"
+                          className="mt-auto w-full bg-slime-green text-black py-2 rounded-xl font-bold text-xs hover:bg-[#00cc33] transition"
                         >
                           VIEW
                         </button>
