@@ -55,16 +55,21 @@ export default function CollectionPage() {
     }
   }
 
-  // Build trait type → unique sorted values map from all NFTs
+  // Build trait type → [{ value, count }] map from all NFTs
   const traitOptions = useMemo(() => {
-    const map: Record<string, string[]> = {}
+    const countMap: Record<string, Record<string, number>> = {}
     allNfts.forEach(nft => {
       nft.attributes.forEach(attr => {
-        if (!map[attr.trait_type]) map[attr.trait_type] = []
-        if (!map[attr.trait_type].includes(attr.value)) map[attr.trait_type].push(attr.value)
+        if (!countMap[attr.trait_type]) countMap[attr.trait_type] = {}
+        countMap[attr.trait_type][attr.value] = (countMap[attr.trait_type][attr.value] || 0) + 1
       })
     })
-    Object.keys(map).forEach(key => map[key].sort())
+    const map: Record<string, { value: string; count: number }[]> = {}
+    Object.entries(countMap).forEach(([traitType, valueCounts]) => {
+      map[traitType] = Object.entries(valueCounts)
+        .map(([value, count]) => ({ value, count }))
+        .sort((a, b) => a.value.localeCompare(b.value))
+    })
     return map
   }, [allNfts])
 
@@ -104,6 +109,16 @@ export default function CollectionPage() {
   }
 
   const clearFilters = () => { setSelectedTraits({}); setCurrentPage(1) }
+
+  const selectAllTrait = (traitType: string) => {
+    setSelectedTraits(prev => ({ ...prev, [traitType]: traitOptions[traitType].map(item => item.value) }))
+    setCurrentPage(1)
+  }
+
+  const clearTraitType = (traitType: string) => {
+    setSelectedTraits(prev => ({ ...prev, [traitType]: [] }))
+    setCurrentPage(1)
+  }
 
   const toggleTraitType = (type: string) => {
     setExpandedTypes(prev => {
@@ -201,34 +216,67 @@ export default function CollectionPage() {
               {/* Filter Panel */}
               {filtersOpen && (
                 <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-5 mb-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {Object.entries(traitOptions).map(([traitType, values]) => {
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {Object.entries(traitOptions).map(([traitType, items]) => {
                       const isExpanded = expandedTypes.has(traitType)
-                      const selCount = (selectedTraits[traitType] || []).length
+                      const selected = selectedTraits[traitType] || []
+                      const selCount = selected.length
+                      const allSelected = selCount === items.length
                       return (
                         <div key={traitType} className="bg-[#252525] rounded-xl overflow-hidden">
+                          {/* Accordion Header */}
                           <button onClick={() => toggleTraitType(traitType)}
                             className="w-full flex items-center justify-between px-4 py-3 text-left">
-                            <span className="text-xs font-bold uppercase tracking-widest text-gray-300">
-                              {traitType}{selCount > 0 && <span className="ml-2 text-slime-green">({selCount})</span>}
-                            </span>
-                            <svg className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div>
+                              <span className="text-xs font-bold uppercase tracking-widest text-gray-300">
+                                {traitType}
+                                <span className="ml-1.5 text-gray-600 font-normal">({items.length})</span>
+                              </span>
+                              {selCount > 0 && (
+                                <p className="text-slime-green text-xs font-bold mt-0.5">{selCount} selected</p>
+                              )}
+                            </div>
+                            <svg className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                           </button>
                           {isExpanded && (
-                            <div className="px-3 pb-3 max-h-48 overflow-y-auto space-y-1">
-                              {values.map(value => {
-                                const isSel = (selectedTraits[traitType] || []).includes(value)
-                                return (
-                                  <button key={value} onClick={() => toggleTrait(traitType, value)}
-                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition flex items-center justify-between ${isSel ? 'bg-slime-green/20 text-slime-green font-bold' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
-                                    <span>{value}</span>
-                                    {isSel && <span>✓</span>}
-                                  </button>
-                                )
-                              })}
-                            </div>
+                            <>
+                              {/* Select All / Clear All */}
+                              <div className="flex gap-2 px-3 pb-2">
+                                <button onClick={() => selectAllTrait(traitType)}
+                                  disabled={allSelected}
+                                  className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                  Select All
+                                </button>
+                                <button onClick={() => clearTraitType(traitType)}
+                                  disabled={selCount === 0}
+                                  className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                  Clear
+                                </button>
+                              </div>
+                              {/* Value List */}
+                              <div className="px-3 pb-3 max-h-48 overflow-y-auto space-y-1">
+                                {items.map(({ value, count }) => {
+                                  const isSel = selected.includes(value)
+                                  return (
+                                    <button key={value} onClick={() => toggleTrait(traitType, value)}
+                                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2.5 ${isSel ? 'bg-slime-green/15 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
+                                      {/* Checkbox */}
+                                      <span className={`w-4 h-4 rounded flex-shrink-0 border flex items-center justify-center transition ${isSel ? 'bg-slime-green border-slime-green' : 'border-gray-600'}`}>
+                                        {isSel && (
+                                          <svg className="w-2.5 h-2.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        )}
+                                      </span>
+                                      <span className="flex-1 font-medium">{value}</span>
+                                      <span className="text-gray-600 text-xs">({count})</span>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </>
                           )}
                         </div>
                       )
