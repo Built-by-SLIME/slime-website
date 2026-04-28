@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Transaction } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
@@ -48,6 +48,28 @@ async function loadNFTImages(serials: number[]): Promise<Map<number, string>> {
     return map
   } catch {
     return new Map()
+  }
+}
+
+// Fetches ALL 1000 NFTs — images + full trait/rarity data
+async function loadAllNFTData(): Promise<{ images: Map<number, string>; data: Map<number, FullNFT> }> {
+  const apiKey = import.meta.env.VITE_SENTX_API_KEY as string
+  if (!apiKey) return { images: new Map(), data: new Map() }
+  try {
+    const r = await fetch(`/api/collection-rarity?apikey=${apiKey}&token=${SLIME_TOKEN}&limit=1000&page=1`)
+    if (!r.ok) return { images: new Map(), data: new Map() }
+    const d = await r.json()
+    if (!d.success || !d.nfts) return { images: new Map(), data: new Map() }
+    const images = new Map<number, string>()
+    const data = new Map<number, FullNFT>()
+    for (const nft of d.nfts as Array<{ serialId: number | string; image: string; attributes: Array<{ trait_type: string; value: string }>; correctedRank: number; correctedRarity: number }>) {
+      const serial = Number(nft.serialId)
+      images.set(serial, toImageUrl(nft.image))
+      data.set(serial, { serialId: serial, attributes: nft.attributes || [], correctedRank: nft.correctedRank, correctedRarity: nft.correctedRarity })
+    }
+    return { images, data }
+  } catch {
+    return { images: new Map(), data: new Map() }
   }
 }
 
@@ -104,6 +126,13 @@ interface StatRecord {
   listings: number
 }
 
+interface FullNFT {
+  serialId: number
+  attributes: Array<{ trait_type: string; value: string }>
+  correctedRank: number
+  correctedRarity: number
+}
+
 type Tab = 'listings' | 'activity' | 'stats'
 type TxStatus = 'idle' | 'preparing' | 'signing' | 'confirming' | 'success' | 'error'
 
@@ -142,6 +171,10 @@ export default function MarketPage() {
   const [activeTxSerial, setActiveTxSerial] = useState<number | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
 
+  // NFT detail modal
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
+  const [allNftData, setAllNftData] = useState<Map<number, FullNFT>>(new Map())
+
   // ── Data fetching ───────────────────────────────────────────────────────────
 
   const fetchListings = async (sort = sortBy, dir = sortDir) => {
@@ -152,11 +185,11 @@ export default function MarketPage() {
       const d = await r.json()
       const items: Listing[] = d.marketListings || []
       setListings(items)
-      if (items.length > 0) {
-        loadNFTImages(items.map(l => l.serialId)).then(map =>
-          setNftImages(prev => new Map([...prev, ...map]))
-        )
-      }
+      // Load all 1000 NFTs once for images + trait data (needed for the detail modal)
+      loadAllNFTData().then(({ images, data }) => {
+        setNftImages(prev => new Map([...prev, ...images]))
+        setAllNftData(prev => new Map([...prev, ...data]))
+      })
     } catch { /* show empty */ } finally {
       setLoadingListings(false)
     }
@@ -235,6 +268,13 @@ export default function MarketPage() {
       setStatsLoaded(true)
     }
   }
+
+  // Close modal on ESC
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedListing(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // Initial load
   useEffect(() => {
@@ -334,6 +374,18 @@ export default function MarketPage() {
   // ── Derived state ────────────────────────────────────────────────────────────
 
   const isTxBusy = txStatus === 'preparing' || txStatus === 'signing' || txStatus === 'confirming'
+
+  // Trait counts across all 1000 NFTs — used for rarity color coding in the modal
+  const traitCounts = useMemo(() => {
+    const counts: Record<string, Record<string, number>> = {}
+    for (const nft of allNftData.values()) {
+      for (const attr of nft.attributes) {
+        if (!counts[attr.trait_type]) counts[attr.trait_type] = {}
+        counts[attr.trait_type][attr.value] = (counts[attr.trait_type][attr.value] || 0) + 1
+      }
+    }
+    return counts
+  }, [allNftData])
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'listings', label: 'Listings' },
@@ -506,33 +558,12 @@ export default function MarketPage() {
                           <span className="text-slime-green text-sm ml-0.5">ℏ</span>
                         </p>
 
-                        {isConnected ? (
-                          isOwn ? (
-                            <div className="mt-auto text-center text-xs text-gray-600 py-2 border border-gray-800 rounded-xl">
-                              Your listing
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleBuy(listing)}
-                              disabled={isTxBusy}
-                              className="mt-auto w-full bg-slime-green text-black py-2 rounded-xl font-black text-xs hover:bg-[#00cc33] transition disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              {isThisBusy ? (
-                                <span className="flex items-center justify-center gap-1.5">
-                                  <span className="inline-block w-3 h-3 border-b-2 border-black rounded-full animate-spin" />
-                                  BUYING
-                                </span>
-                              ) : 'BUY NOW'}
-                            </button>
-                          )
-                        ) : (
-                          <button
-                            onClick={() => connect().catch(() => {})}
-                            className="mt-auto w-full border border-gray-700 text-gray-500 py-2 rounded-xl font-bold text-xs hover:border-slime-green hover:text-slime-green transition"
-                          >
-                            CONNECT
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setSelectedListing(listing)}
+                          className="mt-auto w-full bg-[#252525] border border-gray-700 text-gray-200 py-2 rounded-xl font-bold text-xs hover:border-slime-green hover:text-slime-green transition"
+                        >
+                          VIEW
+                        </button>
                       </div>
                     </div>
                   )
@@ -684,6 +715,122 @@ export default function MarketPage() {
       </main>
 
       <Footer />
+
+      {/* ── NFT Detail Modal ── */}
+      {selectedListing && (() => {
+        const listing = selectedListing
+        const nftFull = allNftData.get(listing.serialId)
+        const imgSrc = nftImages.get(listing.serialId) ?? '/Assets/SPLAT.png'
+        const totalSupply = allNftData.size || 1
+        const isOwn = listing.sellerAddress === accountId
+        const isThisBusy = isTxBusy && activeTxSerial === listing.serialId
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedListing(null)}>
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <div className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+              {/* Close */}
+              <button onClick={() => setSelectedListing(null)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a2a2a] border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition">✕</button>
+
+              {/* Top row — image + details */}
+              <div className="flex flex-col md:flex-row">
+                <div className="md:w-2/5 flex-shrink-0">
+                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none p-6 flex items-center justify-center">
+                    <img src={imgSrc} alt={listing.nftName} className="w-full h-full object-contain" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                  </div>
+                </div>
+                <div className="flex-1 p-6 space-y-5">
+                  <div>
+                    <h2 className="text-2xl font-black">{listing.nftName || `SLIME #${listing.serialId}`}</h2>
+                    <p className="text-gray-500 text-sm mt-1">Hedera NFT · SLIME Collection</p>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Details</h3>
+                    <div className="bg-[#252525] rounded-xl divide-y divide-gray-800">
+                      <div className="flex justify-between items-center px-4 py-3">
+                        <span className="text-gray-400 text-sm">SLIME ID</span>
+                        <span className="text-white font-bold">#{listing.serialId}</span>
+                      </div>
+                      {nftFull && (
+                        <>
+                          <div className="flex justify-between items-center px-4 py-3">
+                            <span className="text-gray-400 text-sm">Rarity Rank</span>
+                            <span className="text-slime-green font-bold">#{nftFull.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
+                          </div>
+                          <div className="flex justify-between items-center px-4 py-3">
+                            <span className="text-gray-400 text-sm">Rarity Score</span>
+                            <span className="text-white font-bold">{(nftFull.correctedRarity * 100).toFixed(2)}%</span>
+                          </div>
+                        </>
+                      )}
+                      <div className="flex justify-between items-center px-4 py-3">
+                        <span className="text-gray-400 text-sm">List Price</span>
+                        <span className="text-slime-green font-bold font-mono">{listing.salePrice.toLocaleString()} ℏ</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Traits — full width */}
+              {nftFull && nftFull.attributes.length > 0 && (
+                <div className="px-6 pb-4 pt-2 border-t border-gray-800">
+                  <div className="flex justify-between items-center py-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Traits</h3>
+                    <span className="text-xs text-gray-600">{nftFull.attributes.length} traits</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {nftFull.attributes.map(attr => {
+                      const count = traitCounts[attr.trait_type]?.[attr.value] ?? 0
+                      const pct = totalSupply > 0 ? ((count / totalSupply) * 100).toFixed(1) : '0.0'
+                      const pillColor =
+                        count >= 500 ? 'bg-gray-500/25 text-gray-400' :
+                        count >= 250 ? 'bg-green-500/25 text-green-400' :
+                        count >= 125 ? 'bg-blue-500/25 text-blue-400' :
+                        count >= 50  ? 'bg-purple-500/25 text-purple-400' :
+                        count >= 15  ? 'bg-orange-500/25 text-orange-400' :
+                                       'bg-red-500/25 text-red-400'
+                      return (
+                        <div key={attr.trait_type} className="bg-[#252525] rounded-xl px-4 py-3 border border-gray-800">
+                          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">{attr.trait_type}</p>
+                          <p className="text-white font-bold text-sm mb-2">{attr.value}</p>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md ${pillColor}`}>{count.toLocaleString()}</span>
+                            <span className="text-gray-500 text-xs">{pct}%</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* BUY action */}
+              <div className="px-6 pb-6 pt-2">
+                {isOwn ? (
+                  <div className="text-center text-sm text-gray-500 py-3 border border-gray-800 rounded-xl">Your listing</div>
+                ) : isConnected ? (
+                  <button
+                    onClick={() => { handleBuy(listing); setSelectedListing(null) }}
+                    disabled={isTxBusy}
+                    className="w-full bg-slime-green text-black py-3 rounded-xl font-black text-sm hover:bg-[#00cc33] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {isThisBusy ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="inline-block w-4 h-4 border-b-2 border-black rounded-full animate-spin" />
+                        BUYING...
+                      </span>
+                    ) : `BUY NOW — ${listing.salePrice.toLocaleString()} ℏ`}
+                  </button>
+                ) : (
+                  <button onClick={() => { connect().catch(() => {}); setSelectedListing(null) }} className="w-full border border-slime-green text-slime-green py-3 rounded-xl font-black text-sm hover:bg-slime-green hover:text-black transition">
+                    CONNECT WALLET TO BUY
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

@@ -118,6 +118,14 @@ export default function ProfileSlideout({ open, onClose }: Props) {
             <span className="text-sm font-bold uppercase tracking-wider">Domains</span>
           </Link>
 
+          {/* Market — wallet-gated, shown in slideout on both desktop + mobile */}
+          <Link to="/market" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
+            <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span className="text-sm font-bold uppercase tracking-wider">Market</span>
+          </Link>
+
           {/* Mobile-only nav links — hidden on desktop where they live in the header */}
           <div className="md:hidden">
             {/* <Link to="/mint" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
@@ -126,12 +134,6 @@ export default function ProfileSlideout({ open, onClose }: Props) {
               </svg>
               <span className="text-sm font-bold uppercase tracking-wider">Mint</span>
             </Link> */}
-            <Link to="/market" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
-              <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span className="text-sm font-bold uppercase tracking-wider">Market</span>
-            </Link>
             <Link to="/collection" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition">
               <svg className="w-4 h-4 text-slime-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />

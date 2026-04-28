@@ -32,7 +32,7 @@ export default function Navigation() {
           <div className="flex gap-10 text-sm font-medium">
             <Link to="/home" className="text-gray-300 hover:text-slime-green transition">HOME</Link>
             {/* <Link to="/mint" className="text-gray-300 hover:text-slime-green transition">MINT</Link> */}
-            <Link to="/market" className="text-gray-300 hover:text-slime-green transition">MARKET</Link>
+            {/* <Link to="/market" className="text-gray-300 hover:text-slime-green transition">MARKET</Link> */}
             <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">TOOLS</a>
             <Link to="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</Link>
             <Link to="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</Link>
@@ -112,7 +112,7 @@ export default function Navigation() {
             {/* Nav Links — always visible */}
             <Link to="/home" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>HOME</Link>
             {/* <Link to="/mint" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MINT</Link> */}
-            <Link to="/market" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MARKET</Link>
+            {/* <Link to="/market" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MARKET</Link> */}
             <Link to="/collection" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</Link>
             <Link to="/merch" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</Link>
             <Link to="/$slime" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>$SLIME</Link>
