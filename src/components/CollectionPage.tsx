@@ -31,7 +31,7 @@ export default function CollectionPage() {
   const [sortBy, setSortBy] = useState<SortOption>('rarity-asc')
   const [selectedTraits, setSelectedTraits] = useState<Record<string, string[]>>({})
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set())
+  const [expandedType, setExpandedType] = useState<string | null>(null)
 
   useEffect(() => { fetchAllCollection() }, [])
 
@@ -121,11 +121,7 @@ export default function CollectionPage() {
   }
 
   const toggleTraitType = (type: string) => {
-    setExpandedTypes(prev => {
-      const next = new Set(prev)
-      next.has(type) ? next.delete(type) : next.add(type)
-      return next
-    })
+    setExpandedType(prev => (prev === type ? null : type))
   }
 
   const handlePageChange = (page: number) => {
@@ -216,54 +212,69 @@ export default function CollectionPage() {
               {/* Filter Panel */}
               {filtersOpen && (
                 <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-5 mb-6">
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Filter by Traits</p>
+                  {/* Backdrop to close open dropdown on outside click */}
+                  {expandedType && (
+                    <div className="fixed inset-0 z-40" onClick={() => setExpandedType(null)} />
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {Object.entries(traitOptions).map(([traitType, items]) => {
-                      const isExpanded = expandedTypes.has(traitType)
+                      const isExpanded = expandedType === traitType
                       const selected = selectedTraits[traitType] || []
                       const selCount = selected.length
                       const allSelected = selCount === items.length
+                      const summaryLabel = selCount === 0 ? 'Any' : selCount === 1 ? selected[0] : `${selCount} selected`
                       return (
-                        <div key={traitType} className="bg-[#252525] rounded-xl overflow-hidden">
-                          {/* Accordion Header */}
-                          <button onClick={() => toggleTraitType(traitType)}
-                            className="w-full flex items-center justify-between px-4 py-3 text-left">
-                            <div>
-                              <span className="text-xs font-bold uppercase tracking-widest text-gray-300">
-                                {traitType}
-                                <span className="ml-1.5 text-gray-600 font-normal">({items.length})</span>
-                              </span>
-                              {selCount > 0 && (
-                                <p className="text-slime-green text-xs font-bold mt-0.5">{selCount} selected</p>
-                              )}
+                        <div key={traitType} className="relative">
+                          {/* Trigger */}
+                          <button
+                            onClick={() => toggleTraitType(traitType)}
+                            className={`w-full flex items-start justify-between px-4 py-3 rounded-xl text-left transition border ${isExpanded ? 'bg-[#2e2e2e] border-slime-green/60' : 'bg-[#252525] border-transparent hover:border-gray-600'}`}
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                                {traitType} <span className="text-gray-600 font-normal normal-case tracking-normal">({items.length})</span>
+                              </p>
+                              <p className={`text-sm font-semibold mt-0.5 truncate ${selCount > 0 ? 'text-slime-green' : 'text-gray-300'}`}>
+                                {summaryLabel}
+                              </p>
                             </div>
-                            <svg className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 mt-1 ml-2 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                           </button>
+
+                          {/* Floating Dropdown */}
                           {isExpanded && (
-                            <>
+                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#1e1e1e] border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
                               {/* Select All / Clear All */}
-                              <div className="flex gap-2 px-3 pb-2">
-                                <button onClick={() => selectAllTrait(traitType)}
+                              <div className="flex gap-2 p-3 border-b border-gray-800">
+                                <button
+                                  onClick={e => { e.stopPropagation(); selectAllTrait(traitType) }}
                                   disabled={allSelected}
-                                  className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                  className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#2a2a2a] text-gray-300 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
                                   Select All
                                 </button>
-                                <button onClick={() => clearTraitType(traitType)}
+                                <button
+                                  onClick={e => { e.stopPropagation(); clearTraitType(traitType) }}
                                   disabled={selCount === 0}
-                                  className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
-                                  Clear
+                                  className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#2a2a2a] text-gray-300 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  Clear All
                                 </button>
                               </div>
                               {/* Value List */}
-                              <div className="px-3 pb-3 max-h-48 overflow-y-auto space-y-1">
+                              <div className="max-h-56 overflow-y-auto p-2 space-y-0.5">
                                 {items.map(({ value, count }) => {
                                   const isSel = selected.includes(value)
                                   return (
-                                    <button key={value} onClick={() => toggleTrait(traitType, value)}
-                                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2.5 ${isSel ? 'bg-slime-green/15 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
-                                      {/* Checkbox */}
-                                      <span className={`w-4 h-4 rounded flex-shrink-0 border flex items-center justify-center transition ${isSel ? 'bg-slime-green border-slime-green' : 'border-gray-600'}`}>
+                                    <button
+                                      key={value}
+                                      onClick={e => { e.stopPropagation(); toggleTrait(traitType, value) }}
+                                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition flex items-center gap-3 ${isSel ? 'bg-slime-green/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                                    >
+                                      <span className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition ${isSel ? 'bg-slime-green border-slime-green' : 'border-gray-600'}`}>
                                         {isSel && (
                                           <svg className="w-2.5 h-2.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -276,7 +287,7 @@ export default function CollectionPage() {
                                   )
                                 })}
                               </div>
-                            </>
+                            </div>
                           )}
                         </div>
                       )
