@@ -3,19 +3,32 @@ import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
 
-interface NFTWithImage {
+interface InventoryNFT {
   serial_number: number
   name: string
   imageUrl: string
-  rank?: number
+  correctedRank: number
+  correctedRarity: number
+  attributes: Array<{ trait_type: string; value: string }>
+}
+
+// Same tier boundaries as collection/market pages
+function rankColor(rank: number): string {
+  if (rank <= 14)  return 'text-red-400'
+  if (rank <= 49)  return 'text-orange-400'
+  if (rank <= 124) return 'text-purple-400'
+  if (rank <= 249) return 'text-blue-400'
+  if (rank <= 499) return 'text-green-400'
+  return 'text-gray-400'
 }
 
 export default function InventoryPage() {
   const { isConnected, accountId, slimeNFTs, slimeTokenBalance, connect, disconnect } = useWallet()
 
-  const [nftsWithImages, setNftsWithImages] = useState<NFTWithImage[]>([])
+  const [nftsWithImages, setNftsWithImages] = useState<InventoryNFT[]>([])
   const [loadingNFTs, setLoadingNFTs] = useState(false)
-  const [expandedNFT, setExpandedNFT] = useState<NFTWithImage | null>(null)
+  const [selectedNft, setSelectedNft] = useState<InventoryNFT | null>(null)
+  const [fullTraitCounts, setFullTraitCounts] = useState<Record<string, Record<string, number>>>({})
 
   useEffect(() => {
     if (isConnected && slimeNFTs.length > 0) {
@@ -27,46 +40,63 @@ export default function InventoryPage() {
   }, [isConnected, slimeNFTs])
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpandedNFT(null) }
-    if (expandedNFT) document.addEventListener('keydown', handleEsc)
-    return () => document.removeEventListener('keydown', handleEsc)
-  }, [expandedNFT])
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedNft(null) }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [])
 
   const loadNFTImages = async () => {
     setLoadingNFTs(true)
     try {
       const apiKey = import.meta.env.VITE_SENTX_API_KEY
       const tokenId = import.meta.env.VITE_SLIME_TOKEN_ID
-      const serials = slimeNFTs.map(n => n.serial_number).join(',')
+      const gateway = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
 
-      const response = await fetch(
-        `/api/nft-images?apikey=${apiKey}&token=${tokenId}&serials=${serials}`
-      )
-      if (!response.ok) throw new Error('Failed to fetch NFT images')
-
+      // Fetch full collection data (traits + corrected rarity) and filter to user's serials
+      const response = await fetch(`/api/collection-rarity?apikey=${apiKey}&token=${tokenId}&limit=1000&page=1`)
+      if (!response.ok) throw new Error('Failed to fetch collection data')
       const data = await response.json()
-      const nftsMap: Record<number, { name: string; image: string; rank?: number }> = data.nfts || {}
-      const gateway = 'https://gateway.pinata.cloud/ipfs/'
+      if (!data.success || !data.nfts) throw new Error('Invalid API response')
 
-      const results: NFTWithImage[] = slimeNFTs
-        .map(nft => {
-          const info = nftsMap[nft.serial_number]
-          let imageUrl = info?.image || ''
+      type RawNFT = { serialId: number | string; name: string; image: string; correctedRank: number; correctedRarity: number; attributes: Array<{ trait_type: string; value: string }> }
+      const allNfts = data.nfts as RawNFT[]
+
+      // Build trait counts from ALL 1000 NFTs for accurate rarity pill percentages
+      const counts: Record<string, Record<string, number>> = {}
+      for (const n of allNfts) {
+        for (const attr of (n.attributes || [])) {
+          if (!counts[attr.trait_type]) counts[attr.trait_type] = {}
+          const key = attr.value.toLowerCase()
+          counts[attr.trait_type][key] = (counts[attr.trait_type][key] || 0) + 1
+        }
+      }
+      setFullTraitCounts(counts)
+
+      // Filter to user's NFTs only
+      const userSerials = new Set(slimeNFTs.map(n => n.serial_number))
+      const results: InventoryNFT[] = allNfts
+        .filter(n => userSerials.has(Number(n.serialId)))
+        .map(n => {
+          let imageUrl = n.image || ''
           if (imageUrl.startsWith('ipfs://')) {
-            imageUrl = gateway + imageUrl.slice(7).replace(/#/g, '%23')
+            const raw = imageUrl.replace('ipfs://', gateway)
+            const idx = raw.lastIndexOf('/')
+            imageUrl = raw.substring(0, idx + 1) + raw.substring(idx + 1).replace(/#/g, '%23')
           }
           return {
-            serial_number: nft.serial_number,
-            name: info?.name || `SLIME #${nft.serial_number}`,
+            serial_number: Number(n.serialId),
+            name: n.name || `SLIME #${n.serialId}`,
             imageUrl,
-            rank: info?.rank
+            correctedRank: n.correctedRank,
+            correctedRarity: n.correctedRarity,
+            attributes: n.attributes || [],
           }
         })
-        .sort((a, b) => a.serial_number - b.serial_number)
+        .sort((a, b) => a.correctedRank - b.correctedRank)
 
       setNftsWithImages(results)
     } catch (err) {
-      console.error('Failed to load NFT images:', err)
+      console.error('Failed to load NFT data:', err)
     }
     setLoadingNFTs(false)
   }
@@ -133,22 +163,31 @@ export default function InventoryPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slime-green" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {nftsWithImages.map(nft => (
-                  <button
-                    key={nft.serial_number}
-                    onClick={() => setExpandedNFT(nft)}
-                    title={nft.name}
-                    className="relative aspect-square rounded-xl overflow-hidden border-2 border-gray-700 hover:border-slime-green/50 transition hover:scale-105"
-                  >
-                    {nft.imageUrl ? (
-                      <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-cover" style={{ objectPosition: 'center 65%' }} />
-                    ) : (
-                      <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-600">
-                        #{nft.serial_number}
+                  <div key={nft.serial_number} className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all">
+                    <div className="aspect-square bg-[#252525] p-3">
+                      {nft.imageUrl ? (
+                        <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-contain" crossOrigin="anonymous"
+                          onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">#{nft.serial_number}</div>
+                      )}
+                    </div>
+                    <div className="p-3 space-y-2">
+                      <h3 className="text-sm font-bold truncate">{nft.name}</h3>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-500">Rank</span>
+                        <span className={`font-bold ${rankColor(nft.correctedRank)}`}>#{nft.correctedRank}</span>
                       </div>
-                    )}
-                  </button>
+                      <button
+                        onClick={() => setSelectedNft(nft)}
+                        className="block w-full bg-slime-green text-black py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center"
+                      >
+                        VIEW
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -174,48 +213,90 @@ export default function InventoryPage() {
 
       <Footer />
 
-      {/* NFT Expanded Modal */}
-      {expandedNFT && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setExpandedNFT(null)}
-        >
-          <div
-            className="relative bg-[#1a1a1a] border border-gray-800 rounded-2xl overflow-hidden w-full max-w-xs"
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setExpandedNFT(null)}
-              className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-gray-400 hover:text-white transition"
-              aria-label="Close"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      {/* NFT Detail Lightbox */}
+      {selectedNft && (() => {
+        const nft = selectedNft
+        const totalSupply = 1000
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedNft(null)}>
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <div className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+              {/* Close */}
+              <button onClick={() => setSelectedNft(null)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a2a2a] border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition">✕</button>
 
-            <div className="aspect-square w-full bg-gray-900">
-              {expandedNFT.imageUrl ? (
-                <img src={expandedNFT.imageUrl} alt={expandedNFT.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-600 text-sm">
-                  #{expandedNFT.serial_number}
+              {/* Top — image + details */}
+              <div className="flex flex-col md:flex-row">
+                <div className="md:w-2/5 flex-shrink-0">
+                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none p-6 flex items-center justify-center">
+                    <img src={nft.imageUrl || '/Assets/SPLAT.png'} alt={nft.name} className="w-full h-full object-contain" crossOrigin="anonymous"
+                      onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                  </div>
+                </div>
+                <div className="flex-1 p-6 space-y-5">
+                  <div>
+                    <h2 className="text-2xl font-black">{nft.name}</h2>
+                    <p className="text-gray-500 text-sm mt-1">Hedera NFT · SLIME Collection</p>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Details</h3>
+                    <div className="bg-[#252525] rounded-xl divide-y divide-gray-800">
+                      <div className="flex justify-between items-center px-4 py-3">
+                        <span className="text-gray-400 text-sm">SLIME ID</span>
+                        <span className="text-white font-bold">#{nft.serial_number}</span>
+                      </div>
+                      <div className="flex justify-between items-center px-4 py-3">
+                        <span className="text-gray-400 text-sm">Rarity Rank</span>
+                        <span className={`font-bold ${rankColor(nft.correctedRank)}`}>#{nft.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
+                      </div>
+                      <div className="flex justify-between items-center px-4 py-3">
+                        <span className="text-gray-400 text-sm">Rarity Score</span>
+                        <span className="text-white font-bold">{(nft.correctedRarity * 100).toFixed(2)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Traits — full width */}
+              {nft.attributes.length > 0 && (
+                <div className="px-6 pb-6 pt-2 border-t border-gray-800">
+                  <div className="flex justify-between items-center py-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Traits</h3>
+                    <span className="text-xs text-gray-600">{nft.attributes.length} traits</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {nft.attributes.map(attr => {
+                      const count = fullTraitCounts[attr.trait_type]?.[attr.value.toLowerCase()] ?? 0
+                      const pct = count > 0 ? ((count / totalSupply) * 100).toFixed(1) : '0.0'
+                      const pctNum = parseFloat(pct)
+                      const pillColor =
+                        pctNum >= 20 ? 'bg-gray-500/25 text-gray-400' :
+                        pctNum >= 10 ? 'bg-blue-500/25 text-blue-400' :
+                        pctNum >= 5  ? 'bg-purple-500/25 text-purple-400' :
+                        pctNum >= 1  ? 'bg-orange-500/25 text-orange-400' :
+                                       'bg-red-500/25 text-red-400'
+                      return (
+                        <div key={attr.trait_type} className="bg-[#252525] rounded-xl px-4 py-3 border border-gray-800">
+                          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">{attr.trait_type}</p>
+                          <p className="text-white font-bold text-sm mb-2">{attr.value.charAt(0).toUpperCase() + attr.value.slice(1)}</p>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md ${pillColor}`}>{count.toLocaleString()}</span>
+                            <span className="text-gray-500 text-xs">{pct}%</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-5 text-center">
+                    <a href={`https://sentx.io/nft-marketplace/slime/${nft.serial_number}`} target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-gray-600 hover:text-gray-400 transition">View on SentX ↗</a>
+                  </div>
                 </div>
               )}
             </div>
-
-            <div className="p-4">
-              <p className="text-white font-bold text-sm mb-0.5">{expandedNFT.name}</p>
-              <div className="flex items-center gap-3">
-                <p className="text-gray-500 text-xs">Serial #{expandedNFT.serial_number}</p>
-                {expandedNFT.rank && (
-                  <p className="text-xs text-slime-green font-bold">Rank #{expandedNFT.rank}</p>
-                )}
-              </div>
-            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
