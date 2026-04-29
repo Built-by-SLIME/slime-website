@@ -782,12 +782,13 @@ export default function MarketPage() {
                     {nftFull.attributes.map(attr => {
                       const count = traitCounts[attr.trait_type]?.[attr.value] ?? 0
                       const pct = totalSupply > 0 ? ((count / totalSupply) * 100).toFixed(1) : '0.0'
+                      const pctNum = parseFloat(pct)
+                      // Color by percentage thresholds — matching SentX tiers
                       const pillColor =
-                        count >= 500 ? 'bg-gray-500/25 text-gray-400' :
-                        count >= 250 ? 'bg-green-500/25 text-green-400' :
-                        count >= 125 ? 'bg-blue-500/25 text-blue-400' :
-                        count >= 50  ? 'bg-purple-500/25 text-purple-400' :
-                        count >= 15  ? 'bg-orange-500/25 text-orange-400' :
+                        pctNum >= 20 ? 'bg-gray-500/25 text-gray-400' :
+                        pctNum >= 10 ? 'bg-blue-500/25 text-blue-400' :
+                        pctNum >= 5  ? 'bg-purple-500/25 text-purple-400' :
+                        pctNum >= 1  ? 'bg-orange-500/25 text-orange-400' :
                                        'bg-red-500/25 text-red-400'
                       return (
                         <div key={attr.trait_type} className="bg-[#252525] rounded-xl px-4 py-3 border border-gray-800">
