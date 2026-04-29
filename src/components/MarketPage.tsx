@@ -376,12 +376,14 @@ export default function MarketPage() {
   const isTxBusy = txStatus === 'preparing' || txStatus === 'signing' || txStatus === 'confirming'
 
   // Trait counts across all 1000 NFTs — used for rarity color coding in the modal
+  // Keys are lowercased so capitalisation variants merge into one count (same fix as Crown/Ice Cream)
   const traitCounts = useMemo(() => {
     const counts: Record<string, Record<string, number>> = {}
     for (const nft of allNftData.values()) {
       for (const attr of nft.attributes) {
         if (!counts[attr.trait_type]) counts[attr.trait_type] = {}
-        counts[attr.trait_type][attr.value] = (counts[attr.trait_type][attr.value] || 0) + 1
+        const key = attr.value.toLowerCase()
+        counts[attr.trait_type][key] = (counts[attr.trait_type][key] || 0) + 1
       }
     }
     return counts
@@ -780,7 +782,7 @@ export default function MarketPage() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {nftFull.attributes.map(attr => {
-                      const count = traitCounts[attr.trait_type]?.[attr.value] ?? 0
+                      const count = traitCounts[attr.trait_type]?.[attr.value.toLowerCase()] ?? 0
                       const pct = totalSupply > 0 ? ((count / totalSupply) * 100).toFixed(1) : '0.0'
                       const pctNum = parseFloat(pct)
                       // Color by percentage thresholds — matching SentX tiers

@@ -64,18 +64,25 @@ export default function CollectionPage() {
   }
 
   // Build trait type → [{ value, count }] map from all NFTs
+  // Keys are normalised to lowercase so capitalisation variants (e.g. "Ice cream"
+  // vs "Ice Cream", "crown" vs "Crown") are merged into a single entry.
   const traitOptions = useMemo(() => {
-    const countMap: Record<string, Record<string, number>> = {}
+    // countMap key = lowercase value; display value = first-seen (most common) variant
+    const countMap: Record<string, Record<string, { display: string; count: number }>> = {}
     allNfts.forEach(nft => {
       nft.attributes.forEach(attr => {
         if (!countMap[attr.trait_type]) countMap[attr.trait_type] = {}
-        countMap[attr.trait_type][attr.value] = (countMap[attr.trait_type][attr.value] || 0) + 1
+        const key = attr.value.toLowerCase()
+        if (!countMap[attr.trait_type][key]) {
+          countMap[attr.trait_type][key] = { display: attr.value, count: 0 }
+        }
+        countMap[attr.trait_type][key].count += 1
       })
     })
     const map: Record<string, { value: string; count: number }[]> = {}
     Object.entries(countMap).forEach(([traitType, valueCounts]) => {
       map[traitType] = Object.entries(valueCounts)
-        .map(([value, count]) => ({ value, count }))
+        .map(([, { display, count }]) => ({ value: display, count }))
         .sort((a, b) => a.value.localeCompare(b.value))
     })
     return map
@@ -88,7 +95,7 @@ export default function CollectionPage() {
     if (active.length > 0) {
       result = result.filter(nft =>
         active.every(([type, vals]) =>
-          nft.attributes.some(a => a.trait_type === type && vals.includes(a.value))
+          nft.attributes.some(a => a.trait_type === type && vals.some(v => v.toLowerCase() === a.value.toLowerCase()))
         )
       )
     }
@@ -483,7 +490,7 @@ export default function CollectionPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {nft.attributes.map(attr => {
                     const traitItems = traitOptions[attr.trait_type] || []
-                    const match = traitItems.find(i => i.value === attr.value)
+                    const match = traitItems.find(i => i.value.toLowerCase() === attr.value.toLowerCase())
                     const count = match?.count ?? 0
                     const pct = totalSupply > 0 ? ((count / totalSupply) * 100).toFixed(1) : '0.0'
                     const pctNum = parseFloat(pct)
