@@ -136,14 +136,14 @@ interface FullNFT {
 type Tab = 'listings' | 'activity' | 'stats'
 type TxStatus = 'idle' | 'preparing' | 'signing' | 'confirming' | 'success' | 'error'
 
-// Color-code the overall rarity rank by percentile (out of 1000)
-function rankColor(rank: number, total = 1000): string {
-  const pct = (rank / total) * 100
-  if (pct <= 1)  return 'text-red-400'     // top 1%   — Mythic
-  if (pct <= 5)  return 'text-orange-400'  // top 5%   — Legendary
-  if (pct <= 10) return 'text-purple-400'  // top 10%  — Epic
-  if (pct <= 20) return 'text-blue-400'    // top 20%  — Rare
-  return 'text-gray-400'                   // beyond   — Common
+// Color-code the overall rarity rank — same tier boundaries as trait counts
+function rankColor(rank: number): string {
+  if (rank <= 14)  return 'text-red-400'     // Mythic
+  if (rank <= 49)  return 'text-orange-400'  // Legendary
+  if (rank <= 124) return 'text-purple-400'  // Epic
+  if (rank <= 249) return 'text-blue-400'    // Rare
+  if (rank <= 499) return 'text-green-400'   // Uncommon
+  return 'text-gray-400'                     // Common
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -766,7 +766,7 @@ export default function MarketPage() {
                         <>
                           <div className="flex justify-between items-center px-4 py-3">
                             <span className="text-gray-400 text-sm">Rarity Rank</span>
-                            <span className={`font-bold ${rankColor(nftFull.correctedRank, totalSupply)}`}>#{nftFull.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
+                            <span className={`font-bold ${rankColor(nftFull.correctedRank)}`}>#{nftFull.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
                           </div>
                           <div className="flex justify-between items-center px-4 py-3">
                             <span className="text-gray-400 text-sm">Rarity Score</span>
