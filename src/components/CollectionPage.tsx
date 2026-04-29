@@ -361,7 +361,7 @@ export default function CollectionPage() {
                           <h3 className="text-sm font-bold truncate">{nft.name}</h3>
                           <div className="flex justify-between items-center text-xs">
                             <span className="text-gray-500">Rank</span>
-                            <span className={`font-bold ${rankColor(nft.correctedRank, totalSupply)}`}>#{nft.correctedRank}</span>
+                            <span className={`font-bold ${rankColor(nft.correctedRank)}`}>#{nft.correctedRank}</span>
                           </div>
                           <button
                             onClick={() => setSelectedNft(nft)}
