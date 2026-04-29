@@ -587,6 +587,15 @@ export default function MarketPage() {
                         <p className="text-white text-xs font-bold truncate leading-tight">
                           {listing.nftName || `SLIME #${listing.serialId}`}
                         </p>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500">Rank</span>
+                          {(() => {
+                            const rank = allNftData.get(listing.serialId)?.correctedRank
+                            return rank
+                              ? <span className={`font-bold ${rankColor(rank)}`}>#{rank}</span>
+                              : <span className="text-gray-700">—</span>
+                          })()}
+                        </div>
                         <p className="text-slime-green font-mono font-black text-base leading-none">
                           {listing.salePrice.toLocaleString()}
                           <span className="text-slime-green text-sm ml-0.5">ℏ</span>
