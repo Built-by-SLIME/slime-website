@@ -157,8 +157,8 @@ export default function MarketPage() {
   const [listings, setListings] = useState<Listing[]>([])
   const [floor, setFloor] = useState<number | null>(null)
   const [loadingListings, setLoadingListings] = useState(true)
-  const [sortBy, setSortBy] = useState<'price' | 'listingDate' | 'serialId'>('price')
-  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('ASC')
+  type MarketSort = 'price-asc' | 'price-desc' | 'rarity-asc' | 'rarity-desc' | 'serial-asc' | 'serial-desc'
+  const [marketSort, setMarketSort] = useState<MarketSort>('price-asc')
 
   // NFT images keyed by serial — populated from mirror node since SentX
   // listings often have null nftImage for SLIME NFTs
@@ -187,10 +187,20 @@ export default function MarketPage() {
 
   // ── Data fetching ───────────────────────────────────────────────────────────
 
-  const fetchListings = async (sort = sortBy, dir = sortDir) => {
+  // Map combined sort option → API params (rarity is client-side, use price-asc as default fetch)
+  const toApiSort = (opt: string) => {
+    if (opt === 'price-asc')   return { sortBy: 'price',    sortDirection: 'ASC'  }
+    if (opt === 'price-desc')  return { sortBy: 'price',    sortDirection: 'DESC' }
+    if (opt === 'serial-asc')  return { sortBy: 'serialId', sortDirection: 'ASC'  }
+    if (opt === 'serial-desc') return { sortBy: 'serialId', sortDirection: 'DESC' }
+    return { sortBy: 'price', sortDirection: 'ASC' } // rarity — fetch unordered, sort client-side
+  }
+
+  const fetchListings = async (opt = marketSort) => {
     setLoadingListings(true)
+    const { sortBy, sortDirection } = toApiSort(opt)
     try {
-      const params = new URLSearchParams({ sortBy: sort, sortDirection: dir, limit: '100' })
+      const params = new URLSearchParams({ sortBy, sortDirection, limit: '100' })
       const r = await fetch(`/api/market-listings?${params}`)
       const d = await r.json()
       const items: Listing[] = d.marketListings || []
@@ -293,11 +303,12 @@ export default function MarketPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-fetch when sort changes (skip on mount — covered above)
+  // Rarity sorts are client-side only — no re-fetch needed
   const isFirstRender = useState(true)
   useEffect(() => {
     if (isFirstRender[0]) { isFirstRender[1](false); return }
-    fetchListings(sortBy, sortDir)
-  }, [sortBy, sortDir]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!marketSort.startsWith('rarity')) fetchListings(marketSort)
+  }, [marketSort]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Lazy-load tab data
   useEffect(() => {
@@ -399,6 +410,34 @@ export default function MarketPage() {
     return counts
   }, [allNftData])
 
+  // Client-side rarity sort — applied on top of the API-fetched listings
+  const sortedListings = useMemo(() => {
+    if (marketSort === 'rarity-asc') {
+      return [...listings].sort((a, b) => {
+        const rankA = allNftData.get(a.serialId)?.correctedRank ?? 9999
+        const rankB = allNftData.get(b.serialId)?.correctedRank ?? 9999
+        return rankA - rankB
+      })
+    }
+    if (marketSort === 'rarity-desc') {
+      return [...listings].sort((a, b) => {
+        const rankA = allNftData.get(a.serialId)?.correctedRank ?? 0
+        const rankB = allNftData.get(b.serialId)?.correctedRank ?? 0
+        return rankB - rankA
+      })
+    }
+    return listings
+  }, [listings, marketSort, allNftData])
+
+  const MARKET_SORT_OPTIONS: { value: 'price-asc' | 'price-desc' | 'rarity-asc' | 'rarity-desc' | 'serial-asc' | 'serial-desc'; label: string }[] = [
+    { value: 'price-asc',   label: 'PRICE ASC'   },
+    { value: 'price-desc',  label: 'PRICE DESC'  },
+    { value: 'rarity-asc',  label: 'RARITY ASC'  },
+    { value: 'rarity-desc', label: 'RARITY DESC' },
+    { value: 'serial-asc',  label: 'SERIAL ASC'  },
+    { value: 'serial-desc', label: 'SERIAL DESC' },
+  ]
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'listings', label: 'Listings' },
     { id: 'activity', label: 'Activity' },
@@ -485,39 +524,22 @@ export default function MarketPage() {
         {/* ════════════════════ LISTINGS ════════════════════ */}
         {tab === 'listings' && (
           <>
-            {/* Sort bar */}
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 uppercase tracking-widest mr-1">Sort</span>
-                {(['price', 'listingDate', 'serialId'] as const).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setSortBy(s)}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-bold transition ${
-                      sortBy === s
-                        ? 'bg-slime-green text-black'
-                        : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-gray-800'
-                    }`}
-                  >
-                    {s === 'price' ? 'Price' : s === 'listingDate' ? 'Recent' : 'Serial'}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                {(['ASC', 'DESC'] as const).map(d => (
-                  <button
-                    key={d}
-                    onClick={() => setSortDir(d)}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-bold transition ${
-                      sortDir === d
-                        ? 'bg-slime-green text-black'
-                        : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-gray-800'
-                    }`}
-                  >
-                    {d === 'ASC' ? '↑ Low' : '↓ High'}
-                  </button>
-                ))}
-              </div>
+            {/* Sort bar — matches collection page style */}
+            <div className="flex items-center gap-2 flex-wrap mb-6">
+              <span className="text-xs text-gray-500 uppercase tracking-widest font-bold mr-1">Sort</span>
+              {MARKET_SORT_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setMarketSort(opt.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition ${
+                    marketSort === opt.value
+                      ? 'bg-slime-green text-black'
+                      : 'bg-[#1f1f1f] border border-gray-700 text-gray-300 hover:border-slime-green'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
 
             {loadingListings && (
@@ -526,16 +548,16 @@ export default function MarketPage() {
               </div>
             )}
 
-            {!loadingListings && listings.length === 0 && (
+            {!loadingListings && sortedListings.length === 0 && (
               <div className="text-center py-32 text-gray-500">
                 <p className="text-lg font-bold text-white mb-2">No listings found</p>
                 <p className="text-sm">Be the first to list a SLIME NFT.</p>
               </div>
             )}
 
-            {!loadingListings && listings.length > 0 && (
+            {!loadingListings && sortedListings.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {listings.map(listing => {
+                {sortedListings.map(listing => {
                   const isThisBusy = isTxBusy && activeTxSerial === listing.serialId
                   const isOwn = listing.sellerAddress === accountId
 
