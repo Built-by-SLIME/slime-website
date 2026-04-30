@@ -768,9 +768,9 @@ export default function MarketPage() {
         const isOwn = listing.sellerAddress === accountId
         const isThisBusy = isTxBusy && activeTxSerial === listing.serialId
         return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedListing(null)}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }} onClick={() => setSelectedListing(null)}>
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-            <div className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
               {/* Close */}
               <button onClick={() => setSelectedListing(null)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a2a2a] border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition">✕</button>
 
