@@ -428,7 +428,11 @@ export default function CollectionPage() {
         const totalSupply = allNfts.length || 1
         return (
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+            style={{
+              paddingTop: 'max(16px, env(safe-area-inset-top))',
+              paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+            }}
             onClick={() => setSelectedNft(null)}
           >
             {/* Backdrop */}
@@ -436,7 +440,7 @@ export default function CollectionPage() {
 
             {/* Panel */}
             <div
-              className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl"
+              className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-full overflow-y-auto shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
               {/* Close button */}
