@@ -92,7 +92,7 @@ export default function InventoryPage() {
             attributes: n.attributes || [],
           }
         })
-        .sort((a, b) => a.correctedRank - b.correctedRank)
+        .sort((a, b) => a.serial_number - b.serial_number)
 
       setNftsWithImages(results)
     } catch (err) {
