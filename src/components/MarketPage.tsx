@@ -642,7 +642,7 @@ export default function MarketPage() {
                     {/* Thumbnail */}
                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 border border-gray-800">
                       <img
-                        src={toImageUrl(a.nftImage) || nftImages.get(a.nftSerialId) || '/Assets/SPLAT.png'}
+                        src={toImageUrl(a.nftImage) || nftImages.get(a.nftSerialId) || '/Assets/$SLIME.png'}
                         alt={a.nftName || 'SLIME'}
                         className="w-full h-full object-cover"
                         crossOrigin="anonymous"
