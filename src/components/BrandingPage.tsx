@@ -55,45 +55,51 @@ export default function BrandingPage() {
 
           {/* ── SECTION 1: IP RIGHTS ── */}
           <Section title="IP RIGHTS">
+            {/* Intro */}
             <Card className="mb-6">
-              <div className="flex items-start gap-4 mb-6">
-                <span className="text-4xl">⚖️</span>
-                <div>
-                  <h3 className="text-xl font-black mb-2">Full Commercial IP — It's Yours.</h3>
-                  <p className="text-gray-400 leading-relaxed">
-                    Every SLIME NFT holder owns <span className="text-white font-bold">full commercial intellectual property rights</span> to
-                    their unique SLIME character. That means your SLIME is not just a profile picture — it's a brand
-                    asset you can build on, profit from, and license however you choose.
-                  </p>
-                </div>
-              </div>
-              <p className="text-gray-500 text-sm border-t border-gray-800 pt-5">
-                Your rights are tied to ownership of the NFT. Transferring or selling your SLIME transfers the IP rights to the new holder.
+              <p className="text-gray-300 leading-relaxed mb-5">
+                At SLIME on Hedera, we believe true ownership means real creative and commercial freedom. When you own a SLIME NFT,
+                you don't just get a digital collectible — you receive{' '}
+                <span className="text-white font-bold">full commercial intellectual property rights</span> to your unique SLIME character.
               </p>
+              <p className="text-gray-300 leading-relaxed">
+                This means you can freely use your SLIME across any personal or commercial projects, including:
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-gray-300">
+                {[
+                  'Business branding and logos',
+                  'Vehicle wraps and fleet graphics (trucks, vans, cars, etc.)',
+                  'Merchandise and apparel',
+                  'Marketing materials, websites, social media, and advertising',
+                  'Physical products, packaging, and promotional items',
+                  'Books, animations, games, or any other creative media',
+                ].map(item => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-slime-green mt-0.5 flex-shrink-0">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </Card>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card>
-                <h4 className="text-slime-green font-black text-sm uppercase tracking-widest mb-4">✅ You CAN</h4>
-                <ul className="space-y-3 text-sm text-gray-300">
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Use your SLIME for personal and commercial purposes</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Print it on merchandise and sell it</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Use it as your brand identity, logo, or mascot</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Feature it in videos, streams, and media</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>License your character to third parties</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Create derivative artwork based on your SLIME</li>
-                </ul>
-              </Card>
-              <Card>
-                <h4 className="text-red-400 font-black text-sm uppercase tracking-widest mb-4">❌ You CANNOT</h4>
-                <ul className="space-y-3 text-sm text-gray-300">
-                  <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">•</span>Claim IP rights over another holder's SLIME</li>
-                  <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">•</span>Use the SLIME brand name or logo without permission</li>
-                  <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">•</span>Represent your SLIME as an official SLIME brand product</li>
-                  <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">•</span>Use hateful, illegal, or harmful content involving your SLIME</li>
-                </ul>
-              </Card>
-            </div>
+            {/* No restrictions callout */}
+            <Card className="mb-6 border-slime-green/30 bg-slime-green/5">
+              <p className="text-gray-200 leading-relaxed mb-3">
+                Your SLIME is yours to build with. <span className="text-white font-bold">Print it, plaster it, monetize it</span> — no royalties owed back
+                to the project, no additional licenses required.
+              </p>
+              <p className="text-slime-green font-black text-lg">Ownership on Hedera = Real Utility.</p>
+            </Card>
+
+            {/* Closing copy */}
+            <Card>
+              <p className="text-gray-300 leading-relaxed mb-4">
+                Every SLIME NFT is a one-of-a-kind, blockchain-verified asset that grants you{' '}
+                <span className="text-white font-bold">perpetual, worldwide commercial IP rights</span> for that specific design.
+                We exist to empower our holders, not restrict them.
+              </p>
+              <p className="text-white font-black text-lg">Welcome to the SLIME. Make it yours. Make it loud.</p>
+            </Card>
           </Section>
 
 
