@@ -54,7 +54,7 @@ export default function BrandingPage() {
 
           {/* Page Header */}
           <div className="mb-12">
-            <span className="text-slime-green text-xs font-bold uppercase tracking-widest">Community</span>
+            <span className="text-slime-green text-xs font-bold uppercase tracking-widest">Your Assets</span>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mt-2">BRANDING</h1>
             <p className="text-gray-400 text-base mt-3 max-w-2xl leading-relaxed">
               Everything you need to represent your SLIME — legally and visually.
