@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../context/WalletContext'
 import ProfileSlideout from './ProfileSlideout'
@@ -6,7 +6,18 @@ import ProfileSlideout from './ProfileSlideout'
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [slideoutOpen, setSlideoutOpen] = useState(false)
+  const [communityOpen, setCommunityOpen] = useState(false)
+  const [mobileCommunityOpen, setMobileCommunityOpen] = useState(false)
+  const communityTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { isConnected, connect } = useWallet()
+
+  const openCommunity = () => {
+    if (communityTimeout.current) clearTimeout(communityTimeout.current)
+    setCommunityOpen(true)
+  }
+  const closeCommunity = () => {
+    communityTimeout.current = setTimeout(() => setCommunityOpen(false), 120)
+  }
 
   const handleConnect = async () => {
     try { await connect() } catch (err) { console.error('Connect failed:', err) }
@@ -31,12 +42,33 @@ export default function Navigation() {
         <div className="hidden md:flex items-center gap-10" style={{ marginTop: '4px' }}>
           <div className="flex gap-10 text-sm font-medium">
             <Link to="/home" className="text-gray-300 hover:text-slime-green transition">HOME</Link>
-            {/* <Link to="/mint" className="text-gray-300 hover:text-slime-green transition">MINT</Link> */}
-            {/* <Link to="/market" className="text-gray-300 hover:text-slime-green transition">MARKET</Link> */}
             <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition">TOOLS</a>
             <Link to="/collection" className="text-gray-300 hover:text-slime-green transition">COLLECTION</Link>
-            <Link to="/merch" className="text-gray-300 hover:text-slime-green transition">MERCH</Link>
-            <Link to="/$slime" className="text-gray-300 hover:text-slime-green transition">$SLIME</Link>
+            {/* Community dropdown */}
+            <div className="relative" onMouseEnter={openCommunity} onMouseLeave={closeCommunity}>
+              <button
+                className="flex items-center gap-1 text-gray-300 hover:text-slime-green transition"
+                onClick={() => setCommunityOpen(o => !o)}
+                aria-haspopup="true"
+                aria-expanded={communityOpen}
+              >
+                COMMUNITY
+                <svg className={`w-3 h-3 mt-0.5 transition-transform ${communityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {communityOpen && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-44 bg-[#1a1a1a] border border-gray-700 rounded-xl shadow-2xl py-2 z-50"
+                  onMouseEnter={openCommunity}
+                  onMouseLeave={closeCommunity}
+                >
+                  <Link to="/merch" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>MERCH</Link>
+                  <Link to="/$slime" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>$SLIME</Link>
+                  <Link to="/branding" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>BRANDING</Link>
+                </div>
+              )}
+            </div>
           </div>
           {/* Social Icons */}
           <div className="flex items-center gap-4">
@@ -109,13 +141,29 @@ export default function Navigation() {
           </button>
 
           <div className="flex flex-col items-center justify-center flex-1 gap-6 text-center px-8">
-            {/* Nav Links — always visible */}
+            {/* Nav Links */}
             <Link to="/home" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>HOME</Link>
-            {/* <Link to="/mint" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MINT</Link> */}
-            {/* <Link to="/market" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MARKET</Link> */}
+            <a href="https://slime.tools/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>TOOLS</a>
             <Link to="/collection" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>COLLECTION</Link>
-            <Link to="/merch" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</Link>
-            <Link to="/$slime" className="text-gray-300 hover:text-slime-green transition text-xl font-medium" onClick={() => setMobileMenuOpen(false)}>$SLIME</Link>
+            {/* Community expandable */}
+            <div className="flex flex-col items-center gap-3">
+              <button
+                className="flex items-center gap-2 text-gray-300 hover:text-slime-green transition text-xl font-medium"
+                onClick={() => setMobileCommunityOpen(o => !o)}
+              >
+                COMMUNITY
+                <svg className={`w-4 h-4 transition-transform ${mobileCommunityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {mobileCommunityOpen && (
+                <div className="flex flex-col items-center gap-3">
+                  <Link to="/merch" className="text-gray-400 hover:text-slime-green transition text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</Link>
+                  <Link to="/$slime" className="text-gray-400 hover:text-slime-green transition text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>$SLIME</Link>
+                  <Link to="/branding" className="text-gray-400 hover:text-slime-green transition text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>BRANDING</Link>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => { handleConnect(); setMobileMenuOpen(false) }}
