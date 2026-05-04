@@ -91,7 +91,7 @@ export default function PrivacyPage() {
             </ul>
             <p>
               To exercise any of these rights, contact us via our official X account{' '}
-              <a href="https://x.com/SLIMEonHedera" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">@SLIMEonHedera</a>.
+              <a href="https://x.com/builtbyslime" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">@builtbyslime</a>.
             </p>
           </Section>
 
@@ -114,7 +114,7 @@ export default function PrivacyPage() {
           <Section title="CONTACT">
             <p>
               For any privacy-related questions, reach out to us on X at{' '}
-              <a href="https://x.com/SLIMEonHedera" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">@SLIMEonHedera</a>.
+              <a href="https://x.com/builtbyslime" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">@builtbyslime</a>.
             </p>
           </Section>
 

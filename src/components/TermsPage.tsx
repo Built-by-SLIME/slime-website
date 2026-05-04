@@ -131,7 +131,7 @@ export default function TermsPage() {
           <Section title="CONTACT">
             <p>
               For questions about these Terms, reach out via X at{' '}
-              <a href="https://x.com/SLIMEonHedera" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">@SLIMEonHedera</a>.
+              <a href="https://x.com/builtbyslime" target="_blank" rel="noopener noreferrer" className="text-slime-green hover:underline">@builtbyslime</a>.
             </p>
           </Section>
 
