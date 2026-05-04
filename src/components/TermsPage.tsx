@@ -34,7 +34,7 @@ export default function TermsPage() {
 
           <Section title="ACCEPTANCE OF TERMS">
             <p>
-              By accessing or using the SLIME dApp at <span className="text-white font-semibold">slimeonhedera.com</span>{' '}
+              By accessing or using the SLIME dApp at <span className="text-white font-semibold">builtbyslime.org</span>{' '}
               ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree, please do not
               use the Platform.
             </p>

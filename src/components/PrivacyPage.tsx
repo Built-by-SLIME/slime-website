@@ -35,7 +35,7 @@ export default function PrivacyPage() {
           <Section title="OVERVIEW">
             <p>
               SLIME on Hedera ("we", "us", or "our") operates the SLIME dApp available at{' '}
-              <span className="text-white font-semibold">slimeonhedera.com</span>. We are committed to transparency
+              <span className="text-white font-semibold">builtbyslime.org</span>. We are committed to transparency
               about what data we collect and why. This policy explains our practices clearly and in plain language.
             </p>
             <p>
