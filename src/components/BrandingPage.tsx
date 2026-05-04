@@ -114,34 +114,6 @@ export default function BrandingPage() {
           {/* ── SECTION 2: BRAND GUIDELINES ── */}
           <Section title="BRAND GUIDELINES">
 
-            {/* SLIME Colors */}
-            <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">SLIME Colors</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
-              {SLIME_COLORS.map(c => (
-                <div key={c.hex} className="rounded-xl overflow-hidden border border-gray-800">
-                  <div className="h-20" style={{ backgroundColor: c.hex }} />
-                  <div className="bg-[#1f1f1f] p-3">
-                    <p className="text-white text-xs font-bold">{c.name}</p>
-                    <p className="text-gray-500 text-xs font-mono mt-0.5">{c.hex}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Background Colors */}
-            <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Background Colors</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
-              {BG_COLORS.map(c => (
-                <div key={c.hex} className="rounded-xl overflow-hidden border border-gray-800">
-                  <div className="h-20" style={{ backgroundColor: c.hex }} />
-                  <div className="bg-[#1f1f1f] p-3">
-                    <p className="text-white text-xs font-bold">{c.name}</p>
-                    <p className="text-gray-500 text-xs font-mono mt-0.5">{c.hex}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
             {/* PFP Guide */}
             <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Using Your SLIME as a PFP</h3>
             <Card className="mb-10">
@@ -175,6 +147,34 @@ export default function BrandingPage() {
                 </div>
               </div>
             </Card>
+
+            {/* SLIME Colors */}
+            <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">SLIME Colors</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+              {SLIME_COLORS.map(c => (
+                <div key={c.hex} className="rounded-xl overflow-hidden border border-gray-800">
+                  <div className="h-20" style={{ backgroundColor: c.hex }} />
+                  <div className="bg-[#1f1f1f] p-3">
+                    <p className="text-white text-xs font-bold">{c.name}</p>
+                    <p className="text-gray-500 text-xs font-mono mt-0.5">{c.hex}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Background Colors */}
+            <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Background Colors</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+              {BG_COLORS.map(c => (
+                <div key={c.hex} className="rounded-xl overflow-hidden border border-gray-800">
+                  <div className="h-20" style={{ backgroundColor: c.hex }} />
+                  <div className="bg-[#1f1f1f] p-3">
+                    <p className="text-white text-xs font-bold">{c.name}</p>
+                    <p className="text-gray-500 text-xs font-mono mt-0.5">{c.hex}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             {/* Name usage */}
             <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Logo & Name Usage</h3>
