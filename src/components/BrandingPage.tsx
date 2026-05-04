@@ -124,7 +124,7 @@ export default function BrandingPage() {
                     <img
                       src="/Assets/pfp-example.png"
                       alt="SLIME PFP example — tilted and zoomed in on face"
-                      className="w-full h-full object-cover scale-[1.45] object-center"
+                      className="w-full h-full object-cover scale-[1.2] object-center"
                     />
                   </div>
                   <p className="text-center text-gray-600 text-xs mt-2">Reference style</p>
