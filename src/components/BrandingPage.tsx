@@ -148,11 +148,13 @@ export default function BrandingPage() {
               <div className="flex flex-col md:flex-row gap-6 items-start">
                 {/* Visual reference */}
                 <div className="flex-shrink-0 mx-auto md:mx-0">
-                  <img
-                    src="/Assets/pfp-example.png"
-                    alt="SLIME PFP example — tilted and zoomed in on face"
-                    className="w-40 h-40 rounded-full object-cover border-4 border-gray-700"
-                  />
+                  <div className="w-40 h-40 rounded-full border-4 border-gray-700 overflow-hidden flex-shrink-0">
+                    <img
+                      src="/Assets/pfp-example.png"
+                      alt="SLIME PFP example — tilted and zoomed in on face"
+                      className="w-full h-full object-cover scale-[1.45] object-center"
+                    />
+                  </div>
                   <p className="text-center text-gray-600 text-xs mt-2">Reference style</p>
                 </div>
                 {/* Copy */}
