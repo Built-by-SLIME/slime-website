@@ -102,7 +102,7 @@ export default function BrandingPage() {
             {/* Closing copy */}
             <Card>
               <p className="text-gray-300 leading-relaxed mb-4">
-                Every SLIME NFT is a one-of-a-kind, blockchain-verified asset that grants you{' '}
+                Every SLIME NFT is a one-of-a-kind, hashgraph-verified asset that grants you{' '}
                 <span className="text-white font-bold">perpetual, worldwide commercial IP rights</span> for that specific design.
                 We exist to empower our holders, not restrict them.
               </p>
