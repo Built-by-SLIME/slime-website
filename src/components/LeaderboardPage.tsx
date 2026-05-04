@@ -64,11 +64,25 @@ export default function LeaderboardPage() {
   // NFT detail lightbox
   const [selectedNft, setSelectedNft] = useState<WalletNFT | null>(null)
 
-  // Load session from localStorage
+  // Load session: first check localStorage (fast), then verify against DB by wallet (cross-device)
   useEffect(() => {
     const raw = localStorage.getItem('slime_x_user')
     if (raw) { try { setXUser(JSON.parse(raw)) } catch { /* ignore */ } }
   }, [])
+
+  // When wallet connects, check Supabase for an existing link (works on any device)
+  useEffect(() => {
+    if (!isConnected || !accountId) return
+    fetch(`/api/auth/check-wallet?wallet=${encodeURIComponent(accountId)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.linked && data.user) {
+          setXUser(data.user)
+          localStorage.setItem('slime_x_user', JSON.stringify(data.user))
+        }
+      })
+      .catch(() => {})
+  }, [isConnected, accountId])
 
   // Fetch leaderboard
   useEffect(() => {
