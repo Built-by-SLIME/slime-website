@@ -161,9 +161,11 @@ export default function LeaderboardPage() {
     try {
       const res = await fetch('/api/auth/x-login')
       const { authUrl, state, codeVerifier } = await res.json()
-      sessionStorage.setItem('x_oauth_state', state)
-      sessionStorage.setItem('x_code_verifier', codeVerifier)
-      sessionStorage.setItem('x_wallet_address', accountId)
+      // Use localStorage (not sessionStorage) so the PKCE values survive
+      // cross-tab redirects and the X app's in-app browser on mobile.
+      localStorage.setItem('x_oauth_state', state)
+      localStorage.setItem('x_code_verifier', codeVerifier)
+      localStorage.setItem('x_wallet_address', accountId)
       window.location.href = authUrl
     } catch { setConnecting(false) }
   }

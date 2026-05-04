@@ -27,10 +27,12 @@ export default function XAuthCallback() {
         return
       }
 
-      // Retrieve state + codeVerifier stored before redirect
-      const storedState = sessionStorage.getItem('x_oauth_state')
-      const codeVerifier = sessionStorage.getItem('x_code_verifier')
-      const walletAddress = sessionStorage.getItem('x_wallet_address')
+      // Retrieve state + codeVerifier stored before redirect.
+      // localStorage is used (not sessionStorage) so it survives cross-tab
+      // redirects and the X app's in-app browser on mobile.
+      const storedState = localStorage.getItem('x_oauth_state')
+      const codeVerifier = localStorage.getItem('x_code_verifier')
+      const walletAddress = localStorage.getItem('x_wallet_address')
 
       if (!storedState || returnedState !== storedState) {
         setErrorMsg('Security check failed (state mismatch). Please try again.')
@@ -44,10 +46,10 @@ export default function XAuthCallback() {
         return
       }
 
-      // Clean up session storage
-      sessionStorage.removeItem('x_oauth_state')
-      sessionStorage.removeItem('x_code_verifier')
-      sessionStorage.removeItem('x_wallet_address')
+      // Clean up immediately — these are single-use PKCE values
+      localStorage.removeItem('x_oauth_state')
+      localStorage.removeItem('x_code_verifier')
+      localStorage.removeItem('x_wallet_address')
 
       try {
         const res = await fetch('/api/auth/x-token', {
