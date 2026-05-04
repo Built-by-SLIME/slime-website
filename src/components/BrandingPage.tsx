@@ -169,7 +169,7 @@ export default function BrandingPage() {
                     <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Zoom in to the face — head traits are the star of the show</li>
                     <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Tilt the image slightly for character and personality</li>
                     <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>X, Discord, Telegram — this cropped style works everywhere</li>
-                    <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Download your full SLIME image from your inventory on this site</li>
+                    <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Download your full SLIME image from your wallet or inventory on this site</li>
                     <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Feel free to add custom borders or frames — it's your IP!</li>
                   </ul>
                 </div>
