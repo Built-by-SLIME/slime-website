@@ -1408,10 +1408,11 @@ export default function MerchPage() {
         <Navigation />
 
         {/* Hero Section */}
-        <div className="relative py-12 md:py-20 px-4 md:px-8">
-          <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-black mb-4">SLIME MERCH</h1>
-            <p className="text-gray-400 text-lg mb-8">Rep the collective. Wear the SLIME.</p>
+        <div className="relative py-12 md:py-16 px-4 md:px-8">
+          <div className="max-w-7xl mx-auto">
+            <span className="text-slime-green text-xs font-bold uppercase tracking-widest">Community</span>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mt-2">SLIME MERCH</h1>
+            <p className="text-gray-400 text-base mt-3">Rep the collective. Wear the SLIME.</p>
           </div>
         </div>
       </section>
