@@ -642,13 +642,13 @@ export default function MarketPage() {
                     {/* Thumbnail */}
                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 border border-gray-800">
                       <img
-                        src={toImageUrl(a.nftImage) || nftImages.get(a.nftSerialId) || '/Assets/$SLIME.png'}
+                        src={toImageUrl(a.nftImage) || nftImages.get(a.nftSerialId) || '/Assets/favicon.svg'}
                         alt={a.nftName || 'SLIME'}
                         className="w-full h-full object-cover"
                         crossOrigin="anonymous"
                         onError={e => {
-                          const fallback = nftImages.get(a.nftSerialId)
-                          if (fallback) (e.target as HTMLImageElement).src = fallback
+                          const fallback = nftImages.get(a.nftSerialId) || '/Assets/favicon.svg'
+                          ;(e.target as HTMLImageElement).src = fallback
                         }}
                       />
                     </div>
