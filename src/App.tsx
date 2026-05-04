@@ -18,6 +18,8 @@ const TokenPage = lazy(() => import('./components/TokenPage'))
 const BrandingPage = lazy(() => import('./components/BrandingPage'))
 const PrivacyPage = lazy(() => import('./components/PrivacyPage'))
 const TermsPage = lazy(() => import('./components/TermsPage'))
+const LeaderboardPage = lazy(() => import('./components/LeaderboardPage'))
+const XAuthCallback = lazy(() => import('./components/XAuthCallback'))
 
 // Loading spinner component
 function LoadingSpinner() {
@@ -52,6 +54,8 @@ function App() {
               <Route path="/branding" element={<BrandingPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/terms" element={<TermsPage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/auth/x/callback" element={<XAuthCallback />} />
             </Routes>
           </Suspense>
         </BrowserRouter>

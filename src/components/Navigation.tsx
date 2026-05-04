@@ -67,6 +67,7 @@ export default function Navigation() {
                     <Link to="/merch" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>MERCH</Link>
                     <Link to="/$slime" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>$SLIME</Link>
                     <Link to="/branding" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>BRANDING</Link>
+                    <Link to="/leaderboard" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>LEADERBOARD</Link>
                   </div>
                 </div>
               )}
@@ -163,6 +164,7 @@ export default function Navigation() {
                   <Link to="/merch" className="text-gray-400 hover:text-slime-green transition text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>MERCH</Link>
                   <Link to="/$slime" className="text-gray-400 hover:text-slime-green transition text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>$SLIME</Link>
                   <Link to="/branding" className="text-gray-400 hover:text-slime-green transition text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>BRANDING</Link>
+                  <Link to="/leaderboard" className="text-gray-400 hover:text-slime-green transition text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>LEADERBOARD</Link>
                 </div>
               )}
             </div>
