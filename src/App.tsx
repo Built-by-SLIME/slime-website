@@ -16,6 +16,8 @@ const DomainsPage = lazy(() => import('./components/DomainsPage'))
 const StakingPage = lazy(() => import('./components/StakingPage'))
 const TokenPage = lazy(() => import('./components/TokenPage'))
 const BrandingPage = lazy(() => import('./components/BrandingPage'))
+const PrivacyPage = lazy(() => import('./components/PrivacyPage'))
+const TermsPage = lazy(() => import('./components/TermsPage'))
 
 // Loading spinner component
 function LoadingSpinner() {
@@ -48,6 +50,8 @@ function App() {
               <Route path="/staking" element={<StakingPage />} />
               <Route path="/$slime" element={<TokenPage />} />
               <Route path="/branding" element={<BrandingPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
