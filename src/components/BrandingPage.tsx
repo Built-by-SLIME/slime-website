@@ -1,13 +1,28 @@
 import Navigation from './Navigation'
 import Footer from './Footer'
 
-const BRAND_COLORS = [
-  { name: 'SLIME Green', hex: '#00FF40', textClass: 'text-black' },
-  { name: 'Dark BG', hex: '#2A2A2A', textClass: 'text-white' },
-  { name: 'Card BG', hex: '#1F1F1F', textClass: 'text-white' },
-  { name: 'Surface', hex: '#252525', textClass: 'text-white' },
-  { name: 'White', hex: '#FFFFFF', textClass: 'text-black' },
+const SLIME_COLORS = [
+  { name: 'Green',  hex: '#00FF40' },
+  { name: 'Red',    hex: '#FE3300' },
+  { name: 'Purple', hex: '#9400D3' },
+  { name: 'Pink',   hex: '#FF1493' },
+  { name: 'Cyan',   hex: '#00FFFF' },
+  { name: 'Blue',   hex: '#0055FF' },
+  { name: 'Black',  hex: '#3D2A3F' },
+  { name: 'Gold',   hex: '#FFD700' },
 ]
+
+const BG_COLORS = [
+  { name: 'Sage',   hex: '#A5D6A7' },
+  { name: 'Blue',   hex: '#89CFF0' },
+  { name: 'Purple', hex: '#B39DDB' },
+  { name: 'Salmon', hex: '#FF7F7F' },
+  { name: 'Rose',   hex: '#F8BABA' },
+  { name: 'Peach',  hex: '#FFCC99' },
+  { name: 'Canary', hex: '#FFFF99' },
+  { name: 'Beige',  hex: '#FFFFE0' },
+]
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -107,10 +122,10 @@ export default function BrandingPage() {
           {/* ── SECTION 2: BRAND GUIDELINES ── */}
           <Section title="BRAND GUIDELINES">
 
-            {/* Colors */}
-            <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Colors</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-10">
-              {BRAND_COLORS.map(c => (
+            {/* SLIME Colors */}
+            <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">SLIME Colors</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+              {SLIME_COLORS.map(c => (
                 <div key={c.hex} className="rounded-xl overflow-hidden border border-gray-800">
                   <div className="h-20" style={{ backgroundColor: c.hex }} />
                   <div className="bg-[#1f1f1f] p-3">
@@ -121,21 +136,19 @@ export default function BrandingPage() {
               ))}
             </div>
 
-            {/* Typography */}
-            <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Typography</h3>
-            <Card className="mb-10">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Primary Typeface</p>
-                  <p className="text-3xl font-black">Space Grotesk</p>
+            {/* Background Colors */}
+            <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Background Colors</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+              {BG_COLORS.map(c => (
+                <div key={c.hex} className="rounded-xl overflow-hidden border border-gray-800">
+                  <div className="h-20" style={{ backgroundColor: c.hex }} />
+                  <div className="bg-[#1f1f1f] p-3">
+                    <p className="text-white text-xs font-bold">{c.name}</p>
+                    <p className="text-gray-500 text-xs font-mono mt-0.5">{c.hex}</p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-800 text-center">
-                  <div><p className="font-black text-lg">BLACK</p><p className="text-gray-500 text-xs mt-1">Headings</p></div>
-                  <div><p className="font-bold text-lg">BOLD</p><p className="text-gray-500 text-xs mt-1">Labels / CTA</p></div>
-                  <div><p className="font-medium text-lg">MEDIUM</p><p className="text-gray-500 text-xs mt-1">Body</p></div>
-                </div>
-              </div>
-            </Card>
+              ))}
+            </div>
 
             {/* PFP Guide */}
             <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Using Your SLIME as a PFP</h3>
