@@ -47,17 +47,9 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
 export default function BrandingPage() {
   return (
     <div className="min-h-screen bg-[#2a2a2a] text-white flex flex-col">
-      {/* Dot grid background */}
-      <div className="fixed inset-0 pointer-events-none z-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(0,255,64,1) 1px, transparent 1px)',
-        backgroundSize: '50px 50px',
-        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)',
-      }} />
-
       <Navigation />
 
-      <main className="relative z-10 py-20 px-4 md:px-8 flex-grow">
+      <main className="py-20 px-4 md:px-8 flex-grow">
         <div className="max-w-4xl mx-auto">
 
           {/* Page Header */}

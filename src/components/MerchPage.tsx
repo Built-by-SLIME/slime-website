@@ -1397,14 +1397,6 @@ export default function MerchPage() {
     <div className="min-h-screen bg-[#2a2a2a]">
       {/* Header Section with Dot Grid Background */}
       <section className="relative bg-[#2a2a2a]">
-        {/* Dot pattern background with gradient fade */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(0, 255, 64, 1) 1px, transparent 1px)',
-          backgroundSize: '50px 50px',
-          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 100%)'
-        }}></div>
-
         <Navigation />
 
         {/* Hero Section */}
