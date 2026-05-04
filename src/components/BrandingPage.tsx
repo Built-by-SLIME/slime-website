@@ -144,26 +144,35 @@ export default function BrandingPage() {
 
             {/* PFP Guide */}
             <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Using Your SLIME as a PFP</h3>
-            <div className="grid md:grid-cols-2 gap-4 mb-10">
-              <Card>
-                <h4 className="font-black mb-3">On X (Twitter)</h4>
-                <ul className="space-y-3 text-sm text-gray-300">
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>X crops profile photos to a circle — make sure your SLIME's face is centred</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Use the full 1:1 square image for best results — no manual cropping needed</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Recommended size: <span className="font-mono text-white">400 × 400 px</span> minimum</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Download your SLIME directly from your inventory on this site</li>
-                </ul>
-              </Card>
-              <Card>
-                <h4 className="font-black mb-3">Across Other Platforms</h4>
-                <ul className="space-y-3 text-sm text-gray-300">
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Discord, Telegram, Instagram — same square crop applies</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>The light backgrounds on most SLIMEs pop well on dark UIs</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Feel free to add custom borders, frames, or overlays — it's your IP!</li>
-                  <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>When in doubt: less is more — let your SLIME speak for itself</li>
-                </ul>
-              </Card>
-            </div>
+            <Card className="mb-10">
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                {/* Visual reference */}
+                <div className="flex-shrink-0 mx-auto md:mx-0">
+                  <img
+                    src="/Assets/pfp-example.png"
+                    alt="SLIME PFP example — tilted and zoomed in on face"
+                    className="w-40 h-40 rounded-full object-cover border-4 border-gray-700"
+                  />
+                  <p className="text-center text-gray-600 text-xs mt-2">Reference style</p>
+                </div>
+                {/* Copy */}
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <h4 className="font-black mb-2">The SLIME PFP Look</h4>
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      The best SLIME PFPs aren't just a square image dropped in — they're <span className="text-white font-bold">tilted, zoomed in, and cropped to show off the face and head traits.</span> Let the crown, sunglasses, hat, or whatever makes your SLIME unique fill the circle. That's the look. That's the vibe.
+                    </p>
+                  </div>
+                  <ul className="space-y-2 text-sm text-gray-300">
+                    <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Zoom in to the face — head traits are the star of the show</li>
+                    <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Tilt the image slightly for character and personality</li>
+                    <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>X, Discord, Telegram — this cropped style works everywhere</li>
+                    <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Download your full SLIME image from your inventory on this site</li>
+                    <li className="flex items-start gap-2"><span className="text-slime-green mt-0.5">•</span>Feel free to add custom borders or frames — it's your IP!</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
 
             {/* Name usage */}
             <h3 className="text-sm font-black mb-4 text-gray-500 uppercase tracking-widest">Logo & Name Usage</h3>

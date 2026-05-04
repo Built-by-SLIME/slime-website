@@ -59,13 +59,15 @@ export default function Navigation() {
               </button>
               {communityOpen && (
                 <div
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-44 bg-[#1a1a1a] border border-gray-700 rounded-xl shadow-2xl py-2 z-50"
+                  className="absolute top-full left-1/2 -translate-x-1/2 w-44 pt-3 z-50"
                   onMouseEnter={openCommunity}
                   onMouseLeave={closeCommunity}
                 >
-                  <Link to="/merch" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>MERCH</Link>
-                  <Link to="/$slime" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>$SLIME</Link>
-                  <Link to="/branding" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>BRANDING</Link>
+                  <div className="bg-[#1a1a1a] border border-gray-700 rounded-xl shadow-2xl py-2">
+                    <Link to="/merch" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>MERCH</Link>
+                    <Link to="/$slime" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>$SLIME</Link>
+                    <Link to="/branding" className="block px-4 py-2.5 text-sm text-gray-300 hover:text-slime-green hover:bg-white/5 transition" onClick={() => setCommunityOpen(false)}>BRANDING</Link>
+                  </div>
                 </div>
               )}
             </div>
