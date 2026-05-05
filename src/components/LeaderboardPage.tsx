@@ -79,6 +79,11 @@ export default function LeaderboardPage() {
         if (data.linked && data.user) {
           setXUser(data.user)
           localStorage.setItem('slime_x_user', JSON.stringify(data.user))
+        } else {
+          // DB says unlinked (e.g. unlinked on another device) — clear local cache
+          setXUser(null)
+          localStorage.removeItem('slime_x_user')
+          localStorage.removeItem('slime_x_session')
         }
       })
       .catch(() => {})
