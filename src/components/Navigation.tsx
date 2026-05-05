@@ -26,7 +26,7 @@ export default function Navigation() {
   return (
     <>
       {/* Navigation */}
-      <nav className="relative flex justify-between items-center px-4 py-5 z-10" style={{ paddingLeft: undefined, paddingRight: undefined }}>
+      <nav className="relative flex justify-between items-center px-4 py-5 z-50" style={{ paddingLeft: undefined, paddingRight: undefined }}>
         <style>{`
           @media (min-width: 768px) {
             nav { padding-left: 76.5px !important; padding-right: 60px !important; }
