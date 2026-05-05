@@ -171,13 +171,18 @@ export default function LeaderboardPage() {
   }
 
   const handleUnlink = async () => {
-    const token = localStorage.getItem('slime_x_session')
-    if (!token) return
+    if (!accountId) return
     setUnlinking(true)
+    const token = localStorage.getItem('slime_x_session')
     try {
       await fetch('/api/auth/x-unlink', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        // Always send wallet address so cross-device sessions (no local JWT) can also unlink
+        body: JSON.stringify({ walletAddress: accountId }),
       })
       localStorage.removeItem('slime_x_session')
       localStorage.removeItem('slime_x_user')
