@@ -30,21 +30,6 @@ async function getHederaData(wallet) {
   }
 }
 
-// Fetch a fresh App-Only bearer token from X using client credentials.
-async function getXBearerToken(clientId, clientSecret) {
-  const res = await fetch('https://api.twitter.com/oauth2/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-    },
-    body: 'grant_type=client_credentials',
-  })
-  if (!res.ok) return null
-  const { access_token } = await res.json()
-  return access_token || null
-}
-
 // Batch-fetch current profile_image_url for up to 100 X users at once.
 // Returns a map of { x_user_id -> avatar_url }.
 async function fetchFreshAvatars(userIds, bearerToken) {
@@ -73,8 +58,7 @@ export default async function handler(req, res) {
 
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY
-  const xClientId = process.env.X_CLIENT_ID
-  const xClientSecret = process.env.X_CLIENT_SECRET
+  const xBearerToken = process.env.X_BEARER_TOKEN
   if (!supabaseUrl || !supabaseKey) return res.status(500).json({ error: 'Server not configured' })
 
   const supabase = createClient(supabaseUrl, supabaseKey)
@@ -87,11 +71,7 @@ export default async function handler(req, res) {
 
   // Fetch fresh avatars from X + on-chain Hedera data in parallel
   const [avatarMap, ...hederaResults] = await Promise.all([
-    (async () => {
-      if (!xClientId || !xClientSecret) return {}
-      const token = await getXBearerToken(xClientId, xClientSecret)
-      return fetchFreshAvatars(users.map(u => u.x_user_id), token)
-    })(),
+    fetchFreshAvatars(users.map(u => u.x_user_id), xBearerToken || null),
     ...users.map(u => getHederaData(u.wallet_address)),
   ])
 

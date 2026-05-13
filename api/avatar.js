@@ -20,7 +20,10 @@ export default async function handler(req, res) {
       },
     })
 
-    if (!upstream.ok) return res.status(upstream.status).end()
+    if (!upstream.ok) {
+      // Upstream URL is dead — redirect to the local fallback favicon
+      return res.redirect(302, '/Assets/favicon.svg')
+    }
 
     const contentType = upstream.headers.get('content-type') || 'image/jpeg'
     const buffer = await upstream.arrayBuffer()
