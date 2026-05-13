@@ -38,6 +38,11 @@ function shortWallet(w: string) {
   return `0.0.${parts[2]?.slice(0, 4)}…`
 }
 
+function avatarSrc(url: string | null): string | undefined {
+  if (!url) return undefined
+  return `/api/avatar?url=${encodeURIComponent(url)}`
+}
+
 function rankColor(rank: number): string {
   if (rank <= 14)  return 'text-red-400'
   if (rank <= 49)  return 'text-orange-400'
@@ -219,7 +224,7 @@ export default function LeaderboardPage() {
               <>
                 <div className="flex items-center gap-4">
                   {xUser.x_avatar_url && (
-                    <img src={xUser.x_avatar_url} alt={xUser.x_username} className="w-12 h-12 rounded-full border-2 border-slime-green" />
+                    <img src={avatarSrc(xUser.x_avatar_url)} alt={xUser.x_username} className="w-12 h-12 rounded-full border-2 border-slime-green" />
                   )}
                   <div>
                     <p className="text-white font-bold">@{xUser.x_username}</p>
@@ -288,7 +293,7 @@ export default function LeaderboardPage() {
 
                   {/* Avatar */}
                   {entry.x_avatar_url ? (
-                    <img src={entry.x_avatar_url} alt={entry.x_username} className="w-10 h-10 rounded-full flex-shrink-0" />
+                    <img src={avatarSrc(entry.x_avatar_url)} alt={entry.x_username} className="w-10 h-10 rounded-full flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-800 flex-shrink-0" />
                   )}
@@ -321,7 +326,7 @@ export default function LeaderboardPage() {
           <div className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <button onClick={() => setSelectedEntry(null)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a2a2a] border border-gray-700 text-gray-400 hover:text-white transition">✕</button>
             <div className="p-6 border-b border-gray-800 flex items-center gap-4">
-              {selectedEntry.x_avatar_url && <img src={selectedEntry.x_avatar_url} alt={selectedEntry.x_username} className="w-12 h-12 rounded-full border-2 border-slime-green" />}
+              {selectedEntry.x_avatar_url && <img src={avatarSrc(selectedEntry.x_avatar_url)} alt={selectedEntry.x_username} className="w-12 h-12 rounded-full border-2 border-slime-green" />}
               <div>
                 <p className="text-white font-black text-lg">@{selectedEntry.x_username}</p>
                 <p className="text-gray-500 text-xs font-mono">{selectedEntry.wallet_address}</p>
