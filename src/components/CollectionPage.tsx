@@ -84,7 +84,7 @@ export default function CollectionPage() {
         if (!countMap[attr.trait_type]) countMap[attr.trait_type] = {}
         const key = attr.value.toLowerCase()
         if (!countMap[attr.trait_type][key]) {
-          countMap[attr.trait_type][key] = { display: attr.value, count: 0 }
+          countMap[attr.trait_type][key] = { display: attr.value.charAt(0).toUpperCase() + attr.value.slice(1), count: 0 }
         }
         countMap[attr.trait_type][key].count += 1
       })
