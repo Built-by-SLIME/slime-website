@@ -114,7 +114,7 @@ export default function Navigation() {
 
         {/* Mobile: hamburger always — connected opens slideout, disconnected opens nav overlay */}
         <button
-          className="md:hidden transition z-50 flex items-center justify-center"
+          className={`md:hidden transition z-50 flex items-center justify-center ${mobileMenuOpen ? 'hidden' : ''}`}
           onClick={() => isConnected ? setSlideoutOpen(true) : setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
