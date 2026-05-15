@@ -43,6 +43,8 @@ export default function CollectionPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [expandedType, setExpandedType] = useState<string | null>(null)
   const [selectedNft, setSelectedNft] = useState<NFT | null>(null)
+  const [holderWallet, setHolderWallet] = useState<string | null>(null)
+  const [holderX, setHolderX] = useState<string | null>(null)
 
   useEffect(() => { fetchAllCollection() }, [])
 
@@ -52,6 +54,25 @@ export default function CollectionPage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  // Fetch holder whenever a new NFT is opened
+  useEffect(() => {
+    if (!selectedNft) { setHolderWallet(null); setHolderX(null); return }
+    setHolderWallet(null); setHolderX(null)
+    const serial = selectedNft.serialId
+    ;(async () => {
+      try {
+        const res = await fetch(`https://mainnet.mirrornode.hedera.com/api/v1/tokens/0.0.9474754/nfts/${serial}`)
+        if (!res.ok) return
+        const { account_id } = await res.json()
+        if (!account_id) return
+        setHolderWallet(account_id)
+        const xRes = await fetch(`/api/auth/check-wallet?wallet=${encodeURIComponent(account_id)}`)
+        const xData = await xRes.json()
+        if (xData.linked && xData.user?.x_username) setHolderX(xData.user.x_username)
+      } catch { /* silent */ }
+    })()
+  }, [selectedNft])
 
   const fetchAllCollection = async () => {
     try {
@@ -468,28 +489,33 @@ export default function CollectionPage() {
                 </div>
 
                 {/* Right — Name + Details */}
-                <div className="flex-1 p-6 space-y-5">
+                <div className="flex-1 p-6 space-y-4">
                   <div>
                     <h2 className="text-2xl font-black">{nft.name}</h2>
                     <p className="text-gray-500 text-sm mt-1">Hedera NFT · SLIME Collection</p>
                   </div>
 
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Details</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Details</h3>
                     <div className="bg-[#252525] rounded-xl divide-y divide-gray-800">
-                      <div className="flex justify-between items-center px-4 py-3">
-                        <span className="text-gray-400 text-sm">SLIME ID</span>
-                        <span className="text-white font-bold">#{nft.serialId}</span>
+                      <div className="flex justify-between items-center px-4 py-2">
+                        <span className="text-gray-400 text-xs">SLIME ID</span>
+                        <span className="text-white font-bold text-sm">#{nft.serialId}</span>
                       </div>
-                      <div className="flex justify-between items-center px-4 py-3">
-                        <span className="text-gray-400 text-sm">Rarity Rank</span>
-                        <span className={`font-bold ${rankColor(nft.correctedRank)}`}>#{nft.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
+                      <div className="flex justify-between items-center px-4 py-2">
+                        <span className="text-gray-400 text-xs">Rarity Rank</span>
+                        <span className={`font-bold text-sm ${rankColor(nft.correctedRank)}`}>#{nft.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
                       </div>
-                      <div className="flex justify-between items-center px-4 py-3">
-                        <span className="text-gray-400 text-sm">Rarity Score</span>
-                        <span className="text-white font-bold">{(nft.correctedRarity * 100).toFixed(2)}%</span>
+                      <div className="flex justify-between items-center px-4 py-2">
+                        <span className="text-gray-400 text-xs">Rarity Score</span>
+                        <span className="text-white font-bold text-sm">{(nft.correctedRarity * 100).toFixed(2)}%</span>
                       </div>
-
+                      <div className="flex justify-between items-center px-4 py-2">
+                        <span className="text-gray-400 text-xs">Held by</span>
+                        <span className="text-white font-bold text-sm truncate max-w-[55%] text-right">
+                          {holderX ? `@${holderX}` : holderWallet ?? '…'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
