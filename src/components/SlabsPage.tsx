@@ -215,7 +215,7 @@ export default function SlabsPage() {
           {/* Not connected */}
           {!isConnected && (
             <div className="flex flex-col items-center justify-center py-20 gap-6">
-              <div className="text-5xl">🧪</div>
+              <div className="text-5xl">🫟</div>
               <p className="text-gray-400 text-center max-w-sm">Connect your wallet to see your claimable slabs.</p>
               <button
                 onClick={handleConnect}
