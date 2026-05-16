@@ -614,9 +614,13 @@ export default function MarketPage() {
                             {listing.salePrice.toLocaleString()}
                             <span className="text-slime-green text-sm ml-0.5">ℏ</span>
                           </p>
-                          {claimedSerials.has(listing.serialId) && (
+                          {claimedSerials.has(listing.serialId) ? (
                             <span className="text-[10px] font-bold bg-slime-green/10 text-slime-green border border-slime-green/25 rounded-full px-2 py-0.5 leading-none">
                               🫟 Slab ✓
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-gray-600 border border-gray-700 rounded-full px-2 py-0.5 leading-none">
+                              Slab ○
                             </span>
                           )}
                         </div>
