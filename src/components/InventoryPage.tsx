@@ -163,26 +163,34 @@ export default function InventoryPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slime-green" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 {nftsWithImages.map(nft => (
                   <div key={nft.serial_number} className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all">
-                    <div className="aspect-square bg-[#252525] p-3">
+                    <div className="aspect-square bg-[#252525] p-2">
                       {nft.imageUrl ? (
                         <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-contain" crossOrigin="anonymous"
-                          onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                          onError={e => {
+                            const img = e.target as HTMLImageElement
+                            if (!img.dataset.retried) {
+                              img.dataset.retried = 'true'
+                              setTimeout(() => { img.src = `${nft.imageUrl.split('?')[0]}?r=${Date.now()}` }, 1500)
+                            } else {
+                              img.src = '/Assets/SPLAT.png'
+                            }
+                          }} />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">#{nft.serial_number}</div>
                       )}
                     </div>
-                    <div className="p-3 space-y-2">
-                      <h3 className="text-sm font-bold truncate">{nft.name}</h3>
+                    <div className="p-2.5 space-y-2">
+                      <p className="text-gray-400 text-xs font-mono">#{nft.serial_number}</p>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-gray-500">Rank</span>
                         <span className={`font-bold ${rankColor(nft.correctedRank)}`}>#{nft.correctedRank}</span>
                       </div>
                       <button
                         onClick={() => setSelectedNft(nft)}
-                        className="block w-full bg-slime-green text-black py-2 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center"
+                        className="block w-full bg-slime-green text-black py-1.5 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center"
                       >
                         VIEW
                       </button>

@@ -198,17 +198,16 @@ export default function SlabsPage() {
     <div className="min-h-screen bg-[#2a2a2a] text-white flex flex-col">
       <Navigation />
 
-      <main className="flex-1 px-4 pb-20" style={{ paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
+      <main className="py-16 px-4 md:px-8 flex-grow" style={{ paddingBottom: 'max(80px, env(safe-area-inset-bottom))' }}>
         <div className="max-w-6xl mx-auto">
 
-          {/* Hero */}
-          <div className="text-center pt-8 pb-10">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight">CLAIM YOUR SLABS</h1>
-            <p className="text-gray-400 mt-3 max-w-lg mx-auto text-sm md:text-base">
-              You held SLIME. Now claim your Slab. Each SLIME NFT you hold entitles you to one
-              matching SLIME Slab — same serial, 1:1.
+          {/* Header */}
+          <div className="mb-10">
+            <span className="text-slime-green text-xs font-bold uppercase tracking-widest">Community</span>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mt-2">CLAIM SLABS</h1>
+            <p className="text-gray-400 text-base mt-3 leading-relaxed">
+              You held SLIME. Now claim your Slab. Each SLIME NFT you hold entitles you to one matching SLIME Slab — same serial, 1:1.
             </p>
-            <p className="text-gray-500 mt-2 text-xs">Fee: {FEE_HBAR_PER_SLAB} HBAR per slab · Token: 0.0.10480544</p>
           </div>
 
           {/* Not connected */}
@@ -338,7 +337,15 @@ export default function SlabsPage() {
                               src={nft.imageUrl || '/Assets/SPLAT.png'}
                               alt={nft.name}
                               className="w-full h-full object-contain"
-                              onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
+                              onError={e => {
+                                const img = e.target as HTMLImageElement
+                                if (!img.dataset.retried && nft.imageUrl) {
+                                  img.dataset.retried = 'true'
+                                  setTimeout(() => { img.src = `${nft.imageUrl.split('?')[0]}?r=${Date.now()}` }, 1500)
+                                } else {
+                                  img.src = '/Assets/SPLAT.png'
+                                }
+                              }}
                             />
                           </div>
                           <div className="p-2.5">
