@@ -185,6 +185,9 @@ export default function MarketPage() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const [allNftData, setAllNftData] = useState<Map<number, FullNFT>>(new Map())
 
+  // Slab claim status — serials that have already been claimed
+  const [claimedSerials, setClaimedSerials] = useState<Set<number>>(new Set())
+
   // ── Data fetching ───────────────────────────────────────────────────────────
 
   // Map combined sort option → API params (rarity is client-side, use price-asc as default fetch)
@@ -296,10 +299,20 @@ export default function MarketPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const fetchAllClaimed = async () => {
+    try {
+      const r = await fetch('/api/slabs/all-claimed')
+      if (!r.ok) return
+      const d = await r.json()
+      setClaimedSerials(new Set<number>(d.claimedSerials || []))
+    } catch { /* non-critical, badge just won't show */ }
+  }
+
   // Initial load
   useEffect(() => {
     fetchListings()
     fetchFloor()
+    fetchAllClaimed()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-fetch when sort changes (skip on mount — covered above)
@@ -596,10 +609,17 @@ export default function MarketPage() {
                               : <span className="text-gray-700">—</span>
                           })()}
                         </div>
-                        <p className="text-slime-green font-mono font-black text-base leading-none">
-                          {listing.salePrice.toLocaleString()}
-                          <span className="text-slime-green text-sm ml-0.5">ℏ</span>
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-slime-green font-mono font-black text-base leading-none">
+                            {listing.salePrice.toLocaleString()}
+                            <span className="text-slime-green text-sm ml-0.5">ℏ</span>
+                          </p>
+                          {claimedSerials.has(listing.serialId) && (
+                            <span className="text-[10px] font-bold bg-slime-green/10 text-slime-green border border-slime-green/25 rounded-full px-2 py-0.5 leading-none">
+                              🫟 Slab ✓
+                            </span>
+                          )}
+                        </div>
 
                         <button
                           onClick={() => setSelectedListing(listing)}
