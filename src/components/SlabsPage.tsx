@@ -1,0 +1,333 @@
+import { useState, useEffect } from 'react'
+import { TransferTransaction, Hbar } from '@hashgraph/sdk'
+import { useWallet } from '../context/WalletContext'
+import Navigation from './Navigation'
+import Footer from './Footer'
+
+const OPERATOR_WALLET  = '0.0.9348822'
+const SLIME_TOKEN_ID   = '0.0.9474754'
+const FEE_HBAR_PER_SLAB = 0.05  // displayed to user
+const FEE_TINYBARS      = 5_000_000  // exact on-chain
+
+interface SlabNFT {
+  serial_number: number
+  name: string
+  imageUrl: string
+}
+
+export default function SlabsPage() {
+  const { isConnected, accountId, slimeNFTs, dAppConnector, connect } = useWallet()
+
+  const [nfts, setNfts] = useState<SlabNFT[]>([])
+  const [loadingNFTs, setLoadingNFTs] = useState(false)
+  const [claimedSerials, setClaimedSerials] = useState<Set<number>>(new Set())
+  const [flippedSerials, setFlippedSerials] = useState<Set<number>>(new Set())
+  const [claimingSerials, setClaimingSerials] = useState<Set<number>>(new Set())
+  const [statusMsg, setStatusMsg] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  // Load NFT images + claimed serials whenever wallet connects
+  useEffect(() => {
+    if (!isConnected || !accountId || slimeNFTs.length === 0) {
+      setNfts([])
+      setClaimedSerials(new Set())
+      return
+    }
+    loadData()
+  }, [isConnected, accountId, slimeNFTs]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadData() {
+    setLoadingNFTs(true)
+    setErrorMsg('')
+    try {
+      const apiKey  = import.meta.env.VITE_SENTX_API_KEY
+      const tokenId = import.meta.env.VITE_SLIME_TOKEN_ID || SLIME_TOKEN_ID
+      const gateway = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
+      const userSerials = new Set(slimeNFTs.map(n => Number(n.serial_number)))
+
+      const [collectionRes, claimedRes] = await Promise.all([
+        fetch(`/api/collection-rarity?apikey=${apiKey}&token=${tokenId}&limit=1000&page=1`),
+        fetch(`/api/slabs/check?wallet=${encodeURIComponent(accountId)}`),
+      ])
+
+      if (collectionRes.ok) {
+        const data = await collectionRes.json()
+        if (data.success && data.nfts) {
+          const filtered: SlabNFT[] = data.nfts
+            .filter((n: { serialId: number }) => userSerials.has(Number(n.serialId)))
+            .map((n: { serialId: number; name: string; image: string }) => {
+              let imageUrl = n.image || ''
+              if (imageUrl.startsWith('ipfs://')) {
+                const raw = imageUrl.replace('ipfs://', gateway)
+                const idx = raw.lastIndexOf('/')
+                imageUrl = raw.substring(0, idx + 1) + raw.substring(idx + 1).replace(/#/g, '%23')
+              }
+              return {
+                serial_number: Number(n.serialId),
+                name: n.name || `SLIME #${n.serialId}`,
+                imageUrl,
+              }
+            })
+            .sort((a: SlabNFT, b: SlabNFT) => a.serial_number - b.serial_number)
+          setNfts(filtered)
+        }
+      }
+
+      if (claimedRes.ok) {
+        const { claimedSerials: claimed } = await claimedRes.json()
+        setClaimedSerials(new Set(claimed as number[]))
+      }
+    } catch (err) {
+      setErrorMsg('Failed to load your NFTs. Please refresh and try again.')
+    } finally {
+      setLoadingNFTs(false)
+    }
+  }
+
+  const getSigner = () => {
+    if (!dAppConnector) return null
+    return (
+      dAppConnector.signers.find(s => s.getAccountId().toString() === accountId) ??
+      dAppConnector.signers[0] ??
+      null
+    )
+  }
+
+  async function handleClaim(serials: number[]) {
+    if (!isConnected || !accountId) return
+    const claimable = serials.filter(s => !claimedSerials.has(s) && !claimingSerials.has(s))
+    if (claimable.length === 0) return
+
+    setErrorMsg('')
+    setStatusMsg('')
+    setClaimingSerials(prev => new Set([...prev, ...claimable]))
+
+    try {
+      // Step 1: collect HBAR payment from user
+      setStatusMsg(`Approve payment of ${(claimable.length * FEE_HBAR_PER_SLAB).toFixed(2)} HBAR in your wallet…`)
+      const signer = getSigner()
+      if (!signer) throw new Error('Wallet signer not available — please reconnect your wallet.')
+
+      const totalTinybars = claimable.length * FEE_TINYBARS
+      const tx = new TransferTransaction()
+        .addHbarTransfer(accountId, Hbar.fromTinybars(-totalTinybars))
+        .addHbarTransfer(OPERATOR_WALLET, Hbar.fromTinybars(totalTinybars))
+        .setTransactionMemo('SLIME Slab Claim')
+
+      await tx.freezeWithSigner(signer)
+      const response = await tx.executeWithSigner(signer)
+      const paymentTxId = response.transactionId?.toString()
+      if (!paymentTxId) throw new Error('Could not retrieve transaction ID from wallet response.')
+
+      // Step 2: backend verifies payment + transfers slabs
+      setStatusMsg(`Payment confirmed! Claiming your slab${claimable.length > 1 ? 's' : ''}…`)
+      const claimRes = await fetch('/api/slabs/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet: accountId, serials: claimable, paymentTxId }),
+      })
+      const claimData = await claimRes.json()
+      if (!claimRes.ok) throw new Error(claimData.error || 'Claim failed')
+
+      // Step 3: update UI — flip cards and mark as claimed
+      const claimed: number[] = claimData.claimed
+      setClaimedSerials(prev => new Set([...prev, ...claimed]))
+      // Small delay before flip so the user sees the status msg
+      setTimeout(() => {
+        setFlippedSerials(prev => new Set([...prev, ...claimed]))
+        setStatusMsg(`🎉 ${claimed.length} Slab${claimed.length > 1 ? 's' : ''} claimed successfully!`)
+      }, 400)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An unknown error occurred'
+      setErrorMsg(msg)
+      setStatusMsg('')
+    } finally {
+      setClaimingSerials(prev => {
+        const next = new Set(prev)
+        serials.forEach(s => next.delete(s))
+        return next
+      })
+    }
+  }
+
+  const claimableNFTs = nfts.filter(n => !claimedSerials.has(n.serial_number))
+  const claimableCount = claimableNFTs.length
+  const totalFee = (claimableCount * FEE_HBAR_PER_SLAB).toFixed(2)
+
+  const handleConnect = async () => {
+    try { await connect() } catch { /* ignore */ }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#2a2a2a] text-white flex flex-col">
+      <Navigation />
+
+      <main className="flex-1 px-4 pb-20" style={{ paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
+        <div className="max-w-6xl mx-auto">
+
+          {/* Hero */}
+          <div className="text-center pt-8 pb-10">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight">CLAIM YOUR SLABS</h1>
+            <p className="text-gray-400 mt-3 max-w-lg mx-auto text-sm md:text-base">
+              You held SLIME. Now claim your Slab. Each SLIME NFT you hold entitles you to one
+              matching SLIME Slab — same serial, 1:1.
+            </p>
+            <p className="text-gray-500 mt-2 text-xs">Fee: {FEE_HBAR_PER_SLAB} HBAR per slab · Token: 0.0.10480544</p>
+          </div>
+
+          {/* Not connected */}
+          {!isConnected && (
+            <div className="flex flex-col items-center justify-center py-20 gap-6">
+              <div className="text-5xl">🧪</div>
+              <p className="text-gray-400 text-center max-w-sm">Connect your wallet to see your claimable slabs.</p>
+              <button
+                onClick={handleConnect}
+                className="bg-slime-green text-black px-8 py-3 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition"
+              >
+                CONNECT WALLET
+              </button>
+            </div>
+          )}
+
+          {/* Connected — loading */}
+          {isConnected && loadingNFTs && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slime-green" />
+              <p className="text-gray-400 text-sm">Loading your SLIME NFTs…</p>
+            </div>
+          )}
+
+          {/* Connected — no NFTs */}
+          {isConnected && !loadingNFTs && nfts.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="text-5xl">😔</div>
+              <p className="text-gray-400 text-center max-w-sm">
+                This wallet doesn't hold any SLIME NFTs (0.0.9474754). You need a SLIME NFT to claim a Slab.
+              </p>
+            </div>
+          )}
+
+          {/* Connected — has NFTs */}
+          {isConnected && !loadingNFTs && nfts.length > 0 && (
+            <>
+              {/* Stats + Claim All bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 bg-[#1a1a1a] border border-gray-800 rounded-xl px-5 py-4">
+                <div className="flex gap-6">
+                  <div className="text-center">
+                    <p className="text-slime-green font-black text-xl">{claimableCount}</p>
+                    <p className="text-gray-500 text-xs uppercase tracking-wider">Claimable</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-black text-xl">{claimedSerials.size}</p>
+                    <p className="text-gray-500 text-xs uppercase tracking-wider">Claimed</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-black text-xl">{nfts.length}</p>
+                    <p className="text-gray-500 text-xs uppercase tracking-wider">Total Held</p>
+                  </div>
+                </div>
+                {claimableCount > 0 && (
+                  <div className="flex flex-col items-end gap-1">
+                    <button
+                      onClick={() => handleClaim(claimableNFTs.map(n => n.serial_number))}
+                      disabled={claimingSerials.size > 0}
+                      className="bg-slime-green text-black px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {claimingSerials.size > 0 ? 'CLAIMING…' : `CLAIM ALL (${claimableCount})`}
+                    </button>
+                    <p className="text-gray-500 text-xs">Total fee: {totalFee} HBAR</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Status messages */}
+              {statusMsg && (
+                <div className="mb-4 bg-[#1a2a1a] border border-slime-green/40 rounded-xl px-4 py-3 text-slime-green text-sm text-center">
+                  {statusMsg}
+                </div>
+              )}
+              {errorMsg && (
+                <div className="mb-4 bg-[#2a1a1a] border border-red-800 rounded-xl px-4 py-3 text-red-400 text-sm text-center">
+                  {errorMsg}
+                </div>
+              )}
+
+              {/* Token association notice */}
+              <div className="mb-6 bg-[#1a1a1a] border border-yellow-800/50 rounded-xl px-4 py-3 text-yellow-500/80 text-xs text-center">
+                ⚠️ Your wallet must be associated with token <span className="font-mono">0.0.10480544</span> before claiming.
+                Associate it in HashPack or Kabila first if you haven't already.
+              </div>
+
+              {/* NFT Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {nfts.map(nft => {
+                  const isClaimed   = claimedSerials.has(nft.serial_number)
+                  const isClaiming  = claimingSerials.has(nft.serial_number)
+                  const isFlipped   = flippedSerials.has(nft.serial_number)
+                  return (
+                    <div key={nft.serial_number} style={{ perspective: '800px' }}>
+                      <div
+                        style={{
+                          transformStyle: 'preserve-3d',
+                          transition: 'transform 0.7s ease',
+                          transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                          position: 'relative',
+                        }}
+                      >
+                        {/* Front — SLIME NFT */}
+                        <div
+                          className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700"
+                          style={{ backfaceVisibility: 'hidden' }}
+                        >
+                          <div className="aspect-square bg-[#252525] p-2">
+                            <img
+                              src={nft.imageUrl || '/Assets/SPLAT.png'}
+                              alt={nft.name}
+                              className="w-full h-full object-contain"
+                              onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
+                            />
+                          </div>
+                          <div className="p-2.5">
+                            <p className="text-gray-400 text-xs font-mono mb-2">#{nft.serial_number}</p>
+                            {isClaiming ? (
+                              <div className="flex items-center justify-center gap-1.5 py-1.5">
+                                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b border-slime-green" />
+                                <span className="text-slime-green text-xs">Claiming…</span>
+                              </div>
+                            ) : isClaimed ? (
+                              <div className="text-center text-gray-500 text-xs py-1.5 font-bold">Claimed ✓</div>
+                            ) : (
+                              <button
+                                onClick={() => handleClaim([nft.serial_number])}
+                                disabled={claimingSerials.size > 0}
+                                className="w-full bg-slime-green text-black py-1.5 rounded-lg font-bold text-xs hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                CLAIM SLAB
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Back — Claimed state */}
+                        <div
+                          className="absolute inset-0 bg-[#0d1f0d] border-2 border-slime-green rounded-xl flex flex-col items-center justify-center gap-2"
+                          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                        >
+                          <div className="text-3xl">🧪</div>
+                          <p className="text-slime-green font-black text-sm">SLAB CLAIMED</p>
+                          <p className="text-gray-400 text-xs font-mono">#{nft.serial_number}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  )
+}
