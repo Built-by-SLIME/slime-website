@@ -1,19 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { Client, PrivateKey, AccountId, TransferTransaction, TokenId } from '@hashgraph/sdk'
 
-// Parse private key, trying all formats to handle ECDSA vs ED25519 ambiguity and DER variants
+// Operator account 0.0.9348822 is confirmed ECDSA_SECP256K1 via Mirror Node.
+// PrivateKey.fromString() silently misparses raw ECDSA hex as ED25519 — must use fromStringECDSA.
 function parsePrivateKey(raw) {
-  const key = raw.trim()
-  // Try in order: auto-detect, explicit ECDSA, explicit ED25519
-  const attempts = [
-    () => PrivateKey.fromString(key),
-    () => PrivateKey.fromStringECDSA(key),
-    () => PrivateKey.fromStringED25519(key),
-  ]
-  for (const attempt of attempts) {
-    try { return attempt() } catch { /* try next */ }
-  }
-  throw new Error('Could not parse OPERATOR_PRIVATE_KEY — check the key format in Vercel env vars')
+  return PrivateKey.fromStringECDSA(raw.trim())
 }
 
 const SLIME_TOKEN    = '0.0.9474754'
