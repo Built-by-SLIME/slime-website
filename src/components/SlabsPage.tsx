@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TransferTransaction, Hbar } from '@hashgraph/sdk'
+import { TransferTransaction, TokenAssociateTransaction, TokenId, AccountId, Hbar } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
@@ -23,14 +23,17 @@ export default function SlabsPage() {
   const [claimedSerials, setClaimedSerials] = useState<Set<number>>(new Set())
   const [flippedSerials, setFlippedSerials] = useState<Set<number>>(new Set())
   const [claimingSerials, setClaimingSerials] = useState<Set<number>>(new Set())
+  const [isAssociated, setIsAssociated] = useState<boolean | null>(null) // null = checking
+  const [associating, setAssociating] = useState(false)
   const [statusMsg, setStatusMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Load NFT images + claimed serials whenever wallet connects
+  // Load NFT images + claimed serials + association status whenever wallet connects
   useEffect(() => {
     if (!isConnected || !accountId || slimeNFTs.length === 0) {
       setNfts([])
       setClaimedSerials(new Set())
+      setIsAssociated(null)
       return
     }
     loadData()
@@ -45,9 +48,10 @@ export default function SlabsPage() {
       const gateway = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
       const userSerials = new Set(slimeNFTs.map(n => Number(n.serial_number)))
 
-      const [collectionRes, claimedRes] = await Promise.all([
+      const [collectionRes, claimedRes, assocRes] = await Promise.all([
         fetch(`/api/collection-rarity?apikey=${apiKey}&token=${tokenId}&limit=1000&page=1`),
         fetch(`/api/slabs/check?wallet=${encodeURIComponent(accountId)}`),
+        fetch(`https://mainnet.mirrornode.hedera.com/api/v1/accounts/${encodeURIComponent(accountId)}/tokens?token.id=0.0.10480544`),
       ])
 
       if (collectionRes.ok) {
@@ -77,6 +81,13 @@ export default function SlabsPage() {
         const { claimedSerials: claimed } = await claimedRes.json()
         setClaimedSerials(new Set(claimed as number[]))
       }
+
+      if (assocRes.ok) {
+        const assocData = await assocRes.json()
+        setIsAssociated((assocData.tokens || []).some((t: { token_id: string }) => t.token_id === '0.0.10480544'))
+      } else {
+        setIsAssociated(false)
+      }
     } catch (err) {
       setErrorMsg('Failed to load your NFTs. Please refresh and try again.')
     } finally {
@@ -93,8 +104,33 @@ export default function SlabsPage() {
     )
   }
 
+  async function handleAssociate() {
+    setErrorMsg('')
+    setAssociating(true)
+    try {
+      const signer = getSigner()
+      if (!signer) throw new Error('Wallet signer not available — please reconnect your wallet.')
+      const tx = new TokenAssociateTransaction()
+        .setAccountId(AccountId.fromString(accountId))
+        .setTokenIds([TokenId.fromString('0.0.10480544')])
+      await tx.freezeWithSigner(signer)
+      await tx.executeWithSigner(signer)
+      setIsAssociated(true)
+      setStatusMsg('✅ Token associated! You can now claim your Slabs.')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Association failed'
+      setErrorMsg(msg)
+    } finally {
+      setAssociating(false)
+    }
+  }
+
   async function handleClaim(serials: number[]) {
     if (!isConnected || !accountId) return
+    if (!isAssociated) {
+      setErrorMsg('Please associate the SLIME Slab token before claiming.')
+      return
+    }
     const claimable = serials.filter(s => !claimedSerials.has(s) && !claimingSerials.has(s))
     if (claimable.length === 0) return
 
@@ -230,7 +266,7 @@ export default function SlabsPage() {
                   <div className="flex flex-col items-end gap-1">
                     <button
                       onClick={() => handleClaim(claimableNFTs.map(n => n.serial_number))}
-                      disabled={claimingSerials.size > 0}
+                      disabled={claimingSerials.size > 0 || isAssociated === false}
                       className="bg-slime-green text-black px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {claimingSerials.size > 0 ? 'CLAIMING…' : `CLAIM ALL (${claimableCount})`}
@@ -252,11 +288,29 @@ export default function SlabsPage() {
                 </div>
               )}
 
-              {/* Token association notice */}
-              <div className="mb-6 bg-[#1a1a1a] border border-yellow-800/50 rounded-xl px-4 py-3 text-yellow-500/80 text-xs text-center">
-                ⚠️ Your wallet must be associated with token <span className="font-mono">0.0.10480544</span> before claiming.
-                Associate it in HashPack or Kabila first if you haven't already.
-              </div>
+              {/* Association status panel */}
+              {isAssociated === null && (
+                <div className="mb-6 bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-gray-400 text-xs text-center">
+                  Checking token association…
+                </div>
+              )}
+              {isAssociated === false && (
+                <div className="mb-6 bg-[#1f1700] border border-yellow-700/60 rounded-xl px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <p className="text-yellow-400 font-bold text-sm">Token Association Required</p>
+                    <p className="text-yellow-600 text-xs mt-0.5">
+                      Your wallet must be associated with <span className="font-mono">0.0.10480544</span> before you can receive Slabs.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAssociate}
+                    disabled={associating}
+                    className="flex-shrink-0 bg-yellow-500 text-black px-5 py-2 rounded-lg font-bold text-xs hover:bg-yellow-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {associating ? 'ASSOCIATING…' : 'ASSOCIATE TOKEN'}
+                  </button>
+                </div>
+              )}
 
               {/* NFT Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -299,7 +353,7 @@ export default function SlabsPage() {
                             ) : (
                               <button
                                 onClick={() => handleClaim([nft.serial_number])}
-                                disabled={claimingSerials.size > 0}
+                                disabled={claimingSerials.size > 0 || isAssociated === false}
                                 className="w-full bg-slime-green text-black py-1.5 rounded-lg font-bold text-xs hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 CLAIM SLAB
