@@ -476,11 +476,11 @@ export default function CollectionPage() {
               <div className="flex flex-col md:flex-row gap-0">
                 {/* Left — Image */}
                 <div className="md:w-2/5 flex-shrink-0 relative">
-                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none p-6 flex items-center justify-center">
+                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none overflow-hidden">
                     <img
                       src={getNFTImage(nft)}
                       alt={nft.name}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                       crossOrigin="anonymous"
                       onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }}
                     />
