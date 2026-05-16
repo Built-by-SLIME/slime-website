@@ -136,7 +136,7 @@ export default function InventoryPage() {
 
       <Navigation />
 
-      <div className="relative max-w-4xl mx-auto px-4 md:px-8 py-10 flex-grow w-full">
+      <div className="relative max-w-6xl mx-auto px-4 md:px-8 py-10 flex-grow w-full">
 
         {/* Inventory Header */}
         <div className="mb-10">
