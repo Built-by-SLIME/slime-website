@@ -805,8 +805,8 @@ export default function MarketPage() {
               {/* Top row — image + details */}
               <div className="flex flex-col md:flex-row">
                 <div className="md:w-2/5 flex-shrink-0">
-                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none p-6 flex items-center justify-center">
-                    <img src={imgSrc} alt={listing.nftName} className="w-full h-full object-contain" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none overflow-hidden">
+                    <img src={imgSrc} alt={listing.nftName} className="w-full h-full object-cover" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
                   </div>
                 </div>
                 <div className="flex-1 p-6 space-y-5">
