@@ -111,6 +111,7 @@ export default function SlabsPage() {
       const signer = getSigner()
       if (!signer) throw new Error('Wallet signer not available — please reconnect your wallet.')
       const tx = new TokenAssociateTransaction()
+        .setNodeAccountIds([new AccountId(3)])
         .setAccountId(AccountId.fromString(accountId))
         .setTokenIds([TokenId.fromString('0.0.10480544')])
       await tx.freezeWithSigner(signer)
@@ -146,6 +147,7 @@ export default function SlabsPage() {
 
       const totalTinybars = claimable.length * FEE_TINYBARS
       const tx = new TransferTransaction()
+        .setNodeAccountIds([new AccountId(3)])
         .addHbarTransfer(accountId, Hbar.fromTinybars(-totalTinybars))
         .addHbarTransfer(OPERATOR_WALLET, Hbar.fromTinybars(totalTinybars))
         .setTransactionMemo('SLIME Slab Claim')
