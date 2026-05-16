@@ -378,7 +378,7 @@ export default function SlabsPage() {
                           className="absolute inset-0 bg-[#0d1f0d] border-2 border-slime-green rounded-xl flex flex-col items-center justify-center gap-2"
                           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                         >
-                          <div className="text-3xl">🧪</div>
+                          <div className="text-3xl">🫟</div>
                           <p className="text-slime-green font-black text-sm">SLAB CLAIMED</p>
                           <p className="text-gray-400 text-xs font-mono">#{nft.serial_number}</p>
                         </div>
