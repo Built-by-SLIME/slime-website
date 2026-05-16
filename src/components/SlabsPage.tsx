@@ -158,7 +158,9 @@ export default function SlabsPage() {
       if (!paymentTxId) throw new Error('Could not retrieve transaction ID from wallet response.')
 
       // Step 2: backend verifies payment + transfers slabs
-      setStatusMsg(`Payment confirmed! Claiming your slab${claimable.length > 1 ? 's' : ''}…`)
+      // Give Mirror Node a moment to index before the backend starts polling
+      setStatusMsg(`Payment submitted! Verifying and claiming your slab${claimable.length > 1 ? 's' : ''}…`)
+      await new Promise(r => setTimeout(r, 4000))
       const claimRes = await fetch('/api/slabs/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

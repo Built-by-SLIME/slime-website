@@ -16,8 +16,10 @@ function toMirrorTxId(txId) {
 // Verify the HBAR payment tx on Mirror Node (retries to handle indexing lag)
 async function verifyPayment(paymentTxId, wallet, numSerials) {
   const mirrorId = toMirrorTxId(paymentTxId)
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, 1500))
+  // Initial wait — Mirror Node typically takes 5–15s to index mainnet txs
+  await new Promise(r => setTimeout(r, 3000))
+  for (let attempt = 0; attempt < 8; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 3000))
     try {
       const res = await fetch(`${MIRROR_BASE}/transactions/${encodeURIComponent(mirrorId)}`)
       if (!res.ok) continue
