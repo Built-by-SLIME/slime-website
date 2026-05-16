@@ -109,7 +109,7 @@ export default function SlabsPage() {
     setAssociating(true)
     try {
       const signer = getSigner()
-      if (!signer) throw new Error('Wallet signer not available — please reconnect your wallet.')
+      if (!signer) throw new Error('Wallet signer not available - please reconnect your wallet.')
       const tx = new TokenAssociateTransaction()
         .setNodeAccountIds([new AccountId(3)])
         .setAccountId(AccountId.fromString(accountId))
@@ -143,7 +143,7 @@ export default function SlabsPage() {
       // Step 1: collect HBAR payment from user
       setStatusMsg(`Approve payment of ${(claimable.length * FEE_HBAR_PER_SLAB).toFixed(2)} HBAR in your wallet…`)
       const signer = getSigner()
-      if (!signer) throw new Error('Wallet signer not available — please reconnect your wallet.')
+      if (!signer) throw new Error('Wallet signer not available - please reconnect your wallet.')
 
       const totalTinybars = claimable.length * FEE_TINYBARS
       const tx = new TransferTransaction()
@@ -210,7 +210,7 @@ export default function SlabsPage() {
             <span className="text-slime-green text-xs font-bold uppercase tracking-widest">Community</span>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mt-2">CLAIM SLABS</h1>
             <p className="text-gray-400 text-base mt-3 leading-relaxed">
-              You held SLIME. Now claim your Slab. Each SLIME NFT you hold entitles you to one matching SLIME Slab — same serial, 1:1.
+              You held SLIME. Now claim your Slab. Each SLIME NFT you hold entitles you to one matching SLIME Slab - same serial, 1:1.
             </p>
           </div>
 
