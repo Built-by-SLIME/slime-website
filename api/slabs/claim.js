@@ -1,6 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
 import { Client, PrivateKey, AccountId, TransferTransaction, TokenId } from '@hashgraph/sdk'
 
+// Parse private key, trying all formats to handle ECDSA vs ED25519 ambiguity and DER variants
+function parsePrivateKey(raw) {
+  const key = raw.trim()
+  // Try in order: auto-detect, explicit ECDSA, explicit ED25519
+  const attempts = [
+    () => PrivateKey.fromString(key),
+    () => PrivateKey.fromStringECDSA(key),
+    () => PrivateKey.fromStringED25519(key),
+  ]
+  for (const attempt of attempts) {
+    try { return attempt() } catch { /* try next */ }
+  }
+  throw new Error('Could not parse OPERATOR_PRIVATE_KEY — check the key format in Vercel env vars')
+}
+
 const SLIME_TOKEN    = '0.0.9474754'
 const SLAB_TOKEN     = '0.0.10480544'
 const OPERATOR_ID    = '0.0.9348822'
@@ -131,8 +146,14 @@ export default async function handler(req, res) {
   if (claimable.length === 0) return res.status(400).json({ error: 'All selected slabs have already been claimed.' })
 
   // 5. Transfer slabs from operator
+  let parsedKey
+  try {
+    parsedKey = parsePrivateKey(operatorKey)
+  } catch (err) {
+    return res.status(500).json({ error: `Key parse error: ${err.message}` })
+  }
   const client = Client.forMainnet()
-  client.setOperator(AccountId.fromString(OPERATOR_ID), PrivateKey.fromString(operatorKey))
+  client.setOperator(AccountId.fromString(OPERATOR_ID), parsedKey)
   let slabTxIds
   try {
     slabTxIds = await transferSlabs(client, wallet, claimable)
