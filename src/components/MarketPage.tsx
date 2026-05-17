@@ -809,33 +809,33 @@ export default function MarketPage() {
                     <img src={imgSrc} alt={listing.nftName} className="w-full h-full object-cover" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
                   </div>
                 </div>
-                <div className="flex-1 p-6 space-y-5">
+                <div className="flex-1 p-6 space-y-4">
                   <div>
                     <h2 className="text-2xl font-black">{listing.nftName || `SLIME #${listing.serialId}`}</h2>
                     <p className="text-gray-500 text-sm mt-1">Hedera NFT · SLIME Collection</p>
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Details</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Details</h3>
                     <div className="bg-[#252525] rounded-xl divide-y divide-gray-800">
-                      <div className="flex justify-between items-center px-4 py-3">
-                        <span className="text-gray-400 text-sm">SLIME ID</span>
-                        <span className="text-white font-bold">#{listing.serialId}</span>
+                      <div className="flex justify-between items-center px-4 py-2">
+                        <span className="text-gray-400 text-xs">SLIME ID</span>
+                        <span className="text-white font-bold text-sm">#{listing.serialId}</span>
                       </div>
                       {nftFull && (
                         <>
-                          <div className="flex justify-between items-center px-4 py-3">
-                            <span className="text-gray-400 text-sm">Rarity Rank</span>
-                            <span className={`font-bold ${rankColor(nftFull.correctedRank)}`}>#{nftFull.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
+                          <div className="flex justify-between items-center px-4 py-2">
+                            <span className="text-gray-400 text-xs">Rarity Rank</span>
+                            <span className={`font-bold text-sm ${rankColor(nftFull.correctedRank)}`}>#{nftFull.correctedRank} <span className="text-gray-500 font-normal">/ {totalSupply}</span></span>
                           </div>
-                          <div className="flex justify-between items-center px-4 py-3">
-                            <span className="text-gray-400 text-sm">Rarity Score</span>
-                            <span className="text-white font-bold">{(nftFull.correctedRarity * 100).toFixed(2)}%</span>
+                          <div className="flex justify-between items-center px-4 py-2">
+                            <span className="text-gray-400 text-xs">Rarity Score</span>
+                            <span className="text-white font-bold text-sm">{(nftFull.correctedRarity * 100).toFixed(2)}%</span>
                           </div>
                         </>
                       )}
-                      <div className="flex justify-between items-center px-4 py-3">
-                        <span className="text-gray-400 text-sm">List Price</span>
-                        <span className="text-slime-green font-bold font-mono">{listing.salePrice.toLocaleString()} ℏ</span>
+                      <div className="flex justify-between items-center px-4 py-2">
+                        <span className="text-gray-400 text-xs">List Price</span>
+                        <span className="text-slime-green font-bold font-mono text-sm">{listing.salePrice.toLocaleString()} ℏ</span>
                       </div>
                     </div>
                   </div>
