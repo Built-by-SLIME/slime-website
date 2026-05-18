@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AccountAllowanceApproveTransaction, Transaction, TokenId, AccountId, TransactionId, Client } from '@hashgraph/sdk'
+import { AccountAllowanceApproveTransaction, TokenAssociateTransaction, Transaction, TokenId, AccountId, TransactionId, Client } from '@hashgraph/sdk'
 import { useWallet } from '../context/WalletContext'
 import { decodeMetadata, decodeSwapMetadata } from '../utils/nft'
 import type { NFTMetadata } from '../utils/nft'
@@ -52,6 +52,10 @@ export default function SwapPage() {
   const [loadingNFTs, setLoadingNFTs] = useState(false)
   const [selectedSerials, setSelectedSerials] = useState<Set<number>>(new Set())
 
+  // Association state
+  const [isAssociated, setIsAssociated] = useState<boolean | null>(null)
+  const [associating, setAssociating] = useState(false)
+
   // Swap execution state
   const [swapStatus, setSwapStatus] = useState<SwapStatus>('idle')
   const [statusMsg, setStatusMsg] = useState('')
@@ -95,7 +99,7 @@ export default function SwapPage() {
     load()
   }, [])
 
-  // When active program changes, reset state and load NFTs if needed
+  // When active program changes, reset state, check association, and load NFTs if needed
   useEffect(() => {
     setInputAmount('')
     setSelectedSerials(new Set())
@@ -103,9 +107,25 @@ export default function SwapPage() {
     setNftMetadata(new Map())
     setSwapStatus('idle')
     setStatusMsg('')
+    setIsAssociated(null)
 
     const program = programs.find(p => p.id === activeId)
-    if (program && program.swap_type === 'nft' && isConnected && accountId) {
+    if (!program || !isConnected || !accountId) return
+
+    // Check if wallet is associated with the token they will receive
+    const checkAssociation = async () => {
+      try {
+        const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/tokens?token.id=${program.to_token_id}`)
+        if (!r.ok) { setIsAssociated(false); return }
+        const data = await r.json()
+        setIsAssociated((data.tokens || []).some((t: { token_id: string }) => t.token_id === program.to_token_id))
+      } catch {
+        setIsAssociated(false)
+      }
+    }
+    checkAssociation()
+
+    if (program.swap_type === 'nft') {
       loadNFTs(program.from_token_id)
     }
   }, [activeId])
@@ -145,6 +165,29 @@ export default function SwapPage() {
       next.has(serial) ? next.delete(serial) : next.add(serial)
       return next
     })
+  }
+
+  const handleAssociate = async () => {
+    const program = programs.find(p => p.id === activeId)
+    if (!program || !dAppConnector) return
+    const signer = dAppConnector.signers.find(s => s.getAccountId().toString() === accountId)
+      ?? dAppConnector.signers[0]
+    if (!signer) return
+    setAssociating(true)
+    try {
+      const tx = new TokenAssociateTransaction()
+        .setNodeAccountIds([new AccountId(3)])
+        .setAccountId(AccountId.fromString(accountId))
+        .setTokenIds([TokenId.fromString(program.to_token_id)])
+      await tx.freezeWithSigner(signer)
+      await tx.executeWithSigner(signer)
+      setIsAssociated(true)
+    } catch (err) {
+      setSwapStatus('error')
+      setStatusMsg(err instanceof Error ? err.message : 'Association failed')
+    } finally {
+      setAssociating(false)
+    }
   }
 
   const toRaw = (human: string, decimals: number): number => {
@@ -382,6 +425,31 @@ export default function SwapPage() {
                       {/* Expanded swap UI */}
                       {isActive && (
                         <div className="border-t border-gray-800 p-6">
+
+                          {/* Association banner */}
+                          {isAssociated === null && (
+                            <div className="mb-5 bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-gray-400 text-xs text-center">
+                              Checking token association…
+                            </div>
+                          )}
+                          {isAssociated === false && (
+                            <div className="mb-5 bg-[#1f1700] border border-yellow-700/60 rounded-xl px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                              <div>
+                                <p className="text-yellow-400 font-bold text-sm">Token Association Required</p>
+                                <p className="text-yellow-600 text-xs mt-0.5">
+                                  Your wallet must be associated with <span className="font-mono">{p.to_token_id}</span> before you can receive tokens from this swap.
+                                </p>
+                              </div>
+                              <button
+                                onClick={handleAssociate}
+                                disabled={associating}
+                                className="flex-shrink-0 bg-yellow-500 text-black px-5 py-2 rounded-lg font-bold text-xs hover:bg-yellow-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {associating ? 'ASSOCIATING…' : 'ASSOCIATE TOKEN'}
+                              </button>
+                            </div>
+                          )}
+
                           {/* Status banner */}
                           {(swapStatus === 'approving' || swapStatus === 'executing') && (
                             <div className="flex items-center gap-3 mb-5 text-sm text-gray-400">
@@ -425,6 +493,7 @@ export default function SwapPage() {
                               <button
                                 onClick={handleSwap}
                                 disabled={
+                                  !isAssociated ||
                                   swapStatus === 'approving' ||
                                   swapStatus === 'executing' ||
                                   !inputAmount ||
@@ -523,6 +592,7 @@ export default function SwapPage() {
                                   <button
                                     onClick={handleSwap}
                                     disabled={
+                                      !isAssociated ||
                                       selectedSerials.size === 0 ||
                                       swapStatus === 'approving' ||
                                       swapStatus === 'executing'
