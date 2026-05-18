@@ -1,0 +1,4 @@
+allowBuilds:
+  '@reown/appkit': true
+  esbuild: true
+  protobufjs: true
