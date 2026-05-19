@@ -140,24 +140,34 @@ export default function InventoryPage() {
             const meta = await decodeMetadata(nft.metadata)
             if (meta?.name) name = meta.name
             if (meta?.image) imageUrl = meta.image
-            // HIP-412: video is in the files array — find the first mp4 entry
+            // HIP-412: video is in the files array — find the first mp4 entry.
+            // Always use a public IPFS gateway for video; private/Pinata gateways
+            // don't support the Range Requests that browsers need for video streaming.
+            const VIDEO_GATEWAY = 'https://ipfs.io/ipfs/'
             if (meta?.files) {
               const videoFile = meta.files.find(f => f.type?.includes('mp4') || f.type?.includes('video'))
               const rawUri = videoFile?.uri || videoFile?.url || ''
               if (rawUri) {
-                // Rewrite ipfs:// URIs through the configured gateway
-                const gateway = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
                 if (rawUri.startsWith('ipfs://')) {
-                  videoUrl = gateway + rawUri.slice(7).replace(/#/g, '%23')
-                } else if (rawUri.includes('.mypinata.cloud/ipfs/')) {
-                  videoUrl = gateway + rawUri.split('/ipfs/')[1]
+                  videoUrl = VIDEO_GATEWAY + rawUri.slice(7).replace(/#/g, '%23')
+                } else if (rawUri.includes('/ipfs/')) {
+                  videoUrl = VIDEO_GATEWAY + rawUri.split('/ipfs/')[1]
                 } else {
                   videoUrl = rawUri
                 }
               }
             }
             // Fallback: animation_url field
-            if (!videoUrl && meta?.animation_url) videoUrl = meta.animation_url
+            if (!videoUrl && meta?.animation_url) {
+              const raw = meta.animation_url
+              if (raw.startsWith('ipfs://')) {
+                videoUrl = VIDEO_GATEWAY + raw.slice(7).replace(/#/g, '%23')
+              } else if (raw.includes('/ipfs/')) {
+                videoUrl = VIDEO_GATEWAY + raw.split('/ipfs/')[1]
+              } else {
+                videoUrl = raw
+              }
+            }
           }
           return { serial_number: nft.serial_number, name, imageUrl, videoUrl }
         })
@@ -345,13 +355,20 @@ export default function InventoryPage() {
               <div className="aspect-square bg-black">
                 {slab.videoUrl ? (
                   <video
-                    src={slab.videoUrl}
                     className="w-full h-full object-contain"
                     autoPlay
                     loop
                     playsInline
                     controls
-                  />
+                    onError={e => console.error('Slab video failed to load:', (e.target as HTMLVideoElement).src)}
+                  >
+                    {/* Primary: ipfs.io (public, supports Range Requests) */}
+                    <source src={slab.videoUrl} type="video/mp4" />
+                    {/* Fallback: dweb.link — swap in if ipfs.io is slow */}
+                    {slab.videoUrl.includes('/ipfs/') && (
+                      <source src={`https://dweb.link/ipfs/${slab.videoUrl.split('/ipfs/')[1]}`} type="video/mp4" />
+                    )}
+                  </video>
                 ) : (
                   <img src={slab.imageUrl || '/Assets/SPLAT.png'} alt={slab.name} className="w-full h-full object-contain" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
                 )}
