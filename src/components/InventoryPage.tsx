@@ -20,6 +20,7 @@ interface SlabInventoryNFT {
   serial_number: number
   name: string
   imageUrl: string
+  videoUrl: string
 }
 
 // Same tier boundaries as collection/market pages
@@ -42,6 +43,7 @@ export default function InventoryPage() {
 
   const [slabNFTs, setSlabNFTs] = useState<SlabInventoryNFT[]>([])
   const [loadingSlabs, setLoadingSlabs] = useState(false)
+  const [selectedSlab, setSelectedSlab] = useState<SlabInventoryNFT | null>(null)
 
   useEffect(() => {
     if (isConnected && slimeNFTs.length > 0) loadNFTImages()
@@ -53,7 +55,9 @@ export default function InventoryPage() {
   }, [isConnected, slimeNFTs, accountId])
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedNft(null) }
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setSelectedNft(null); setSelectedSlab(null) }
+    }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
   }, [])
@@ -131,12 +135,14 @@ export default function InventoryPage() {
         rawNFTs.map(async nft => {
           let name = `SLIME Slab #${nft.serial_number}`
           let imageUrl = ''
+          let videoUrl = ''
           if (nft.metadata) {
             const meta = await decodeMetadata(nft.metadata)
             if (meta?.name) name = meta.name
             if (meta?.image) imageUrl = meta.image
+            if (meta?.animation_url) videoUrl = meta.animation_url
           }
-          return { serial_number: nft.serial_number, name, imageUrl }
+          return { serial_number: nft.serial_number, name, imageUrl, videoUrl }
         })
       )
       setSlabNFTs(results.sort((a, b) => a.serial_number - b.serial_number))
@@ -278,9 +284,15 @@ export default function InventoryPage() {
                         <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">#{nft.serial_number}</div>
                       )}
                     </div>
-                    <div className="p-2.5 space-y-1">
+                    <div className="p-2.5 space-y-2">
                       <p className="text-white text-xs font-bold truncate">{nft.name}</p>
                       <p className="text-gray-500 text-xs font-mono">#{nft.serial_number}</p>
+                      <button
+                        onClick={() => setSelectedSlab(nft)}
+                        className="block w-full bg-slime-green text-black py-1.5 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center"
+                      >
+                        VIEW
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -301,6 +313,43 @@ export default function InventoryPage() {
       </div>
 
       <Footer />
+
+      {/* Slab Detail Lightbox */}
+      {selectedSlab && (() => {
+        const slab = selectedSlab
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }} onClick={() => setSelectedSlab(null)}>
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <div className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              {/* Close */}
+              <button onClick={() => setSelectedSlab(null)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a2a2a] border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition">✕</button>
+
+              {/* Video (falls back to image if no animation_url) */}
+              <div className="aspect-square bg-black">
+                {slab.videoUrl ? (
+                  <video
+                    src={slab.videoUrl}
+                    className="w-full h-full object-contain"
+                    autoPlay
+                    loop
+                    playsInline
+                    controls
+                  />
+                ) : (
+                  <img src={slab.imageUrl || '/Assets/SPLAT.png'} alt={slab.name} className="w-full h-full object-contain" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                )}
+              </div>
+
+              {/* Details */}
+              <div className="p-5 space-y-1">
+                <h2 className="text-lg font-black text-white">{slab.name}</h2>
+                <p className="text-gray-500 text-sm">Hedera NFT · SLIME Slabs Collection</p>
+                <p className="text-gray-600 text-xs font-mono pt-1">Serial #{slab.serial_number}</p>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* NFT Detail Lightbox */}
       {selectedNft && (() => {

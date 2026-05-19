@@ -1,6 +1,7 @@
 export interface NFTMetadata {
   name?: string
   image?: string
+  animation_url?: string
   description?: string
   attributes?: Array<{ trait_type: string; value: string }>
 }
@@ -30,10 +31,12 @@ export async function decodeMetadata(base64: string): Promise<NFTMetadata | null
       if (!response.ok) return null
       const metadata = await response.json()
       if (metadata.image) metadata.image = toPublicUrl(metadata.image)
+      if (metadata.animation_url) metadata.animation_url = toPublicUrl(metadata.animation_url)
       return metadata
     } else {
       const metadata = JSON.parse(decoded)
       if (metadata.image) metadata.image = toPublicUrl(metadata.image)
+      if (metadata.animation_url) metadata.animation_url = toPublicUrl(metadata.animation_url)
       return metadata
     }
   } catch {
