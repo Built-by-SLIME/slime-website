@@ -581,7 +581,7 @@ export default function MarketPage() {
                     : 'bg-[#1f1f1f] border border-gray-700 text-gray-300 hover:border-slime-green'
                 }`}
               >
-                🫟 SLIME
+                SLIME
               </button>
               <button
                 onClick={() => setCollection('slabs')}
@@ -591,7 +591,7 @@ export default function MarketPage() {
                     : 'bg-[#1f1f1f] border border-gray-700 text-gray-300 hover:border-slime-green'
                 }`}
               >
-                🟩 SLABS
+                SLABS
               </button>
             </div>
 
