@@ -140,7 +140,24 @@ export default function InventoryPage() {
             const meta = await decodeMetadata(nft.metadata)
             if (meta?.name) name = meta.name
             if (meta?.image) imageUrl = meta.image
-            if (meta?.animation_url) videoUrl = meta.animation_url
+            // HIP-412: video is in the files array — find the first mp4 entry
+            if (meta?.files) {
+              const videoFile = meta.files.find(f => f.type?.includes('mp4') || f.type?.includes('video'))
+              const rawUri = videoFile?.uri || videoFile?.url || ''
+              if (rawUri) {
+                // Rewrite ipfs:// URIs through the configured gateway
+                const gateway = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
+                if (rawUri.startsWith('ipfs://')) {
+                  videoUrl = gateway + rawUri.slice(7).replace(/#/g, '%23')
+                } else if (rawUri.includes('.mypinata.cloud/ipfs/')) {
+                  videoUrl = gateway + rawUri.split('/ipfs/')[1]
+                } else {
+                  videoUrl = rawUri
+                }
+              }
+            }
+            // Fallback: animation_url field
+            if (!videoUrl && meta?.animation_url) videoUrl = meta.animation_url
           }
           return { serial_number: nft.serial_number, name, imageUrl, videoUrl }
         })

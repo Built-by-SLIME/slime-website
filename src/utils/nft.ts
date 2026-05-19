@@ -4,6 +4,8 @@ export interface NFTMetadata {
   animation_url?: string
   description?: string
   attributes?: Array<{ trait_type: string; value: string }>
+  // HIP-412 files array — first entry is image, subsequent entries may be MP4 etc.
+  files?: Array<{ uri?: string; url?: string; type?: string }>
 }
 
 const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || 'https://gateway.pinata.cloud/ipfs/'
