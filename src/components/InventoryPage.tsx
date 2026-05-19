@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
+import { decodeMetadata } from '../utils/nft'
 import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
+
+const SLABS_TOKEN = '0.0.10480544'
+const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
 
 interface InventoryNFT {
   serial_number: number
@@ -10,6 +14,12 @@ interface InventoryNFT {
   correctedRank: number
   correctedRarity: number
   attributes: Array<{ trait_type: string; value: string }>
+}
+
+interface SlabInventoryNFT {
+  serial_number: number
+  name: string
+  imageUrl: string
 }
 
 // Same tier boundaries as collection/market pages
@@ -30,14 +40,17 @@ export default function InventoryPage() {
   const [selectedNft, setSelectedNft] = useState<InventoryNFT | null>(null)
   const [fullTraitCounts, setFullTraitCounts] = useState<Record<string, Record<string, number>>>({})
 
+  const [slabNFTs, setSlabNFTs] = useState<SlabInventoryNFT[]>([])
+  const [loadingSlabs, setLoadingSlabs] = useState(false)
+
   useEffect(() => {
-    if (isConnected && slimeNFTs.length > 0) {
-      loadNFTImages()
-    }
+    if (isConnected && slimeNFTs.length > 0) loadNFTImages()
+    if (isConnected && accountId) loadSlabNFTs()
     if (!isConnected) {
       setNftsWithImages([])
+      setSlabNFTs([])
     }
-  }, [isConnected, slimeNFTs])
+  }, [isConnected, slimeNFTs, accountId])
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedNft(null) }
@@ -101,6 +114,39 @@ export default function InventoryPage() {
     setLoadingNFTs(false)
   }
 
+  const loadSlabNFTs = async () => {
+    if (!accountId) return
+    setLoadingSlabs(true)
+    try {
+      const rawNFTs: { serial_number: number; metadata?: string }[] = []
+      let path: string | null = `/api/v1/accounts/${accountId}/nfts?token.id=${SLABS_TOKEN}&limit=100`
+      while (path) {
+        const r = await fetch(`${MIRROR}${path}`)
+        if (!r.ok) break
+        const d = await r.json()
+        rawNFTs.push(...(d.nfts || []))
+        path = d.links?.next || null
+      }
+      const results: SlabInventoryNFT[] = await Promise.all(
+        rawNFTs.map(async nft => {
+          let name = `SLIME Slab #${nft.serial_number}`
+          let imageUrl = ''
+          if (nft.metadata) {
+            const meta = await decodeMetadata(nft.metadata)
+            if (meta?.name) name = meta.name
+            if (meta?.image) imageUrl = meta.image
+          }
+          return { serial_number: nft.serial_number, name, imageUrl }
+        })
+      )
+      setSlabNFTs(results.sort((a, b) => a.serial_number - b.serial_number))
+    } catch (err) {
+      console.error('Failed to load Slab NFTs:', err)
+    } finally {
+      setLoadingSlabs(false)
+    }
+  }
+
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-[#2a2a2a] text-white flex flex-col">
@@ -146,6 +192,10 @@ export default function InventoryPage() {
             <span className="flex-1 text-center bg-black/40 rounded-lg px-2 py-3 text-xs text-gray-400 border border-gray-800">
               <span className="block text-white font-bold text-xl">{slimeNFTs.length}</span>
               NFTs
+            </span>
+            <span className="flex-1 text-center bg-black/40 rounded-lg px-2 py-3 text-xs text-gray-400 border border-gray-800">
+              <span className="block text-white font-bold text-xl">{loadingSlabs ? '…' : slabNFTs.length}</span>
+              Slabs
             </span>
             <span className="flex-1 text-center bg-black/40 rounded-lg px-2 py-3 text-xs text-gray-400 border border-gray-800">
               <span className="block text-white font-bold text-xl">{Number(slimeTokenBalance).toLocaleString()}</span>
@@ -205,6 +255,37 @@ export default function InventoryPage() {
         {slimeNFTs.length === 0 && (
           <div className="mb-10 text-center py-10 bg-black/20 border border-gray-800 rounded-2xl">
             <p className="text-gray-500 text-sm">No SLIME NFTs found in this wallet.</p>
+          </div>
+        )}
+
+        {/* Slabs Gallery */}
+        {(loadingSlabs || slabNFTs.length > 0) && (
+          <div className="mb-10">
+            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Your Slabs</h2>
+            {loadingSlabs ? (
+              <div className="flex justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slime-green" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {slabNFTs.map(nft => (
+                  <div key={nft.serial_number} className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all">
+                    <div className="aspect-square bg-[#252525] p-2">
+                      {nft.imageUrl ? (
+                        <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-contain" crossOrigin="anonymous"
+                          onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">#{nft.serial_number}</div>
+                      )}
+                    </div>
+                    <div className="p-2.5 space-y-1">
+                      <p className="text-white text-xs font-bold truncate">{nft.name}</p>
+                      <p className="text-gray-500 text-xs font-mono">#{nft.serial_number}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
