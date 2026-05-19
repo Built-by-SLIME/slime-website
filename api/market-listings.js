@@ -1,7 +1,8 @@
 // GET /api/market-listings
-// Proxies SentX public market listings, always filtered to the SLIME NFT token.
-// Optional query params: sortBy, sortDirection, limit, offset, filterUserAccount
+// Proxies SentX public market listings, filtered to the requested token (defaults to SLIME).
+// Optional query params: token, sortBy, sortDirection, limit, offset, filterUserAccount
 const SLIME_TOKEN = '0.0.9474754'
+const ALLOWED_TOKENS = new Set([SLIME_TOKEN, '0.0.10480544'])
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
@@ -10,6 +11,7 @@ export default async function handler(req, res) {
   if (!apikey) return res.status(500).json({ error: 'API key not configured' })
 
   const {
+    token: tokenParam,
     sortBy = 'price',
     sortDirection = 'ASC',
     limit = '100',
@@ -17,7 +19,8 @@ export default async function handler(req, res) {
     filterUserAccount,
   } = req.query
 
-  const params = new URLSearchParams({ apikey, token: SLIME_TOKEN, sortBy, sortDirection, limit, offset })
+  const token = ALLOWED_TOKENS.has(tokenParam) ? tokenParam : SLIME_TOKEN
+  const params = new URLSearchParams({ apikey, token, sortBy, sortDirection, limit, offset })
   if (filterUserAccount) params.set('filterUserAccount', filterUserAccount)
 
   try {

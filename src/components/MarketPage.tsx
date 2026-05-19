@@ -5,6 +5,7 @@ import Navigation from './Navigation'
 import Footer from './Footer'
 
 const SLIME_TOKEN = '0.0.9474754'
+const SLABS_TOKEN = '0.0.10480544'
 const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
 
 function toImageUrl(image: string): string {
@@ -160,6 +161,9 @@ export default function MarketPage() {
   type MarketSort = 'price-asc' | 'price-desc' | 'rarity-asc' | 'rarity-desc' | 'serial-asc' | 'serial-desc'
   const [marketSort, setMarketSort] = useState<MarketSort>('price-asc')
 
+  // Active collection: 'slime' = SLIME NFTs, 'slabs' = SLIME Slab NFTs
+  const [collection, setCollection] = useState<'slime' | 'slabs'>('slime')
+
   // NFT images keyed by serial — populated from mirror node since SentX
   // listings often have null nftImage for SLIME NFTs
   const [nftImages, setNftImages] = useState<Map<number, string>>(new Map())
@@ -199,28 +203,39 @@ export default function MarketPage() {
     return { sortBy: 'price', sortDirection: 'ASC' } // rarity — fetch unordered, sort client-side
   }
 
-  const fetchListings = async (opt = marketSort) => {
+  const fetchListings = async (opt = marketSort, col = collection) => {
     setLoadingListings(true)
     const { sortBy, sortDirection } = toApiSort(opt)
+    const activeToken = col === 'slabs' ? SLABS_TOKEN : SLIME_TOKEN
     try {
-      const params = new URLSearchParams({ sortBy, sortDirection, limit: '100' })
+      const params = new URLSearchParams({ sortBy, sortDirection, limit: '100', token: activeToken })
       const r = await fetch(`/api/market-listings?${params}`)
       const d = await r.json()
       const items: Listing[] = d.marketListings || []
       setListings(items)
-      // Load all 1000 NFTs once for images + trait data (needed for the detail modal)
-      loadAllNFTData().then(({ images, data }) => {
-        setNftImages(prev => new Map([...prev, ...images]))
-        setAllNftData(prev => new Map([...prev, ...data]))
-      })
+      if (col === 'slabs') {
+        // For Slabs: use nftImage from the listing response directly
+        const imgMap = new Map<number, string>()
+        for (const item of items) {
+          if (item.nftImage) imgMap.set(item.serialId, toImageUrl(item.nftImage))
+        }
+        setNftImages(imgMap)
+      } else {
+        // Load all 1000 SLIME NFTs once for images + trait data (needed for the detail modal)
+        loadAllNFTData().then(({ images, data }) => {
+          setNftImages(prev => new Map([...prev, ...images]))
+          setAllNftData(prev => new Map([...prev, ...data]))
+        })
+      }
     } catch { /* show empty */ } finally {
       setLoadingListings(false)
     }
   }
 
-  const fetchFloor = async () => {
+  const fetchFloor = async (col = collection) => {
+    const activeToken = col === 'slabs' ? SLABS_TOKEN : SLIME_TOKEN
     try {
-      const r = await fetch('/api/market-floor')
+      const r = await fetch(`/api/market-floor?token=${activeToken}`)
       const d = await r.json()
       if (d.success) setFloor(d.floor)
     } catch { /* ignore */ }
@@ -320,8 +335,22 @@ export default function MarketPage() {
   const isFirstRender = useState(true)
   useEffect(() => {
     if (isFirstRender[0]) { isFirstRender[1](false); return }
-    if (!marketSort.startsWith('rarity')) fetchListings(marketSort)
+    if (!marketSort.startsWith('rarity')) fetchListings(marketSort, collection)
   }, [marketSort]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch when collection changes (skip on mount — initial load covers that)
+  const isFirstCollectionRender = useState(true)
+  useEffect(() => {
+    if (isFirstCollectionRender[0]) { isFirstCollectionRender[1](false); return }
+    setListings([])
+    setNftImages(new Map())
+    setAllNftData(new Map())
+    setFloor(null)
+    const newSort: MarketSort = 'price-asc'
+    setMarketSort(newSort)
+    fetchListings(newSort, collection)
+    fetchFloor(collection)
+  }, [collection]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Lazy-load tab data
   useEffect(() => {
@@ -366,6 +395,7 @@ export default function MarketPage() {
 
   const handleBuy = async (listing: Listing) => {
     if (!isConnected || !accountId) return
+    const activeToken = collection === 'slabs' ? SLABS_TOKEN : SLIME_TOKEN
     setActiveTxSerial(listing.serialId)
     setTxStatus('preparing')
     setTxMsg('Preparing purchase...')
@@ -375,7 +405,7 @@ export default function MarketPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          token_address: SLIME_TOKEN,
+          token_address: activeToken,
           serial_number: String(listing.serialId),
           user_address: accountId,
           price: String(listing.salePrice),
@@ -395,8 +425,9 @@ export default function MarketPage() {
       if (!resD.success) throw new Error(resD.apimessage || resD.error || 'Purchase confirmation failed')
 
       setTxStatus('success')
-      setSuccessMsg(`You bought SLIME #${listing.serialId} for ${listing.salePrice.toLocaleString()} ℏ!`)
-      fetchListings()
+      const collectionLabel = collection === 'slabs' ? 'SLIME Slab' : 'SLIME'
+      setSuccessMsg(`You bought ${collectionLabel} #${listing.serialId} for ${listing.salePrice.toLocaleString()} ℏ!`)
+      fetchListings(marketSort, collection)
     } catch (err) {
       setTxStatus('error')
       setTxMsg(err instanceof Error ? err.message : 'Purchase failed')
@@ -423,16 +454,16 @@ export default function MarketPage() {
     return counts
   }, [allNftData])
 
-  // Client-side rarity sort — applied on top of the API-fetched listings
+  // Client-side rarity sort — applied on top of the API-fetched listings (SLIME only)
   const sortedListings = useMemo(() => {
-    if (marketSort === 'rarity-asc') {
+    if (collection === 'slime' && marketSort === 'rarity-asc') {
       return [...listings].sort((a, b) => {
         const rankA = allNftData.get(a.serialId)?.correctedRank ?? 9999
         const rankB = allNftData.get(b.serialId)?.correctedRank ?? 9999
         return rankA - rankB
       })
     }
-    if (marketSort === 'rarity-desc') {
+    if (collection === 'slime' && marketSort === 'rarity-desc') {
       return [...listings].sort((a, b) => {
         const rankA = allNftData.get(a.serialId)?.correctedRank ?? 0
         const rankB = allNftData.get(b.serialId)?.correctedRank ?? 0
@@ -440,13 +471,16 @@ export default function MarketPage() {
       })
     }
     return listings
-  }, [listings, marketSort, allNftData])
+  }, [listings, marketSort, allNftData, collection])
 
-  const MARKET_SORT_OPTIONS: { value: 'price-asc' | 'price-desc' | 'rarity-asc' | 'rarity-desc' | 'serial-asc' | 'serial-desc'; label: string }[] = [
+  // Rarity sorts are only available for SLIME (no rarity data for Slabs)
+  const MARKET_SORT_OPTIONS: { value: MarketSort; label: string }[] = [
     { value: 'price-asc',   label: 'PRICE ASC'   },
     { value: 'price-desc',  label: 'PRICE DESC'  },
-    { value: 'rarity-asc',  label: 'RARITY ASC'  },
-    { value: 'rarity-desc', label: 'RARITY DESC' },
+    ...(collection === 'slime' ? [
+      { value: 'rarity-asc'  as MarketSort, label: 'RARITY ASC'  },
+      { value: 'rarity-desc' as MarketSort, label: 'RARITY DESC' },
+    ] : []),
     { value: 'serial-asc',  label: 'SERIAL ASC'  },
     { value: 'serial-desc', label: 'SERIAL DESC' },
   ]
@@ -537,6 +571,30 @@ export default function MarketPage() {
         {/* ════════════════════ LISTINGS ════════════════════ */}
         {tab === 'listings' && (
           <>
+            {/* Collection toggle */}
+            <div className="flex items-center gap-2 mb-5">
+              <button
+                onClick={() => setCollection('slime')}
+                className={`px-5 py-2 rounded-xl text-sm font-bold tracking-wider transition ${
+                  collection === 'slime'
+                    ? 'bg-slime-green text-black'
+                    : 'bg-[#1f1f1f] border border-gray-700 text-gray-300 hover:border-slime-green'
+                }`}
+              >
+                🫟 SLIME
+              </button>
+              <button
+                onClick={() => setCollection('slabs')}
+                className={`px-5 py-2 rounded-xl text-sm font-bold tracking-wider transition ${
+                  collection === 'slabs'
+                    ? 'bg-slime-green text-black'
+                    : 'bg-[#1f1f1f] border border-gray-700 text-gray-300 hover:border-slime-green'
+                }`}
+              >
+                🟩 SLABS
+              </button>
+            </div>
+
             {/* Sort bar — matches collection page style */}
             <div className="flex items-center gap-2 flex-wrap mb-6">
               <span className="text-xs text-gray-500 uppercase tracking-widest font-bold mr-1">Sort</span>
@@ -598,30 +656,34 @@ export default function MarketPage() {
                       {/* Card body */}
                       <div className="p-3 flex flex-col gap-2.5 flex-1">
                         <p className="text-white text-xs font-bold truncate leading-tight">
-                          {listing.nftName || `SLIME #${listing.serialId}`}
+                          {listing.nftName || (collection === 'slabs' ? `SLIME Slab #${listing.serialId}` : `SLIME #${listing.serialId}`)}
                         </p>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-gray-500">Rank</span>
-                          {(() => {
-                            const rank = allNftData.get(listing.serialId)?.correctedRank
-                            return rank
-                              ? <span className={`font-bold ${rankColor(rank)}`}>#{rank}</span>
-                              : <span className="text-gray-700">—</span>
-                          })()}
-                        </div>
+                        {collection === 'slime' && (
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-500">Rank</span>
+                            {(() => {
+                              const rank = allNftData.get(listing.serialId)?.correctedRank
+                              return rank
+                                ? <span className={`font-bold ${rankColor(rank)}`}>#{rank}</span>
+                                : <span className="text-gray-700">—</span>
+                            })()}
+                          </div>
+                        )}
                         <div className="flex items-center justify-between">
                           <p className="text-slime-green font-mono font-black text-base leading-none">
                             {listing.salePrice.toLocaleString()}
                             <span className="text-slime-green text-sm ml-0.5">ℏ</span>
                           </p>
-                          {claimedSerials.has(listing.serialId) ? (
-                            <span className="text-[10px] font-bold bg-slime-green/10 text-slime-green border border-slime-green/25 rounded-full px-2 py-0.5 leading-none">
-                              🫟 Slab ✓
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-gray-600 border border-gray-700 rounded-full px-2 py-0.5 leading-none">
-                              Slab ○
-                            </span>
+                          {collection === 'slime' && (
+                            claimedSerials.has(listing.serialId) ? (
+                              <span className="text-[10px] font-bold bg-slime-green/10 text-slime-green border border-slime-green/25 rounded-full px-2 py-0.5 leading-none">
+                                🫟 Slab ✓
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-gray-600 border border-gray-700 rounded-full px-2 py-0.5 leading-none">
+                                Slab ○
+                              </span>
+                            )
                           )}
                         </div>
 
@@ -811,17 +873,17 @@ export default function MarketPage() {
                 </div>
                 <div className="flex-1 p-6 space-y-4">
                   <div>
-                    <h2 className="text-2xl font-black">{listing.nftName || `SLIME #${listing.serialId}`}</h2>
-                    <p className="text-gray-500 text-sm mt-1">Hedera NFT · SLIME Collection</p>
+                    <h2 className="text-2xl font-black">{listing.nftName || (collection === 'slabs' ? `SLIME Slab #${listing.serialId}` : `SLIME #${listing.serialId}`)}</h2>
+                    <p className="text-gray-500 text-sm mt-1">Hedera NFT · {collection === 'slabs' ? 'SLIME Slabs Collection' : 'SLIME Collection'}</p>
                   </div>
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Details</h3>
                     <div className="bg-[#252525] rounded-xl divide-y divide-gray-800">
                       <div className="flex justify-between items-center px-4 py-2">
-                        <span className="text-gray-400 text-xs">SLIME ID</span>
+                        <span className="text-gray-400 text-xs">{collection === 'slabs' ? 'Slab ID' : 'SLIME ID'}</span>
                         <span className="text-white font-bold text-sm">#{listing.serialId}</span>
                       </div>
-                      {nftFull && (
+                      {collection === 'slime' && nftFull && (
                         <>
                           <div className="flex justify-between items-center px-4 py-2">
                             <span className="text-gray-400 text-xs">Rarity Rank</span>
@@ -842,8 +904,8 @@ export default function MarketPage() {
                 </div>
               </div>
 
-              {/* Traits — full width */}
-              {nftFull && nftFull.attributes.length > 0 && (
+              {/* Traits — full width (SLIME only) */}
+              {collection === 'slime' && nftFull && nftFull.attributes.length > 0 && (
                 <div className="px-6 pb-4 pt-2 border-t border-gray-800">
                   <div className="flex justify-between items-center py-4">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Traits</h3>
