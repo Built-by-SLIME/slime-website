@@ -189,6 +189,10 @@ export default function MarketPage() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const [allNftData, setAllNftData] = useState<Map<number, FullNFT>>(new Map())
 
+  // Slab modal — video fetched on demand from Mirror Node metadata
+  const [slabVideoUrl, setSlabVideoUrl] = useState('')
+  const [loadingSlabVideo, setLoadingSlabVideo] = useState(false)
+
   // Slab claim status — serials that have already been claimed
   const [claimedSerials, setClaimedSerials] = useState<Set<number>>(new Set())
 
@@ -309,10 +313,49 @@ export default function MarketPage() {
 
   // Close modal on ESC
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedListing(null) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setSelectedListing(null); setSlabVideoUrl('') } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  // Fetch Slab video from Mirror Node when a Slab listing modal opens
+  useEffect(() => {
+    if (!selectedListing || collection !== 'slabs') { setSlabVideoUrl(''); return }
+    const VIDEO_GATEWAY = 'https://ipfs.io/ipfs/'
+    const resolveIpfs = (uri: string) => {
+      if (uri.startsWith('ipfs://')) return VIDEO_GATEWAY + uri.slice(7).replace(/#/g, '%23')
+      if (uri.includes('/ipfs/')) return VIDEO_GATEWAY + uri.split('/ipfs/')[1]
+      return uri
+    }
+    setLoadingSlabVideo(true)
+    ;(async () => {
+      try {
+        const r = await fetch(`https://mainnet-public.mirrornode.hedera.com/api/v1/tokens/${SLABS_TOKEN}/nfts/${selectedListing.serialId}`)
+        if (!r.ok) return
+        const d = await r.json()
+        if (!d.metadata) return
+        const decoded = atob(d.metadata)
+        let meta: { files?: Array<{ uri?: string; url?: string; type?: string }>; animation_url?: string }
+        if (decoded.startsWith('ipfs://')) {
+          const res = await fetch(resolveIpfs(decoded))
+          meta = await res.json()
+        } else {
+          meta = JSON.parse(decoded)
+        }
+        // HIP-412: look for mp4 in files array first, then animation_url
+        let url = ''
+        if (meta.files) {
+          const f = meta.files.find(f => f.type?.includes('mp4') || f.type?.includes('video'))
+          const raw = f?.uri || f?.url || ''
+          if (raw) url = resolveIpfs(raw)
+        }
+        if (!url && meta.animation_url) url = resolveIpfs(meta.animation_url)
+        setSlabVideoUrl(url)
+      } catch { /* silently fail — image shown as fallback */ } finally {
+        setLoadingSlabVideo(false)
+      }
+    })()
+  }, [selectedListing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAllClaimed = async () => {
     try {
@@ -858,17 +901,42 @@ export default function MarketPage() {
         const isOwn = listing.sellerAddress === accountId
         const isThisBusy = isTxBusy && activeTxSerial === listing.serialId
         return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }} onClick={() => setSelectedListing(null)}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }} onClick={() => { setSelectedListing(null); setSlabVideoUrl('') }}>
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
             <div className="relative z-10 bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
               {/* Close */}
-              <button onClick={() => setSelectedListing(null)} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a2a2a] border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition">✕</button>
+              <button onClick={() => { setSelectedListing(null); setSlabVideoUrl('') }} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-[#2a2a2a] border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition">✕</button>
 
-              {/* Top row — image + details */}
+              {/* Top row — image/video + details */}
               <div className="flex flex-col md:flex-row">
                 <div className="md:w-2/5 flex-shrink-0">
-                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none overflow-hidden">
-                    <img src={imgSrc} alt={listing.nftName} className="w-full h-full object-cover" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                  <div className="aspect-square bg-[#252525] rounded-t-2xl md:rounded-tl-2xl md:rounded-tr-none md:rounded-bl-none overflow-hidden flex items-center justify-center">
+                    {collection === 'slabs' ? (
+                      loadingSlabVideo ? (
+                        <div className="flex items-center justify-center w-full h-full">
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slime-green" />
+                        </div>
+                      ) : slabVideoUrl ? (
+                        <video
+                          className="w-full h-full object-contain"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          controls
+                          onError={e => console.error('Slab market video failed:', (e.target as HTMLVideoElement).src)}
+                        >
+                          <source src={slabVideoUrl} type="video/mp4" />
+                          {slabVideoUrl.includes('/ipfs/') && (
+                            <source src={`https://dweb.link/ipfs/${slabVideoUrl.split('/ipfs/')[1]}`} type="video/mp4" />
+                          )}
+                        </video>
+                      ) : (
+                        <img src={imgSrc} alt={listing.nftName} className="w-full h-full object-cover" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                      )
+                    ) : (
+                      <img src={imgSrc} alt={listing.nftName} className="w-full h-full object-cover" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/Assets/SPLAT.png' }} />
+                    )}
                   </div>
                 </div>
                 <div className="flex-1 p-6 space-y-4">
