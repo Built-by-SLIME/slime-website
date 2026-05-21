@@ -341,11 +341,30 @@ export default function SlabsPage() {
                               src={nft.imageUrl || '/Assets/SPLAT.png'}
                               alt={nft.name}
                               className="w-full h-full object-contain"
+                              loading="lazy"
+                              crossOrigin="anonymous"
                               onError={e => {
                                 const img = e.target as HTMLImageElement
                                 if (!img.dataset.retried && nft.imageUrl) {
+                                  // First retry: try public ipfs.io gateway — avoids private gateway rate-limits
                                   img.dataset.retried = 'true'
-                                  setTimeout(() => { img.src = `${nft.imageUrl.split('?')[0]}?r=${Date.now()}` }, 1500)
+                                  const cid = nft.imageUrl.includes('/ipfs/')
+                                    ? nft.imageUrl.split('/ipfs/')[1]
+                                    : null
+                                  setTimeout(() => {
+                                    img.src = cid
+                                      ? `https://ipfs.io/ipfs/${cid}`
+                                      : `${nft.imageUrl.split('?')[0]}?r=${Date.now()}`
+                                  }, 800)
+                                } else if (img.dataset.retried === 'true' && !img.dataset.retried2) {
+                                  // Second retry: try cloudflare gateway
+                                  img.dataset.retried2 = 'true'
+                                  const cid = img.src.includes('/ipfs/') ? img.src.split('/ipfs/')[1] : null
+                                  setTimeout(() => {
+                                    img.src = cid
+                                      ? `https://cloudflare-ipfs.com/ipfs/${cid}`
+                                      : '/Assets/SPLAT.png'
+                                  }, 1500)
                                 } else {
                                   img.src = '/Assets/SPLAT.png'
                                 }
