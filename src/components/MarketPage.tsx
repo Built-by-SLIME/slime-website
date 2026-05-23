@@ -529,10 +529,13 @@ export default function MarketPage() {
     return counts
   }, [allNftData])
 
-  // Build trait type → [{ value, count }] map from all 1000 NFTs (SLIME only)
+  // Build trait type → [{ value, count }] map from currently LISTED NFTs only (SLIME only)
+  // Counts reflect how many listed items have each trait — not the full collection
   const traitOptions = useMemo(() => {
     const countMap: Record<string, Record<string, { display: string; count: number }>> = {}
-    for (const nft of allNftData.values()) {
+    for (const listing of listings) {
+      const nft = allNftData.get(listing.serialId)
+      if (!nft) continue
       nft.attributes.forEach(attr => {
         if (!countMap[attr.trait_type]) countMap[attr.trait_type] = {}
         const key = attr.value.toLowerCase()
@@ -549,7 +552,7 @@ export default function MarketPage() {
         .sort((a, b) => a.value.localeCompare(b.value))
     })
     return map
-  }, [allNftData])
+  }, [listings, allNftData])
 
   const activeFilterCount = Object.values(selectedTraits).reduce((sum, v) => sum + v.length, 0)
 
