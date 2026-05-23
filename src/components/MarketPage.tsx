@@ -196,6 +196,11 @@ export default function MarketPage() {
   // Slab claim status — serials that have already been claimed
   const [claimedSerials, setClaimedSerials] = useState<Set<number>>(new Set())
 
+  // Trait filters (SLIME only — Slabs have no trait data)
+  const [selectedTraits, setSelectedTraits] = useState<Record<string, string[]>>({})
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [expandedType, setExpandedType] = useState<string | null>(null)
+
   // ── Data fetching ───────────────────────────────────────────────────────────
 
   // Map combined sort option → API params (rarity is client-side, use price-asc as default fetch)
@@ -389,6 +394,9 @@ export default function MarketPage() {
     setNftImages(new Map())
     setAllNftData(new Map())
     setFloor(null)
+    setSelectedTraits({})
+    setFiltersOpen(false)
+    setExpandedType(null)
     const newSort: MarketSort = 'price-asc'
     setMarketSort(newSort)
     fetchListings(newSort, collection)
@@ -432,6 +440,30 @@ export default function MarketPage() {
     setTxMsg('')
     setSuccessMsg('')
     setActiveTxSerial(null)
+  }
+
+  // ── Trait filter handlers ────────────────────────────────────────────────────
+
+  const toggleTrait = (traitType: string, value: string) => {
+    setSelectedTraits(prev => {
+      const current = prev[traitType] || []
+      const updated = current.includes(value) ? current.filter(v => v !== value) : [...current, value]
+      return { ...prev, [traitType]: updated }
+    })
+  }
+
+  const clearFilters = () => setSelectedTraits({})
+
+  const selectAllTrait = (traitType: string) => {
+    setSelectedTraits(prev => ({ ...prev, [traitType]: traitOptions[traitType].map(item => item.value) }))
+  }
+
+  const clearTraitType = (traitType: string) => {
+    setSelectedTraits(prev => ({ ...prev, [traitType]: [] }))
+  }
+
+  const toggleTraitType = (type: string) => {
+    setExpandedType(prev => (prev === type ? null : type))
   }
 
   // ── Buy ─────────────────────────────────────────────────────────────────────
@@ -497,24 +529,64 @@ export default function MarketPage() {
     return counts
   }, [allNftData])
 
-  // Client-side rarity sort — applied on top of the API-fetched listings (SLIME only)
+  // Build trait type → [{ value, count }] map from all 1000 NFTs (SLIME only)
+  const traitOptions = useMemo(() => {
+    const countMap: Record<string, Record<string, { display: string; count: number }>> = {}
+    for (const nft of allNftData.values()) {
+      nft.attributes.forEach(attr => {
+        if (!countMap[attr.trait_type]) countMap[attr.trait_type] = {}
+        const key = attr.value.toLowerCase()
+        if (!countMap[attr.trait_type][key]) {
+          countMap[attr.trait_type][key] = { display: attr.value.charAt(0).toUpperCase() + attr.value.slice(1), count: 0 }
+        }
+        countMap[attr.trait_type][key].count += 1
+      })
+    }
+    const map: Record<string, { value: string; count: number }[]> = {}
+    Object.entries(countMap).forEach(([traitType, valueCounts]) => {
+      map[traitType] = Object.entries(valueCounts)
+        .map(([, { display, count }]) => ({ value: display, count }))
+        .sort((a, b) => a.value.localeCompare(b.value))
+    })
+    return map
+  }, [allNftData])
+
+  const activeFilterCount = Object.values(selectedTraits).reduce((sum, v) => sum + v.length, 0)
+
+  // Client-side rarity sort + trait filter — applied on top of the API-fetched listings (SLIME only)
   const sortedListings = useMemo(() => {
+    let result = [...listings]
+
+    // Apply trait filters (SLIME only — Slabs have no trait data)
+    if (collection === 'slime') {
+      const active = Object.entries(selectedTraits).filter(([, v]) => v.length > 0)
+      if (active.length > 0) {
+        result = result.filter(listing => {
+          const nft = allNftData.get(listing.serialId)
+          if (!nft) return false
+          return active.every(([type, vals]) =>
+            nft.attributes.some(a => a.trait_type === type && vals.some(v => v.toLowerCase() === a.value.toLowerCase()))
+          )
+        })
+      }
+    }
+
     if (collection === 'slime' && marketSort === 'rarity-asc') {
-      return [...listings].sort((a, b) => {
+      return result.sort((a, b) => {
         const rankA = allNftData.get(a.serialId)?.correctedRank ?? 9999
         const rankB = allNftData.get(b.serialId)?.correctedRank ?? 9999
         return rankA - rankB
       })
     }
     if (collection === 'slime' && marketSort === 'rarity-desc') {
-      return [...listings].sort((a, b) => {
+      return result.sort((a, b) => {
         const rankA = allNftData.get(a.serialId)?.correctedRank ?? 0
         const rankB = allNftData.get(b.serialId)?.correctedRank ?? 0
         return rankB - rankA
       })
     }
-    return listings
-  }, [listings, marketSort, allNftData, collection])
+    return result
+  }, [listings, marketSort, allNftData, collection, selectedTraits])
 
   // Rarity sorts are only available for SLIME (no rarity data for Slabs)
   const MARKET_SORT_OPTIONS: { value: MarketSort; label: string }[] = [
@@ -638,23 +710,130 @@ export default function MarketPage() {
               </button>
             </div>
 
-            {/* Sort bar — matches collection page style */}
-            <div className="flex items-center gap-2 flex-wrap mb-6">
-              <span className="text-xs text-gray-500 uppercase tracking-widest font-bold mr-1">Sort</span>
-              {MARKET_SORT_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setMarketSort(opt.value)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition ${
-                    marketSort === opt.value
-                      ? 'bg-slime-green text-black'
-                      : 'bg-[#1f1f1f] border border-gray-700 text-gray-300 hover:border-slime-green'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+            {/* Sort + Filter bar */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-gray-500 uppercase tracking-widest font-bold mr-1">Sort</span>
+                {MARKET_SORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setMarketSort(opt.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition ${
+                      marketSort === opt.value
+                        ? 'bg-slime-green text-black'
+                        : 'bg-[#1f1f1f] border border-gray-700 text-gray-300 hover:border-slime-green'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {/* Filter button — SLIME only */}
+              {collection === 'slime' && (
+                <div className="flex items-center gap-3">
+                  {activeFilterCount > 0 && (
+                    <button onClick={clearFilters} className="text-xs text-red-400 hover:text-red-300 font-bold transition">
+                      CLEAR ALL ({activeFilterCount})
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setFiltersOpen(p => !p)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold tracking-wider border transition ${filtersOpen || activeFilterCount > 0 ? 'bg-slime-green text-black border-slime-green' : 'bg-[#1f1f1f] border-gray-700 text-gray-300 hover:border-slime-green'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+                    </svg>
+                    FILTERS{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Filter Panel — SLIME only */}
+            {collection === 'slime' && filtersOpen && (
+              <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-5 mb-5">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Filter by Traits</p>
+                {expandedType && (
+                  <div className="fixed inset-0 z-40" onClick={() => setExpandedType(null)} />
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {Object.entries(traitOptions).map(([traitType, items]) => {
+                    const isExpanded = expandedType === traitType
+                    const selected = selectedTraits[traitType] || []
+                    const selCount = selected.length
+                    const allSelected = selCount === items.length
+                    const summaryLabel = selCount === 0 ? 'Any' : selCount === 1 ? selected[0] : `${selCount} selected`
+                    return (
+                      <div key={traitType} className="relative">
+                        <button
+                          onClick={() => toggleTraitType(traitType)}
+                          className={`w-full flex items-start justify-between px-4 py-3 rounded-xl text-left transition border ${isExpanded ? 'bg-[#2e2e2e] border-slime-green/60' : 'bg-[#252525] border-transparent hover:border-gray-600'}`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                              {traitType} <span className="text-gray-600 font-normal normal-case tracking-normal">({items.length})</span>
+                            </p>
+                            <p className={`text-sm font-semibold mt-0.5 truncate ${selCount > 0 ? 'text-slime-green' : 'text-gray-300'}`}>
+                              {summaryLabel}
+                            </p>
+                          </div>
+                          <svg className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 mt-1 ml-2 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {isExpanded && (
+                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#1e1e1e] border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+                            <div className="flex gap-2 p-3 border-b border-gray-800">
+                              <button onClick={e => { e.stopPropagation(); selectAllTrait(traitType) }} disabled={allSelected}
+                                className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#2a2a2a] text-gray-300 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                Select All
+                              </button>
+                              <button onClick={e => { e.stopPropagation(); clearTraitType(traitType) }} disabled={selCount === 0}
+                                className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#2a2a2a] text-gray-300 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                Clear All
+                              </button>
+                            </div>
+                            <div className="max-h-56 overflow-y-auto p-2 space-y-0.5">
+                              {items.map(({ value, count }) => {
+                                const isSel = selected.includes(value)
+                                return (
+                                  <button key={value} onClick={e => { e.stopPropagation(); toggleTrait(traitType, value) }}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition flex items-center gap-3 ${isSel ? 'bg-slime-green/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
+                                    <span className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition ${isSel ? 'bg-slime-green border-slime-green' : 'border-gray-600'}`}>
+                                      {isSel && (
+                                        <svg className="w-2.5 h-2.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      )}
+                                    </span>
+                                    <span className="flex-1 font-medium">{value}</span>
+                                    <span className="text-gray-600 text-xs">({count})</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Active filter chips — SLIME only */}
+            {collection === 'slime' && activeFilterCount > 0 && (
+              <div className="flex flex-wrap gap-2 mb-5">
+                {Object.entries(selectedTraits).flatMap(([type, vals]) =>
+                  vals.map(val => (
+                    <button key={`${type}:${val}`} onClick={() => toggleTrait(type, val)}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slime-green/15 border border-slime-green/40 text-slime-green text-xs font-bold hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400 transition">
+                      {type}: {val} ×
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
 
             {loadingListings && (
               <div className="flex items-center justify-center h-72">
