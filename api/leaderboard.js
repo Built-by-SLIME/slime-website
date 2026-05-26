@@ -56,9 +56,12 @@ export default async function handler(req, res) {
     slimeBalance: hederaResults[i].slimeBalance,
   }))
 
+  // Hide users who no longer hold any SLIME NFTs — they'll reappear automatically if they buy back in
+  const activeHolders = enriched.filter(u => u.nftCount > 0)
+
   // Sort by NFT count desc, then $SLIME balance desc
-  enriched.sort((a, b) => b.nftCount - a.nftCount || b.slimeBalance - a.slimeBalance)
+  activeHolders.sort((a, b) => b.nftCount - a.nftCount || b.slimeBalance - a.slimeBalance)
 
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120')
-  return res.status(200).json({ leaderboard: enriched })
+  return res.status(200).json({ leaderboard: activeHolders })
 }
