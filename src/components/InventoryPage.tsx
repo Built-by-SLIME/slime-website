@@ -365,7 +365,7 @@ export default function InventoryPage() {
 
             {/* Filter panel */}
             {filtersOpen && (
-              <div className="bg-[#1a1a1a] border border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <div className="bg-[#1a1a1a] border border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {Object.entries(traitOptions).map(([traitType, options]) => {
                   const selected = selectedTraits[traitType] || []
                   const isOpen = expandedType === traitType
