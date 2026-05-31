@@ -189,14 +189,18 @@ export default function InventoryPage() {
   const loadListedSerials = async () => {
     if (!accountId) return
     try {
-      const params = new URLSearchParams({ sortBy: 'price', sortDirection: 'ASC', limit: '100', token: '0.0.9474754' })
+      // filterUserAccount scopes the SentX response to only this seller's listings,
+      // so we don't need to paginate through the entire marketplace.
+      const params = new URLSearchParams({
+        sortBy: 'serialId', sortDirection: 'ASC',
+        limit: '500', token: '0.0.9474754',
+        filterUserAccount: accountId,
+      })
       const r = await fetch(`/api/market-listings?${params}`)
       if (!r.ok) return
       const d = await r.json()
       const listed = new Set<number>(
-        (d.marketListings || [])
-          .filter((l: { sellerAddress: string }) => l.sellerAddress === accountId)
-          .map((l: { serialId: number }) => l.serialId)
+        (d.marketListings || []).map((l: { serialId: number }) => Number(l.serialId))
       )
       setListedSerials(listed)
     } catch { /* non-critical — badge just won't show */ }
@@ -365,40 +369,69 @@ export default function InventoryPage() {
 
             {/* Filter panel */}
             {filtersOpen && (
-              <div className="bg-[#1a1a1a] border border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {Object.entries(traitOptions).map(([traitType, options]) => {
-                  const selected = selectedTraits[traitType] || []
-                  const isOpen = expandedType === traitType
-                  return (
-                    <div key={traitType} className="bg-[#252525] rounded-xl border border-gray-700 overflow-hidden">
-                      <button onClick={() => toggleTraitType(traitType)}
-                        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-300 hover:text-white transition">
-                        <span>{traitType} <span className="text-gray-600 font-normal">({options.length})</span></span>
-                        <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {isOpen && (
-                        <div className="border-t border-gray-700">
-                          <div className="flex gap-1 p-2">
-                            <button onClick={() => selectAllTrait(traitType)} className="flex-1 text-xs py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition font-bold">All</button>
-                            <button onClick={() => clearTraitType(traitType)} className="flex-1 text-xs py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition font-bold">Clear</button>
+              <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-5 mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Filter by Traits</p>
+                {expandedType && <div className="fixed inset-0 z-40" onClick={() => setExpandedType(null)} />}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {Object.entries(traitOptions).map(([traitType, options]) => {
+                    const isExpanded = expandedType === traitType
+                    const selected = selectedTraits[traitType] || []
+                    const selCount = selected.length
+                    const allSelected = selCount === options.length
+                    const summaryLabel = selCount === 0 ? 'Any' : selCount === 1 ? selected[0] : `${selCount} selected`
+                    return (
+                      <div key={traitType} className="relative">
+                        {/* Trigger */}
+                        <button
+                          onClick={() => toggleTraitType(traitType)}
+                          className={`w-full flex items-start justify-between px-4 py-3 rounded-xl text-left transition border ${isExpanded ? 'bg-[#2e2e2e] border-slime-green/60' : 'bg-[#252525] border-transparent hover:border-gray-600'}`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                              {traitType} <span className="text-gray-600 font-normal normal-case tracking-normal">({options.length})</span>
+                            </p>
+                            <p className={`text-sm font-semibold mt-0.5 truncate ${selCount > 0 ? 'text-slime-green' : 'text-gray-300'}`}>
+                              {summaryLabel}
+                            </p>
                           </div>
-                          <div className="max-h-40 overflow-y-auto px-2 pb-2 space-y-0.5">
-                            {options.map(opt => (
-                              <label key={opt.value} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer">
-                                <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => toggleTrait(traitType, opt.value)}
-                                  className="accent-[#00ff41] w-3.5 h-3.5 flex-shrink-0" />
-                                <span className="text-xs text-gray-300 flex-1 truncate">{opt.value}</span>
-                                <span className="text-xs text-gray-600 flex-shrink-0">{opt.count}</span>
-                              </label>
-                            ))}
+                          <svg className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 mt-1 ml-2 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {/* Floating Dropdown */}
+                        {isExpanded && (
+                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#1e1e1e] border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+                            <div className="flex gap-2 p-3 border-b border-gray-800">
+                              <button onClick={e => { e.stopPropagation(); selectAllTrait(traitType) }} disabled={allSelected}
+                                className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#2a2a2a] text-gray-300 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                Select All
+                              </button>
+                              <button onClick={e => { e.stopPropagation(); clearTraitType(traitType) }} disabled={selCount === 0}
+                                className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#2a2a2a] text-gray-300 hover:text-white hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                Clear All
+                              </button>
+                            </div>
+                            <div className="max-h-56 overflow-y-auto p-2 space-y-0.5">
+                              {options.map(({ value, count }) => {
+                                const isSel = selected.includes(value)
+                                return (
+                                  <button key={value} onClick={e => { e.stopPropagation(); toggleTrait(traitType, value) }}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition flex items-center gap-3 ${isSel ? 'bg-slime-green/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
+                                    <span className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition ${isSel ? 'bg-slime-green border-slime-green' : 'border-gray-600'}`}>
+                                      {isSel && <svg className="w-2.5 h-2.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                    </span>
+                                    <span className="flex-1 font-medium">{value}</span>
+                                    <span className="text-gray-600 text-xs">({count})</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
 
