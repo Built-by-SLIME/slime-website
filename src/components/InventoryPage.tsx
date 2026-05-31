@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { decodeMetadata } from '../utils/nft'
 import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
@@ -45,13 +45,19 @@ export default function InventoryPage() {
   const [loadingSlabs, setLoadingSlabs] = useState(false)
   const [selectedSlab, setSelectedSlab] = useState<SlabInventoryNFT | null>(null)
 
+  // Tab
+  const [activeTab, setActiveTab] = useState<'slime' | 'slabs'>('slime')
+  // Trait filters (SLIME tab only)
+  const [selectedTraits, setSelectedTraits] = useState<Record<string, string[]>>({})
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [expandedType, setExpandedType] = useState<string | null>(null)
+  // Serials this wallet has listed on the market
+  const [listedSerials, setListedSerials] = useState<Set<number>>(new Set())
+
   useEffect(() => {
     if (isConnected && slimeNFTs.length > 0) loadNFTImages()
-    if (isConnected && accountId) loadSlabNFTs()
-    if (!isConnected) {
-      setNftsWithImages([])
-      setSlabNFTs([])
-    }
+    if (isConnected && accountId) { loadSlabNFTs(); loadListedSerials() }
+    if (!isConnected) { setNftsWithImages([]); setSlabNFTs([]); setListedSerials(new Set()) }
   }, [isConnected, slimeNFTs, accountId])
 
   useEffect(() => {
@@ -180,6 +186,68 @@ export default function InventoryPage() {
     }
   }
 
+  const loadListedSerials = async () => {
+    if (!accountId) return
+    try {
+      const params = new URLSearchParams({ sortBy: 'price', sortDirection: 'ASC', limit: '100', token: '0.0.9474754' })
+      const r = await fetch(`/api/market-listings?${params}`)
+      if (!r.ok) return
+      const d = await r.json()
+      const listed = new Set<number>(
+        (d.marketListings || [])
+          .filter((l: { sellerAddress: string }) => l.sellerAddress === accountId)
+          .map((l: { serialId: number }) => l.serialId)
+      )
+      setListedSerials(listed)
+    } catch { /* non-critical — badge just won't show */ }
+  }
+
+  // Trait options built from the user's own NFTs
+  const traitOptions = useMemo(() => {
+    const countMap: Record<string, Record<string, { display: string; count: number }>> = {}
+    for (const nft of nftsWithImages) {
+      nft.attributes.forEach(attr => {
+        if (!countMap[attr.trait_type]) countMap[attr.trait_type] = {}
+        const key = attr.value.toLowerCase()
+        if (!countMap[attr.trait_type][key]) {
+          countMap[attr.trait_type][key] = { display: attr.value.charAt(0).toUpperCase() + attr.value.slice(1), count: 0 }
+        }
+        countMap[attr.trait_type][key].count += 1
+      })
+    }
+    const map: Record<string, { value: string; count: number }[]> = {}
+    Object.entries(countMap).forEach(([traitType, valueCounts]) => {
+      map[traitType] = Object.entries(valueCounts)
+        .map(([, { display, count }]) => ({ value: display, count }))
+        .sort((a, b) => a.value.localeCompare(b.value))
+    })
+    return map
+  }, [nftsWithImages])
+
+  const filteredNfts = useMemo(() => {
+    const active = Object.entries(selectedTraits).filter(([, v]) => v.length > 0)
+    if (active.length === 0) return nftsWithImages
+    return nftsWithImages.filter(nft =>
+      active.every(([type, vals]) =>
+        nft.attributes.some(a => a.trait_type === type && vals.some(v => v.toLowerCase() === a.value.toLowerCase()))
+      )
+    )
+  }, [nftsWithImages, selectedTraits])
+
+  const activeFilterCount = Object.values(selectedTraits).reduce((sum, v) => sum + v.length, 0)
+
+  const toggleTrait = (traitType: string, value: string) => {
+    setSelectedTraits(prev => {
+      const current = prev[traitType] || []
+      const updated = current.includes(value) ? current.filter(v => v !== value) : [...current, value]
+      return { ...prev, [traitType]: updated }
+    })
+  }
+  const clearFilters = () => setSelectedTraits({})
+  const selectAllTrait = (t: string) => setSelectedTraits(prev => ({ ...prev, [t]: traitOptions[t].map(i => i.value) }))
+  const clearTraitType = (t: string) => setSelectedTraits(prev => ({ ...prev, [t]: [] }))
+  const toggleTraitType = (t: string) => setExpandedType(prev => prev === t ? null : t)
+
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-[#2a2a2a] text-white flex flex-col">
@@ -237,19 +305,124 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        {/* NFT Gallery */}
-        {slimeNFTs.length > 0 && (
+        {/* ── Tab Bar ── */}
+        <div className="flex gap-1 mb-6 bg-black/30 border border-gray-800 rounded-xl p-1 w-fit">
+          {(['slime', 'slabs'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => { setActiveTab(tab); clearFilters(); setFiltersOpen(false) }}
+              className={`px-5 py-2 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
+                activeTab === tab
+                  ? 'bg-slime-green text-black shadow'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {tab === 'slime' ? 'SLIME' : 'SLABS'}
+            </button>
+          ))}
+        </div>
+
+        {/* ── SLIME Tab ── */}
+        {activeTab === 'slime' && (
           <div className="mb-10">
-            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Your NFTs</h2>
+            {/* Filter bar */}
+            <div className="flex items-center gap-3 mb-3">
+              <button
+                onClick={() => setFiltersOpen(p => !p)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-bold transition ${
+                  filtersOpen || activeFilterCount > 0
+                    ? 'bg-slime-green text-black border-slime-green'
+                    : 'bg-[#1f1f1f] text-gray-300 border-gray-700 hover:border-gray-500'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M7 8h10M11 12h2" />
+                </svg>
+                FILTERS{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </button>
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters} className="text-xs text-gray-500 hover:text-red-400 transition font-bold">
+                  CLEAR ALL
+                </button>
+              )}
+              <span className="ml-auto text-xs text-gray-500">{filteredNfts.length} / {nftsWithImages.length} NFTs</span>
+            </div>
+
+            {/* Active filter chips */}
+            {activeFilterCount > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {Object.entries(selectedTraits).flatMap(([type, vals]) =>
+                  vals.map(val => (
+                    <button key={`${type}:${val}`} onClick={() => toggleTrait(type, val)}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slime-green/20 border border-slime-green/40 text-slime-green text-xs font-bold hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400 transition">
+                      <span>{type}: {val}</span>
+                      <span>✕</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Filter panel */}
+            {filtersOpen && (
+              <div className="bg-[#1a1a1a] border border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {Object.entries(traitOptions).map(([traitType, options]) => {
+                  const selected = selectedTraits[traitType] || []
+                  const isOpen = expandedType === traitType
+                  return (
+                    <div key={traitType} className="bg-[#252525] rounded-xl border border-gray-700 overflow-hidden">
+                      <button onClick={() => toggleTraitType(traitType)}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-300 hover:text-white transition">
+                        <span>{traitType} <span className="text-gray-600 font-normal">({options.length})</span></span>
+                        <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {isOpen && (
+                        <div className="border-t border-gray-700">
+                          <div className="flex gap-1 p-2">
+                            <button onClick={() => selectAllTrait(traitType)} className="flex-1 text-xs py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition font-bold">All</button>
+                            <button onClick={() => clearTraitType(traitType)} className="flex-1 text-xs py-1 rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition font-bold">Clear</button>
+                          </div>
+                          <div className="max-h-40 overflow-y-auto px-2 pb-2 space-y-0.5">
+                            {options.map(opt => (
+                              <label key={opt.value} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer">
+                                <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => toggleTrait(traitType, opt.value)}
+                                  className="accent-[#00ff41] w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="text-xs text-gray-300 flex-1 truncate">{opt.value}</span>
+                                <span className="text-xs text-gray-600 flex-shrink-0">{opt.count}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* SLIME NFT Grid */}
             {loadingNFTs ? (
               <div className="flex justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slime-green" />
               </div>
+            ) : filteredNfts.length === 0 ? (
+              <div className="text-center py-10 bg-black/20 border border-gray-800 rounded-2xl">
+                <p className="text-gray-500 text-sm">
+                  {nftsWithImages.length === 0 ? 'No SLIME NFTs found in this wallet.' : 'No NFTs match the selected filters.'}
+                </p>
+              </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {nftsWithImages.map(nft => (
+                {filteredNfts.map(nft => (
                   <div key={nft.serial_number} className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all">
-                    <div className="aspect-square bg-[#252525] p-2">
+                    <div className="relative aspect-square bg-[#252525] p-2">
+                      {listedSerials.has(nft.serial_number) && (
+                        <span className="absolute top-2 left-2 z-10 bg-slime-green text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
+                          LISTED
+                        </span>
+                      )}
                       {nft.imageUrl ? (
                         <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-contain" crossOrigin="anonymous"
                           onError={e => {
@@ -271,10 +444,8 @@ export default function InventoryPage() {
                         <span className="text-gray-500">Rank</span>
                         <span className={`font-bold ${rankColor(nft.correctedRank)}`}>#{nft.correctedRank}</span>
                       </div>
-                      <button
-                        onClick={() => setSelectedNft(nft)}
-                        className="block w-full bg-slime-green text-black py-1.5 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center"
-                      >
+                      <button onClick={() => setSelectedNft(nft)}
+                        className="block w-full bg-slime-green text-black py-1.5 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center">
                         VIEW
                       </button>
                     </div>
@@ -285,19 +456,16 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {slimeNFTs.length === 0 && (
-          <div className="mb-10 text-center py-10 bg-black/20 border border-gray-800 rounded-2xl">
-            <p className="text-gray-500 text-sm">No SLIME NFTs found in this wallet.</p>
-          </div>
-        )}
-
-        {/* Slabs Gallery */}
-        {(loadingSlabs || slabNFTs.length > 0) && (
+        {/* ── SLABS Tab ── */}
+        {activeTab === 'slabs' && (
           <div className="mb-10">
-            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Your Slabs</h2>
             {loadingSlabs ? (
               <div className="flex justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slime-green" />
+              </div>
+            ) : slabNFTs.length === 0 ? (
+              <div className="text-center py-10 bg-black/20 border border-gray-800 rounded-2xl">
+                <p className="text-gray-500 text-sm">No SLIME Slabs found in this wallet.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -314,10 +482,8 @@ export default function InventoryPage() {
                     <div className="p-2.5 space-y-2">
                       <p className="text-white text-xs font-bold truncate">{nft.name}</p>
                       <p className="text-gray-500 text-xs font-mono">#{nft.serial_number}</p>
-                      <button
-                        onClick={() => setSelectedSlab(nft)}
-                        className="block w-full bg-slime-green text-black py-1.5 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center"
-                      >
+                      <button onClick={() => setSelectedSlab(nft)}
+                        className="block w-full bg-slime-green text-black py-1.5 rounded-md font-bold text-xs hover:bg-[#00cc33] transition text-center">
                         VIEW
                       </button>
                     </div>
