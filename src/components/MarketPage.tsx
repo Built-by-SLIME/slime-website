@@ -1036,7 +1036,8 @@ export default function MarketPage() {
               const maxSale = Math.max(...stats.map(r => r.maxSale || 0))
               const minPrices = stats.map(r => r.minSale).filter(v => v > 0)
               const minSale = minPrices.length > 0 ? Math.min(...minPrices) : 0
-              const latestFloor = stats[0]?.floor ?? floor
+              // Use the live floor from fetchFloor() — stats[0].floor is a stale daily snapshot
+              const latestFloor = floor
 
               const cards = [
                 { label: 'Total Volume', value: totalVolume.toLocaleString(), suffix: 'ℏ', highlight: true },
