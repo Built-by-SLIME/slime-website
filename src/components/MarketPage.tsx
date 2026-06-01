@@ -74,8 +74,8 @@ async function loadAllNFTData(): Promise<{ images: Map<number, string>; data: Ma
   }
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
+function timeAgo(dateStr: string, now = Date.now()): string {
+  const diff = now - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`
@@ -172,6 +172,8 @@ export default function MarketPage() {
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [loadingActivity, setLoadingActivity] = useState(false)
   const [activityLoaded, setActivityLoaded] = useState(false)
+  // Live clock — ticks every 60s so timeAgo() labels stay accurate without a full re-fetch
+  const [now, setNow] = useState(Date.now())
 
   // Stats
   const [stats, setStats] = useState<StatRecord[]>([])
@@ -408,6 +410,15 @@ export default function MarketPage() {
     if (tab === 'activity' && !activityLoaded) fetchActivity()
     if (tab === 'stats' && !statsLoaded) fetchStats()
   }, [tab, isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // While on the activity tab: tick the clock every 60s (keeps timeAgo labels live)
+  // and re-fetch activity every 2 minutes so new sales appear automatically.
+  useEffect(() => {
+    if (tab !== 'activity') return
+    const tick = setInterval(() => setNow(Date.now()), 60_000)
+    const refresh = setInterval(() => fetchActivity(), 120_000)
+    return () => { clearInterval(tick); clearInterval(refresh) }
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-fetch stats when period changes
   useEffect(() => {
@@ -985,7 +996,7 @@ export default function MarketPage() {
                         }`}>
                           {a.saletype}
                         </span>
-                        <span className="text-xs text-gray-600">{timeAgo(a.saleDate)}</span>
+                        <span className="text-xs text-gray-600">{timeAgo(a.saleDate, now)}</span>
                       </div>
                     </div>
                   </div>
