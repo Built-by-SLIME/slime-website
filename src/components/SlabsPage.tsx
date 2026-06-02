@@ -50,7 +50,7 @@ export default function SlabsPage() {
 
       const [collectionRes, claimedRes, assocRes] = await Promise.all([
         fetch(`/api/collection-rarity?apikey=${apiKey}&token=${tokenId}&limit=1000&page=1`),
-        fetch(`/api/slabs/check?wallet=${encodeURIComponent(accountId)}`),
+        fetch(`/api/slabs/all-claimed`),
         fetch(`https://mainnet.mirrornode.hedera.com/api/v1/accounts/${encodeURIComponent(accountId)}/tokens?token.id=0.0.10480544`),
       ])
 
