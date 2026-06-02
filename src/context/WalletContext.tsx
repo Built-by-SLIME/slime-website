@@ -83,6 +83,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           [HederaChainId.Mainnet]
         )
 
+        // Set the iframe callback BEFORE init() so that when HashPack's in-app
+        // browser is detected, checkIframeConnect() can fire it immediately.
+        connector.onSessionIframeCreated = async (session) => {
+          const accounts = session.namespaces?.hedera?.accounts || []
+          if (accounts.length > 0) {
+            const account = accounts[0].split(':').pop() || ''
+            if (account) {
+              setAccountId(account)
+              setIsConnected(true)
+              await fetchWalletData(account)
+              syncPfpFromDB(account)
+            }
+          }
+        }
+
         await connector.init({ logger: 'error' })
         setDAppConnector(connector)
 
@@ -142,18 +157,30 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const connect = async () => {
     if (!dAppConnector) throw new Error('Wallet connector not ready')
 
-    await dAppConnector.openModal()
+    // Prefer extension / in-app-browser pairing over the generic WC modal.
+    // The DAppConnector populates `extensions` during init() by probing the
+    // browser environment (Chrome extension messaging, iframe detection, etc.).
+    //   • availableInIframe === true  → we're inside a wallet's WebView (e.g. HashPack in-app browser)
+    //   • available === true          → a wallet browser extension is installed
+    // In both cases we skip the WalletConnect selection modal and pair directly.
+    const iframeExt = dAppConnector.extensions.find(ext => ext.availableInIframe)
+    const anyExt    = dAppConnector.extensions.find(ext => ext.available)
+    const preferred = iframeExt ?? anyExt
 
-    const sessions = dAppConnector.walletConnectClient?.session.getAll()
-    if (sessions && sessions.length > 0) {
-      const accounts = sessions[0].namespaces?.hedera?.accounts || []
-      if (accounts.length > 0) {
-        const account = accounts[0].split(':').pop() || ''
-        setAccountId(account)
-        setIsConnected(true)
-        await fetchWalletData(account)
-        syncPfpFromDB(account)
-      }
+    let session
+    if (preferred) {
+      session = await dAppConnector.connectExtension(preferred.id)
+    } else {
+      session = await dAppConnector.openModal()
+    }
+
+    const accounts = session.namespaces?.hedera?.accounts || []
+    if (accounts.length > 0) {
+      const account = accounts[0].split(':').pop() || ''
+      setAccountId(account)
+      setIsConnected(true)
+      await fetchWalletData(account)
+      syncPfpFromDB(account)
     }
   }
 
