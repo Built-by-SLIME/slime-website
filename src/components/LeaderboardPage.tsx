@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useWallet } from '../context/WalletContext'
 import Navigation from './Navigation'
 import Footer from './Footer'
@@ -78,6 +78,9 @@ export default function LeaderboardPage() {
   const [xUser, setXUser] = useState<XUser | null>(null)
   const [connecting, setConnecting] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
+  const [oauthPending, setOauthPending] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollStopRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Wallet NFT modal
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null)
@@ -143,6 +146,14 @@ export default function LeaderboardPage() {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [isConnected, accountId])
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+      if (pollStopRef.current) clearTimeout(pollStopRef.current)
+    }
+  }, [])
+
   // ESC closes modals
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -205,6 +216,30 @@ export default function LeaderboardPage() {
     } catch { /* show empty */ } finally { setLoadingWalletNFTs(false) }
   }
 
+  const stopPolling = () => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+    if (pollStopRef.current) { clearTimeout(pollStopRef.current); pollStopRef.current = null }
+    setOauthPending(false)
+  }
+
+  const startPolling = (wallet: string) => {
+    setOauthPending(true)
+    pollRef.current = setInterval(() => {
+      fetch(`/api/auth/check-wallet?wallet=${encodeURIComponent(wallet)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.linked && data.user) {
+            setXUser(data.user)
+            try { localStorage.setItem('slime_x_user', JSON.stringify(data.user)) } catch { /* ignore */ }
+            stopPolling()
+          }
+        })
+        .catch(() => {})
+    }, 3000)
+    // Auto-cancel after 5 minutes
+    pollStopRef.current = setTimeout(stopPolling, 5 * 60 * 1000)
+  }
+
   const handleConnectX = async () => {
     if (!isConnected || !accountId) return
     setConnecting(true)
@@ -213,11 +248,11 @@ export default function LeaderboardPage() {
       const { authUrl } = await res.json()
 
       if (isInAppBrowser()) {
-        // Inside HashPack (WKWebView): Twitter blocks their OAuth page in WebViews
-        // and returns a blank screen.  Open in a real browser window instead.
-        // The callback page will call window.close() on success, returning the
-        // user here automatically — no manual "check" step needed.
+        // Inside HashPack (WKWebView): open Twitter in the system browser.
+        // This page stays alive, so we poll check-wallet every 3 s until linked.
+        // This is more reliable than visibilitychange which WKWebViews often skip.
         window.open(authUrl, '_blank')
+        startPolling(accountId)
       } else {
         // Normal desktop / mobile browser — navigate in place.
         window.location.href = authUrl
@@ -284,6 +319,23 @@ export default function LeaderboardPage() {
                   {unlinking ? 'Unlinking…' : 'Unlink X Account'}
                 </button>
               </>
+            ) : isConnected && oauthPending ? (
+              // Polling state — user authorized in external browser, waiting for DB to update
+              <div className="w-full flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slime-green flex-shrink-0" />
+                  <div>
+                    <p className="text-white font-bold text-sm">Waiting for authorization…</p>
+                    <p className="text-gray-400 text-xs mt-0.5">Authorize on X in the browser, then return here — this updates automatically.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={stopPolling}
+                  className="text-xs text-gray-600 hover:text-gray-300 transition self-start"
+                >
+                  Cancel
+                </button>
+              </div>
             ) : isConnected ? (
               <>
                 <div>

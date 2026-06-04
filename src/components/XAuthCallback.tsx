@@ -146,12 +146,16 @@ export default function XAuthCallback() {
       )}
 
       {status === 'error' && (
-        <div className="flex flex-col items-center gap-4 text-center px-6">
-          <p className="text-red-400 font-bold text-lg">Something went wrong</p>
-          <p className="text-gray-400 text-sm max-w-sm">{errorMsg}</p>
+        <div className="flex flex-col items-center gap-4 text-center px-6 max-w-sm">
+          <div className="text-4xl">❌</div>
+          <p className="text-red-400 font-bold text-lg">Authorization failed</p>
+          <div className="bg-[#1a1a1a] border border-red-900 rounded-xl p-3 w-full text-left">
+            <p className="text-red-300 text-xs font-mono break-words">{errorMsg}</p>
+          </div>
+          <p className="text-gray-500 text-xs">Screenshot this screen and share it with support if the issue persists.</p>
           <button
             onClick={() => navigate('/leaderboard')}
-            className="mt-4 bg-slime-green text-black font-bold px-6 py-2 rounded-lg hover:bg-[#00cc33] transition"
+            className="mt-2 bg-slime-green text-black font-bold px-6 py-2 rounded-lg hover:bg-[#00cc33] transition"
           >
             Back to Leaderboard
           </button>
