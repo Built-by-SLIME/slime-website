@@ -21,9 +21,6 @@ export default function XAuthCallback() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
-  // True when this tab was opened by window.open (i.e. from HashPack).
-  // After a successful link we call window.close() to return automatically.
-  const openedByScript = window.opener !== null
 
   useEffect(() => {
     const run = async () => {
@@ -103,13 +100,10 @@ export default function XAuthCallback() {
 
         setStatus('success')
 
-        // If this tab was opened by window.open (from HashPack), close it now.
-        // This returns focus to HashPack automatically — the visibilitychange
-        // listener on LeaderboardPage will then re-query check-wallet and show
-        // the linked X account with no user action required.
-        if (openedByScript) {
-          setTimeout(() => { try { window.close() } catch { /* ignore */ } }, 1500)
-        }
+        // Try to close this tab and return to HashPack.
+        // window.opener is null when opened from a WKWebView → Safari crossing,
+        // so we attempt close() regardless and fall back to the manual UI below.
+        setTimeout(() => { try { window.close() } catch { /* ignore */ } }, 1500)
       } catch {
         setErrorMsg('Network error. Please try again.')
         setStatus('error')
@@ -133,19 +127,21 @@ export default function XAuthCallback() {
           <div className="text-5xl">✅</div>
           <p className="text-white font-black text-2xl">X Account Linked!</p>
           <p className="text-gray-400 text-sm leading-relaxed">
-            Your X account has been connected to your Hedera wallet. You're now on the leaderboard!
+            Your X account is now connected to your Hedera wallet.
           </p>
-          {openedByScript ? (
-            // Opened from HashPack via window.open — auto-closing after 1.5s
-            <p className="text-gray-500 text-sm animate-pulse">Returning to HashPack…</p>
-          ) : (
-            <button
-              onClick={() => navigate('/leaderboard')}
-              className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm"
-            >
-              View Leaderboard
-            </button>
-          )}
+          <div className="bg-[#1f1f1f] border border-gray-700 rounded-xl p-4 text-left w-full">
+            <p className="text-slime-green text-xs font-bold uppercase tracking-widest mb-1">Next step</p>
+            <p className="text-white text-sm font-bold">Return to HashPack</p>
+            <p className="text-gray-400 text-xs mt-1 leading-relaxed">
+              Close this tab and go back to HashPack — your rank will appear on the leaderboard automatically.
+            </p>
+          </div>
+          <button
+            onClick={() => { try { window.close() } catch { navigate('/leaderboard') } }}
+            className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm w-full"
+          >
+            Close &amp; Return to HashPack
+          </button>
         </div>
       )}
 
