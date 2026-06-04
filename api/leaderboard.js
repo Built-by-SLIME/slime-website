@@ -30,6 +30,45 @@ async function getHederaData(wallet) {
   }
 }
 
+// Fetch fresh avatar URLs from the X API using app-level Bearer token.
+// Returns a map of { x_user_id -> fresh_avatar_url }.
+// Also fires-and-forgets Supabase updates so stored URLs stay current.
+async function refreshAvatars(users, supabase) {
+  const bearerToken = process.env.X_BEARER_TOKEN
+  if (!bearerToken || users.length === 0) return {}
+
+  try {
+    // X API v2 supports up to 100 ids per request
+    const ids = users.map(u => u.x_user_id).slice(0, 100).join(',')
+    const xRes = await fetch(
+      `https://api.twitter.com/2/users?ids=${ids}&user.fields=profile_image_url`,
+      { headers: { Authorization: `Bearer ${bearerToken}` } }
+    )
+    if (!xRes.ok) return {}
+
+    const { data } = await xRes.json()
+    if (!data) return {}
+
+    const avatarMap = {}
+    const updates = data
+      .filter(u => u.profile_image_url)
+      .map(u => {
+        const url = u.profile_image_url.replace('_normal', '_400x400')
+        avatarMap[u.id] = url
+        // Update Supabase in the background — don't await
+        return supabase
+          .from('leaderboard_users')
+          .update({ x_avatar_url: url })
+          .eq('x_user_id', u.id)
+      })
+
+    Promise.all(updates).catch(() => {})
+    return avatarMap
+  } catch {
+    return {}
+  }
+}
+
 // GET /api/leaderboard
 // Returns all linked users enriched with live Hedera data, sorted by NFT count desc.
 export default async function handler(req, res) {
@@ -47,16 +86,21 @@ export default async function handler(req, res) {
 
   if (error) return res.status(500).json({ error: 'Failed to fetch leaderboard' })
 
-  // Enrich each user with live on-chain data in parallel
-  const hederaResults = await Promise.all(users.map(u => getHederaData(u.wallet_address)))
+  // Fetch fresh avatars from X API and enrich Hedera data in parallel
+  const [avatarMap, hederaResults] = await Promise.all([
+    refreshAvatars(users, supabase),
+    Promise.all(users.map(u => getHederaData(u.wallet_address))),
+  ])
 
   const enriched = users.map((u, i) => ({
     ...u,
+    // Use fresh avatar from X API if available, else fall back to stored value
+    x_avatar_url: avatarMap[u.x_user_id] ?? u.x_avatar_url,
     nftCount: hederaResults[i].nftCount,
     slimeBalance: hederaResults[i].slimeBalance,
   }))
 
-  // Hide users who no longer hold any SLIME NFTs — they'll reappear automatically if they buy back in
+  // Hide users who no longer hold any SLIME NFTs
   const activeHolders = enriched.filter(u => u.nftCount > 0)
 
   // Sort by NFT count desc, then $SLIME balance desc
