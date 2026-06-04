@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     code_challenge_method: 'S256',
   })
 
-  const authUrl = `https://twitter.com/i/oauth2/authorize?${params}`
+  const authUrl = `https://x.com/i/oauth2/authorize?${params}`
 
   // Only authUrl is needed by the frontend now
   return res.status(200).json({ authUrl })
