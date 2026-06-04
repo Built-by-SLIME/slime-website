@@ -19,7 +19,7 @@ function decodeBase64url(b64url: string): string {
 //      this change was deployed.
 export default function XAuthCallback() {
   const navigate = useNavigate()
-  const [status, setStatus] = useState<'loading' | 'error'>('loading')
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
@@ -95,11 +95,20 @@ export default function XAuthCallback() {
           return
         }
 
-        // Store the session JWT
-        localStorage.setItem('slime_x_session', data.sessionToken)
-        localStorage.setItem('slime_x_user', JSON.stringify(data.user))
+        // Store the session JWT (best-effort — may be in an external browser
+        // where the HashPack WebView won't see this localStorage, but the
+        // linkage is already persisted in Supabase so it will be found when
+        // the user returns to HashPack and check-wallet is called).
+        try { localStorage.setItem('slime_x_session', data.sessionToken) } catch { /* ignore */ }
+        try { localStorage.setItem('slime_x_user', JSON.stringify(data.user)) } catch { /* ignore */ }
 
-        navigate('/leaderboard')
+        // Show a success screen — do NOT navigate immediately.
+        // If this callback is running inside HashPack's WebView (normal flow),
+        // the user can tap "View Leaderboard" to continue.
+        // If this callback is running in an external browser (Safari/Chrome,
+        // opened via window.open from HashPack), the user sees instructions
+        // to return to HashPack where the Supabase linkage will be detected.
+        setStatus('success')
       } catch {
         setErrorMsg('Network error. Please try again.')
         setStatus('error')
@@ -117,6 +126,26 @@ export default function XAuthCallback() {
           <p className="text-gray-400 text-sm">Connecting your X account…</p>
         </div>
       )}
+
+      {status === 'success' && (
+        <div className="flex flex-col items-center gap-5 text-center px-8 max-w-sm">
+          <div className="text-5xl">✅</div>
+          <p className="text-white font-black text-2xl">X Account Linked!</p>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            Your X account has been connected to your Hedera wallet. You're now on the leaderboard!
+          </p>
+          <p className="text-gray-500 text-xs leading-relaxed">
+            If you connected via HashPack, return to the app — your rank will appear automatically.
+          </p>
+          <button
+            onClick={() => navigate('/leaderboard')}
+            className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm"
+          >
+            View Leaderboard
+          </button>
+        </div>
+      )}
+
       {status === 'error' && (
         <div className="flex flex-col items-center gap-4 text-center px-6">
           <p className="text-red-400 font-bold text-lg">Something went wrong</p>
