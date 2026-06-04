@@ -21,6 +21,9 @@ export default function XAuthCallback() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
+  // True when this tab was opened by window.open (i.e. from HashPack).
+  // After a successful link we call window.close() to return automatically.
+  const openedByScript = window.opener !== null
 
   useEffect(() => {
     const run = async () => {
@@ -95,20 +98,18 @@ export default function XAuthCallback() {
           return
         }
 
-        // Store the session JWT (best-effort — may be in an external browser
-        // where the HashPack WebView won't see this localStorage, but the
-        // linkage is already persisted in Supabase so it will be found when
-        // the user returns to HashPack and check-wallet is called).
         try { localStorage.setItem('slime_x_session', data.sessionToken) } catch { /* ignore */ }
         try { localStorage.setItem('slime_x_user', JSON.stringify(data.user)) } catch { /* ignore */ }
 
-        // Show a success screen — do NOT navigate immediately.
-        // If this callback is running inside HashPack's WebView (normal flow),
-        // the user can tap "View Leaderboard" to continue.
-        // If this callback is running in an external browser (Safari/Chrome,
-        // opened via window.open from HashPack), the user sees instructions
-        // to return to HashPack where the Supabase linkage will be detected.
         setStatus('success')
+
+        // If this tab was opened by window.open (from HashPack), close it now.
+        // This returns focus to HashPack automatically — the visibilitychange
+        // listener on LeaderboardPage will then re-query check-wallet and show
+        // the linked X account with no user action required.
+        if (openedByScript) {
+          setTimeout(() => { try { window.close() } catch { /* ignore */ } }, 1500)
+        }
       } catch {
         setErrorMsg('Network error. Please try again.')
         setStatus('error')
@@ -134,15 +135,17 @@ export default function XAuthCallback() {
           <p className="text-gray-400 text-sm leading-relaxed">
             Your X account has been connected to your Hedera wallet. You're now on the leaderboard!
           </p>
-          <button
-            onClick={() => navigate('/leaderboard')}
-            className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm"
-          >
-            View Leaderboard
-          </button>
-          <p className="text-gray-500 text-xs leading-relaxed">
-            Opened via HashPack? Return to the app — your rank will appear automatically.
-          </p>
+          {openedByScript ? (
+            // Opened from HashPack via window.open — auto-closing after 1.5s
+            <p className="text-gray-500 text-sm animate-pulse">Returning to HashPack…</p>
+          ) : (
+            <button
+              onClick={() => navigate('/leaderboard')}
+              className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm"
+            >
+              View Leaderboard
+            </button>
+          )}
         </div>
       )}
 

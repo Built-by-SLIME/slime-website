@@ -51,6 +51,16 @@ function rankColor(rank: number): string {
   return 'text-gray-400'
 }
 
+// Detect HashPack / Android WebView / iOS WKWebView.
+// Used to decide whether to open Twitter OAuth in an external window.
+function isInAppBrowser(): boolean {
+  const ua = navigator.userAgent
+  if (typeof (window as any).hashpack !== 'undefined') return true
+  if (/wv/.test(ua)) return true
+  if (/(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(ua)) return true
+  return false
+}
+
 export default function LeaderboardPage() {
   const { isConnected, accountId } = useWallet()
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
@@ -101,6 +111,27 @@ export default function LeaderboardPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // When the page regains visibility (e.g. user returns to HashPack after
+  // completing X OAuth in an external browser), re-check if the wallet is
+  // now linked.  This fires automatically — no manual "check now" button needed.
+  useEffect(() => {
+    if (!isConnected || !accountId) return
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      fetch(`/api/auth/check-wallet?wallet=${encodeURIComponent(accountId)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.linked && data.user) {
+            setXUser(data.user)
+            try { localStorage.setItem('slime_x_user', JSON.stringify(data.user)) } catch { /* ignore */ }
+          }
+        })
+        .catch(() => {})
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [isConnected, accountId])
 
   // ESC closes modals
   useEffect(() => {
@@ -170,19 +201,17 @@ export default function LeaderboardPage() {
     try {
       const res = await fetch(`/api/auth/x-login?wallet=${encodeURIComponent(accountId)}`)
       const { authUrl } = await res.json()
-      // Navigate in the same window/WebView for all platforms.
-      //
-      // On iOS with the Twitter app installed, iOS Universal Links will
-      // automatically intercept this URL and open it in the Twitter app —
-      // so the user never has to log in again (they're already authenticated
-      // in the app).  After they authorize, Twitter redirects to our callback
-      // which opens in Safari and shows the success screen.
-      //
-      // On iOS without the Twitter app (or Android), Twitter's OAuth page loads
-      // in the current WebView. PKCE state is embedded in the URL, not
-      // localStorage, so the callback page decodes everything without any
-      // storage dependency — no login loop possible.
-      window.location.href = authUrl
+
+      if (isInAppBrowser()) {
+        // Inside HashPack (WKWebView): Twitter blocks their OAuth page in WebViews
+        // and returns a blank screen.  Open in a real browser window instead.
+        // The callback page will call window.close() on success, returning the
+        // user here automatically — no manual "check" step needed.
+        window.open(authUrl, '_blank')
+      } else {
+        // Normal desktop / mobile browser — navigate in place.
+        window.location.href = authUrl
+      }
     } catch { /* ignore */ } finally { setConnecting(false) }
   }
 
