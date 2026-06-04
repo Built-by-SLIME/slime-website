@@ -168,13 +168,12 @@ export default function LeaderboardPage() {
     if (!isConnected || !accountId) return
     setConnecting(true)
     try {
-      const res = await fetch('/api/auth/x-login')
-      const { authUrl, state, codeVerifier } = await res.json()
-      // Use localStorage (not sessionStorage) so the PKCE values survive
-      // cross-tab redirects and the X app's in-app browser on mobile.
-      localStorage.setItem('x_oauth_state', state)
-      localStorage.setItem('x_code_verifier', codeVerifier)
-      localStorage.setItem('x_wallet_address', accountId)
+      const res = await fetch(`/api/auth/x-login?wallet=${encodeURIComponent(accountId)}`)
+      const { authUrl } = await res.json()
+      // No localStorage needed — the PKCE verifier and wallet address are
+      // embedded inside the OAuth `state` parameter by the server.  Twitter
+      // echoes state back on redirect, so the callback can decode everything
+      // without touching storage — works in HashPack's in-app browser too.
       window.location.href = authUrl
     } catch { setConnecting(false) }
   }

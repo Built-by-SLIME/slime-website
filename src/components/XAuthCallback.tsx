@@ -1,8 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+// Decode a base64url string in the browser (no Node.js Buffer needed).
+function decodeBase64url(b64url: string): string {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+  return atob(padded)
+}
+
 // This page lives at /auth/x/callback — X redirects here after OAuth approval.
-// It reads the code + state from the URL, verifies state, then calls /api/auth/x-token.
+// It reads the code + state from the URL then calls /api/auth/x-token.
+//
+// PKCE recovery strategy (in priority order):
+//   1. Decode verifier + wallet from the state parameter itself (new flow).
+//      This works in every environment including HashPack's in-app WebView,
+//      where localStorage is NOT preserved across cross-origin navigations.
+//   2. Fall back to localStorage for any in-flight sessions started before
+//      this change was deployed.
 export default function XAuthCallback() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<'loading' | 'error'>('loading')
@@ -27,26 +41,41 @@ export default function XAuthCallback() {
         return
       }
 
-      // Retrieve state + codeVerifier stored before redirect.
-      // localStorage is used (not sessionStorage) so it survives cross-tab
-      // redirects and the X app's in-app browser on mobile.
-      const storedState = localStorage.getItem('x_oauth_state')
-      const codeVerifier = localStorage.getItem('x_code_verifier')
-      const walletAddress = localStorage.getItem('x_wallet_address')
+      // ── Strategy 1: state-embedded PKCE (new flow, WebView-safe) ──────────
+      let codeVerifier: string | null = null
+      let walletAddress: string | null = null
 
-      if (!storedState || returnedState !== storedState) {
-        setErrorMsg('Security check failed (state mismatch). Please try again.')
-        setStatus('error')
-        return
-      }
+      try {
+        const payload = JSON.parse(decodeBase64url(returnedState))
+        if (payload.v && payload.w) {
+          codeVerifier = payload.v
+          walletAddress = payload.w
+        }
+      } catch { /* not a new-style state — fall through */ }
 
+      // ── Strategy 2: localStorage fallback (legacy flow) ────────────────────
       if (!codeVerifier || !walletAddress) {
-        setErrorMsg('Session data missing. Please try again.')
-        setStatus('error')
-        return
+        const storedState   = localStorage.getItem('x_oauth_state')
+        const storedVerifier = localStorage.getItem('x_code_verifier')
+        const storedWallet   = localStorage.getItem('x_wallet_address')
+
+        if (!storedState || returnedState !== storedState) {
+          setErrorMsg('Security check failed (state mismatch). Please try again.')
+          setStatus('error')
+          return
+        }
+
+        if (!storedVerifier || !storedWallet) {
+          setErrorMsg('Session data missing. Please try again.')
+          setStatus('error')
+          return
+        }
+
+        codeVerifier  = storedVerifier
+        walletAddress = storedWallet
       }
 
-      // Clean up immediately — these are single-use PKCE values
+      // Clean up localStorage (harmless if already empty)
       localStorage.removeItem('x_oauth_state')
       localStorage.removeItem('x_code_verifier')
       localStorage.removeItem('x_wallet_address')
