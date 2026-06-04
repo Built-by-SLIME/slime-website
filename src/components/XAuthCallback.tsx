@@ -134,15 +134,15 @@ export default function XAuthCallback() {
           <p className="text-gray-400 text-sm leading-relaxed">
             Your X account has been connected to your Hedera wallet. You're now on the leaderboard!
           </p>
-          <p className="text-gray-500 text-xs leading-relaxed">
-            If you connected via HashPack, return to the app — your rank will appear automatically.
-          </p>
           <button
             onClick={() => navigate('/leaderboard')}
             className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm"
           >
             View Leaderboard
           </button>
+          <p className="text-gray-500 text-xs leading-relaxed">
+            Opened via HashPack? Return to the app — your rank will appear automatically.
+          </p>
         </div>
       )}
 

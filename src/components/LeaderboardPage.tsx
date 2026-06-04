@@ -51,16 +51,6 @@ function rankColor(rank: number): string {
   return 'text-gray-400'
 }
 
-// Returns true when the dApp is running inside an in-app WebView (e.g. HashPack).
-// Twitter's OAuth page blocks embedded WebViews, so we must open it externally.
-function isInAppBrowser(): boolean {
-  const ua = navigator.userAgent
-  if (typeof (window as any).hashpack !== 'undefined') return true   // HashPack injected object
-  if (/wv/.test(ua)) return true                                      // Android WebView flag
-  if (/(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(ua)) return true  // iOS WKWebView
-  return false
-}
-
 export default function LeaderboardPage() {
   const { isConnected, accountId } = useWallet()
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
@@ -68,10 +58,6 @@ export default function LeaderboardPage() {
   const [xUser, setXUser] = useState<XUser | null>(null)
   const [connecting, setConnecting] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
-  // Set to true after we've opened Twitter's OAuth in an external browser.
-  // Shows a "check status" prompt instead of navigating the whole WebView.
-  const [awaitingExternalAuth, setAwaitingExternalAuth] = useState(false)
-  const [checking, setChecking] = useState(false)
 
   // Wallet NFT modal
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null)
@@ -184,34 +170,20 @@ export default function LeaderboardPage() {
     try {
       const res = await fetch(`/api/auth/x-login?wallet=${encodeURIComponent(accountId)}`)
       const { authUrl } = await res.json()
-
-      if (isInAppBrowser()) {
-        // Twitter blocks OAuth inside embedded WebViews (HashPack in-app browser).
-        // Open the auth URL in the device's system browser instead.
-        // After the user authorises, our callback page in the system browser
-        // will complete the link and tell them to return to HashPack.
-        window.open(authUrl, '_blank', 'noopener,noreferrer')
-        setAwaitingExternalAuth(true)
-      } else {
-        // Normal desktop / mobile browser — navigate in place.
-        window.location.href = authUrl
-      }
+      // Navigate in the same window/WebView for all platforms.
+      //
+      // On iOS with the Twitter app installed, iOS Universal Links will
+      // automatically intercept this URL and open it in the Twitter app —
+      // so the user never has to log in again (they're already authenticated
+      // in the app).  After they authorize, Twitter redirects to our callback
+      // which opens in Safari and shows the success screen.
+      //
+      // On iOS without the Twitter app (or Android), Twitter's OAuth page loads
+      // in the current WebView. PKCE state is embedded in the URL, not
+      // localStorage, so the callback page decodes everything without any
+      // storage dependency — no login loop possible.
+      window.location.href = authUrl
     } catch { /* ignore */ } finally { setConnecting(false) }
-  }
-
-  // Called when the user taps "I've authorised — check now" after external OAuth.
-  const checkLinkStatus = async () => {
-    if (!accountId) return
-    setChecking(true)
-    try {
-      const res = await fetch(`/api/auth/check-wallet?wallet=${encodeURIComponent(accountId)}`)
-      const data = await res.json()
-      if (data.linked && data.user) {
-        setXUser(data.user)
-        localStorage.setItem('slime_x_user', JSON.stringify(data.user))
-        setAwaitingExternalAuth(false)
-      }
-    } catch { /* ignore */ } finally { setChecking(false) }
   }
 
   const handleUnlink = async () => {
@@ -273,29 +245,6 @@ export default function LeaderboardPage() {
                   {unlinking ? 'Unlinking…' : 'Unlink X Account'}
                 </button>
               </>
-            ) : isConnected && awaitingExternalAuth ? (
-              /* User opened Twitter in system browser — waiting for them to return */
-              <div className="w-full">
-                <p className="text-white font-bold mb-1">Complete authorization in your browser</p>
-                <p className="text-gray-400 text-sm mb-4">
-                  Twitter opened outside HashPack. Authorize there, then tap the button below.
-                </p>
-                <div className="flex gap-3 flex-wrap">
-                  <button
-                    onClick={checkLinkStatus}
-                    disabled={checking}
-                    className="bg-slime-green text-black font-bold px-6 py-2.5 rounded-xl hover:bg-[#00cc33] transition text-sm"
-                  >
-                    {checking ? 'Checking…' : "I've authorized — check now"}
-                  </button>
-                  <button
-                    onClick={() => setAwaitingExternalAuth(false)}
-                    className="text-gray-500 hover:text-white text-sm px-4 py-2.5 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
             ) : isConnected ? (
               <>
                 <div>
@@ -307,7 +256,7 @@ export default function LeaderboardPage() {
                   disabled={connecting}
                   className="bg-slime-green text-black font-bold px-6 py-2.5 rounded-xl hover:bg-[#00cc33] transition text-sm flex items-center gap-2"
                 >
-                  {connecting ? 'Opening browser…' : (
+                  {connecting ? 'Redirecting…' : (
                     <>
                       Connect&nbsp;
                       <svg viewBox="0 0 24 24" className="w-4 h-4 fill-black flex-shrink-0 inline" xmlns="http://www.w3.org/2000/svg">
