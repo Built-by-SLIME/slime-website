@@ -21,6 +21,7 @@ const TermsPage = lazy(() => import('./components/TermsPage'))
 const LeaderboardPage = lazy(() => import('./components/LeaderboardPage'))
 const XAuthCallback = lazy(() => import('./components/XAuthCallback'))
 const SlabsPage = lazy(() => import('./components/SlabsPage'))
+const StakingApiTestPage = lazy(() => import('./components/StakingApiTestPage'))
 
 // Loading spinner component
 function LoadingSpinner() {
@@ -58,6 +59,7 @@ function App() {
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/slabs" element={<SlabsPage />} />
               <Route path="/auth/x/callback" element={<XAuthCallback />} />
+              <Route path="/dev-staking-api-test" element={<StakingApiTestPage />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
