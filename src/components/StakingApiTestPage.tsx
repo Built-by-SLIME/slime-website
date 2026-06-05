@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
 const API_BASE = 'https://api.slime.tools/api/v1/external'
 const API_KEY  = '4790831456f307dd84e8b3aaeccbf19de0c9e2be85d0b993a3939fbb48b8644e'
@@ -24,7 +24,7 @@ function ResultBox({ label, result }: { label: string; result: unknown }) {
   )
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 flex flex-col gap-3">
       <h2 className="text-white font-bold text-base">{title}</h2>
@@ -33,7 +33,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   )
 }
 
-function Btn({ onClick, loading, children }: { onClick: () => void; loading?: boolean; children: React.ReactNode }) {
+function Btn({ onClick, loading, children }: { onClick: () => void; loading?: boolean; children: ReactNode }) {
   return (
     <button
       onClick={onClick}
