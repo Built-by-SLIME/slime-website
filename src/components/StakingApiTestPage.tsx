@@ -52,9 +52,14 @@ export default function StakingApiTestPage() {
 
   const run = async (key: string, fn: () => Promise<unknown>) => {
     setLoading(l => ({ ...l, [key]: true }))
-    try { setResults(r => ({ ...r, [key]: await fn() })) }
-    catch (e) { setResults(r => ({ ...r, [key]: String(e) })) }
-    finally { setLoading(l => ({ ...l, [key]: false })) }
+    try {
+      const result = await fn()
+      setResults(r => ({ ...r, [key]: result }))
+    } catch (e) {
+      setResults(r => ({ ...r, [key]: String(e) }))
+    } finally {
+      setLoading(l => ({ ...l, [key]: false }))
+    }
   }
 
   return (
