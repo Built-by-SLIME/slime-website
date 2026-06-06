@@ -30,6 +30,9 @@ export default function StakingApiTestPage() {
   const [regMsg, setRegMsg] = useState('')
   const [manualWallet, setManualWallet] = useState('')
   const [programId, setProgramId] = useState<string | null>(null)
+  const [rawPosition, setRawPosition] = useState<unknown>(null)
+  const [rawEligibility, setRawEligibility] = useState<unknown>(null)
+  const [showRaw, setShowRaw] = useState(false)
   const wallet = accountId || manualWallet.trim()
 
   // Discover program ID from /staking-programs list, then fetch details
@@ -56,7 +59,12 @@ export default function StakingApiTestPage() {
       fetch(`${API_BASE}/staking-programs/${programId}/position/${wallet}`, { headers }).then(r => r.json()),
       fetch(`${API_BASE}/staking-programs/${programId}/eligibility/${wallet}`, { headers }).then(r => r.json()),
     ])
-      .then(([pos, eli]) => { if (pos.success) setPosition(pos); if (eli.success) setEligibility(eli) })
+      .then(([pos, eli]) => {
+        setRawPosition(pos)
+        setRawEligibility(eli)
+        if (pos.success) setPosition(pos)
+        if (eli.success) setEligibility(eli)
+      })
       .catch(() => {})
       .finally(() => setCheckingWallet(false))
   }, [wallet, programId])
@@ -149,7 +157,10 @@ export default function StakingApiTestPage() {
 
               {wallet && !checkingWallet && position && (
                 <div className="bg-black/20 rounded-xl p-4 border border-gray-800/60">
-                  <p className="text-gray-500 text-xs uppercase tracking-widest mb-3">Your Position</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-gray-500 text-xs uppercase tracking-widest">Your Position</p>
+                    <button onClick={() => setShowRaw(s => !s)} className="text-gray-500 text-xs hover:text-white transition">{showRaw ? 'Hide raw API' : 'Show raw API'}</button>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                     <div><p className="text-gray-500 text-xs">Registered</p><p className={position.isRegistered ? 'text-slime-green font-bold' : 'text-gray-400 font-bold'}>{position.isRegistered ? '✓ Yes' : '✗ No'}</p></div>
                     <div><p className="text-gray-500 text-xs">You Hold</p><p className="text-white font-bold">{position.holdings.unitsHeld}</p></div>
@@ -168,6 +179,14 @@ export default function StakingApiTestPage() {
                       <p className={eligibility.isEligible ? 'text-slime-green text-sm' : 'text-red-400 text-sm'}>
                         {eligibility.isEligible ? `Eligible — est. reward ${eligibility.estimatedReward} ${eligibility.currency}` : `Not eligible — holdings ${eligibility.holdings}`}
                       </p>
+                    </div>
+                  )}
+                  {showRaw && (
+                    <div className="mt-3 border-t border-gray-800 pt-3">
+                      <p className="text-gray-600 text-[10px] uppercase tracking-widest mb-1">Raw API /position</p>
+                      <pre className="bg-black/40 rounded-lg p-3 text-[10px] text-green-300 overflow-auto max-h-48 whitespace-pre-wrap break-all">{JSON.stringify(rawPosition, null, 2)}</pre>
+                      <p className="text-gray-600 text-[10px] uppercase tracking-widest mb-1 mt-2">Raw API /eligibility</p>
+                      <pre className="bg-black/40 rounded-lg p-3 text-[10px] text-green-300 overflow-auto max-h-48 whitespace-pre-wrap break-all">{JSON.stringify(rawEligibility, null, 2)}</pre>
                     </div>
                   )}
                 </div>
