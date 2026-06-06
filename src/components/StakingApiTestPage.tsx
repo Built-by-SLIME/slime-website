@@ -5,7 +5,6 @@ import Footer from './Footer'
 
 const API_BASE = 'https://api.slime.tools/api/v1/external'
 const API_KEY  = '4790831456f307dd84e8b3aaeccbf19de0c9e2be85d0b993a3939fbb48b8644e'
-const PROGRAM_ID = '85039cca3ef4ec78fa3ce10009c7b6d3333226385718be15ba66e58ee7521dd8'
 const headers = { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' }
 
 interface Program {
@@ -30,38 +29,48 @@ export default function StakingApiTestPage() {
   const [regStatus, setRegStatus] = useState<'idle' | 'registering' | 'success' | 'error'>('idle')
   const [regMsg, setRegMsg] = useState('')
   const [manualWallet, setManualWallet] = useState('')
+  const [programId, setProgramId] = useState<string | null>(null)
   const wallet = accountId || manualWallet.trim()
 
+  // Discover program ID from /staking-programs list, then fetch details
   useEffect(() => {
-    fetch(`${API_BASE}/staking-programs/${PROGRAM_ID}`, { headers })
+    fetch(`${API_BASE}/staking-programs`, { headers })
       .then(r => r.json())
+      .then(list => {
+        const prog = list.programs?.[0] as Program | undefined
+        if (prog) {
+          setProgramId(prog.id)
+          return fetch(`${API_BASE}/staking-programs/${prog.id}`, { headers }).then(r => r.json())
+        }
+        throw new Error('No programs found')
+      })
       .then(d => { if (d.success) { setProgram(d.program); setStats(d.stats) } })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
-    if (!wallet || !program) { setPosition(null); setEligibility(null); return }
+    if (!wallet || !programId) { setPosition(null); setEligibility(null); return }
     setCheckingWallet(true); setRegStatus('idle')
     Promise.all([
-      fetch(`${API_BASE}/staking-programs/${PROGRAM_ID}/position/${wallet}`, { headers }).then(r => r.json()),
-      fetch(`${API_BASE}/staking-programs/${PROGRAM_ID}/eligibility/${wallet}`, { headers }).then(r => r.json()),
+      fetch(`${API_BASE}/staking-programs/${programId}/position/${wallet}`, { headers }).then(r => r.json()),
+      fetch(`${API_BASE}/staking-programs/${programId}/eligibility/${wallet}`, { headers }).then(r => r.json()),
     ])
       .then(([pos, eli]) => { if (pos.success) setPosition(pos); if (eli.success) setEligibility(eli) })
       .catch(() => {})
       .finally(() => setCheckingWallet(false))
-  }, [wallet, program])
+  }, [wallet, programId])
 
   const handleRegister = async () => {
-    if (!wallet) return
+    if (!wallet || !programId) return
     setRegStatus('registering')
     try {
-      const res = await fetch(`${API_BASE}/staking-programs/${PROGRAM_ID}/register`, { method: 'POST', headers, body: JSON.stringify({ accountId: wallet }) })
+      const res = await fetch(`${API_BASE}/staking-programs/${programId}/register`, { method: 'POST', headers, body: JSON.stringify({ accountId: wallet }) })
       const data = await res.json()
       if (data.success) {
         setRegStatus('success')
         setRegMsg(data.drip?.success ? 'Registered! First reward sent.' : 'Registered! Future drips will include you.')
-        const pos = await fetch(`${API_BASE}/staking-programs/${PROGRAM_ID}/position/${wallet}`, { headers }).then(r => r.json())
+        const pos = await fetch(`${API_BASE}/staking-programs/${programId}/position/${wallet}`, { headers }).then(r => r.json())
         if (pos.success) setPosition(pos)
       } else { throw new Error(data.error || 'Registration failed') }
     } catch (e) { setRegStatus('error'); setRegMsg(e instanceof Error ? e.message : 'Registration failed') }
