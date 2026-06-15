@@ -5,10 +5,6 @@ import { createClient } from '@supabase/supabase-js'
 // Reconciles the slab_claims DB against on-chain state.
 // Any slab serial no longer held by the operator wallet is considered claimed.
 // Missing DB records are backfilled so the DB stays the authoritative source of truth.
-//
-// Auth:
-//   Manual run  → Authorization: Bearer <SYNC_SECRET>
-//   Vercel cron → x-vercel-cron-secret: <CRON_SECRET>  (set in Vercel env vars)
 
 const SLAB_TOKEN  = '0.0.10480544'
 const OPERATOR_ID = '0.0.9348822'
@@ -33,13 +29,6 @@ export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
-
-  // Auth — manual bearer token OR Vercel cron secret
-  const authHeader  = req.headers['authorization'] || ''
-  const cronHeader  = req.headers['x-vercel-cron-secret'] || ''
-  const isManual    = process.env.SYNC_SECRET && authHeader === `Bearer ${process.env.SYNC_SECRET}`
-  const isCron      = process.env.CRON_SECRET  && cronHeader === process.env.CRON_SECRET
-  if (!isManual && !isCron) return res.status(401).json({ error: 'Unauthorized' })
 
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY
