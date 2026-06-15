@@ -1,7 +1,14 @@
 {
   "functions": {
-    "api/slabs/claim.js": { "maxDuration": 60 }
+    "api/slabs/claim.js": { "maxDuration": 60 },
+    "api/slabs/sync.js":  { "maxDuration": 60 }
   },
+  "crons": [
+    {
+      "path": "/api/slabs/sync",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/market-:path*",

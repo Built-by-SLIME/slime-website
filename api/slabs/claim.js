@@ -130,10 +130,31 @@ export default async function handler(req, res) {
   }
 
   // 4. Filter out already-claimed serials
+  //    Two-layer check: DB (fast) + operator wallet (on-chain truth, catches DB gaps)
   const supabase = createClient(supabaseUrl, supabaseKey)
   const { data: existing } = await supabase.from('slab_claims').select('slime_serial').in('slime_serial', serials)
   const alreadyClaimed = new Set((existing || []).map(r => r.slime_serial))
-  const claimable = serials.filter(s => !alreadyClaimed.has(s))
+
+  // For serials not in DB, verify the operator wallet actually still holds the slab
+  const notInDb = serials.filter(s => !alreadyClaimed.has(s))
+  const operatorChecks = await Promise.all(notInDb.map(async serial => {
+    try {
+      const r = await fetch(`${MIRROR_BASE}/tokens/${SLAB_TOKEN}/nfts/${serial}`)
+      if (!r.ok) return { serial, available: false }
+      const d = await r.json()
+      return { serial, available: d.account_id === OPERATOR_ID }
+    } catch { return { serial, available: false } }
+  }))
+
+  const unavailableOnChain = new Set(operatorChecks.filter(c => !c.available).map(c => c.serial))
+
+  // Log any DB gaps detected (slab gone from operator wallet but no DB record — sync will fix nightly)
+  const dbGaps = operatorChecks.filter(c => !c.available)
+  if (dbGaps.length > 0) {
+    console.error('[slabs/claim] DB sync gap detected — claimed on-chain but missing from DB:', dbGaps.map(c => c.serial))
+  }
+
+  const claimable = notInDb.filter(s => !unavailableOnChain.has(s))
   if (claimable.length === 0) return res.status(400).json({ error: 'All selected slabs have already been claimed.' })
 
   // 5. Transfer slabs from operator
@@ -152,7 +173,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: `Slab transfer failed: ${err.message}` })
   }
 
-  // 6. Record claims
+  // 6. Record claims — upsert with 3-attempt retry + exponential backoff
+  //    Uses upsert (not insert) so a duplicate serial never causes a silent failure.
   const records = claimable.map(serial => ({
     slime_serial: serial,
     claimed_by: wallet,
@@ -160,8 +182,22 @@ export default async function handler(req, res) {
     slab_tx_ids: slabTxIds,
     claimed_at: new Date().toISOString(),
   }))
-  const { error: dbError } = await supabase.from('slab_claims').insert(records)
-  if (dbError) console.error('DB insert error (slabs already transferred):', dbError)
+
+  let dbError = null
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const { error } = await supabase
+      .from('slab_claims')
+      .upsert(records, { onConflict: 'slime_serial' })
+    if (!error) { dbError = null; break }
+    dbError = error
+    if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt))
+  }
+  if (dbError) {
+    // Slabs were already transferred on-chain — nightly sync will backfill this record.
+    console.error('CRITICAL [slabs/claim]: DB write failed after 3 attempts — slabs transferred but not recorded:', {
+      wallet, serials: claimable, txIds: slabTxIds, error: dbError.message,
+    })
+  }
 
   return res.status(200).json({ success: true, claimed: claimable, txIds: slabTxIds })
 }
