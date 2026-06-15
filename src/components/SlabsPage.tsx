@@ -192,6 +192,7 @@ export default function SlabsPage() {
 
   const claimableNFTs = nfts.filter(n => !claimedSerials.has(n.serial_number))
   const claimableCount = claimableNFTs.length
+  const myClaimedCount = nfts.filter(n => claimedSerials.has(n.serial_number)).length
   const totalFee = (claimableCount * FEE_HBAR_PER_SLAB).toFixed(2)
 
   const handleConnect = async () => {
@@ -257,7 +258,7 @@ export default function SlabsPage() {
                     <p className="text-gray-500 text-xs uppercase tracking-wider">Claimable</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-white font-black text-xl">{claimedSerials.size}</p>
+                    <p className="text-white font-black text-xl">{myClaimedCount}</p>
                     <p className="text-gray-500 text-xs uppercase tracking-wider">Claimed</p>
                   </div>
                   <div className="text-center">
