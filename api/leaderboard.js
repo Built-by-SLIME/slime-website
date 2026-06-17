@@ -6,20 +6,23 @@ const MIRROR_BASE = 'https://mainnet.mirrornode.hedera.com/api/v1'
 
 async function getHederaData(wallet) {
   try {
-    const [nftRes, balRes] = await Promise.allSettled([
-      fetch(`${MIRROR_BASE}/accounts/${wallet}/nfts?token.id=${SLIME_TOKEN}&limit=1000`),
-      fetch(`${MIRROR_BASE}/accounts/${wallet}`),
-    ])
-
+    // Paginate NFT results — Mirror Node hard-caps at 100 per page regardless of limit param
+    const balPromise = fetch(`${MIRROR_BASE}/accounts/${wallet}`)
     let nftCount = 0
-    if (nftRes.status === 'fulfilled' && nftRes.value.ok) {
-      const d = await nftRes.value.json()
-      nftCount = d.nfts?.length ?? 0
+    let nftUrl = `${MIRROR_BASE}/accounts/${wallet}/nfts?token.id=${SLIME_TOKEN}&limit=100`
+    while (nftUrl) {
+      const res = await fetch(nftUrl)
+      if (!res.ok) break
+      const d = await res.json()
+      nftCount += d.nfts?.length ?? 0
+      nftUrl = d.links?.next ? `https://mainnet.mirrornode.hedera.com${d.links.next}` : null
     }
 
+    const balRes = await balPromise
+
     let slimeBalance = 0
-    if (balRes.status === 'fulfilled' && balRes.value.ok) {
-      const d = await balRes.value.json()
+    if (balRes.ok) {
+      const d = await balRes.json()
       const token = d.balance?.tokens?.find(t => t.token_id === SLIME_HTS)
       slimeBalance = token ? Number(token.balance) : 0
     }
