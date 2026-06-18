@@ -128,7 +128,14 @@ export default async function handler(req, res) {
     const now = Date.now()
     if (!cachedAllNFTs || (now - cacheTimestamp) >= CACHE_TTL) {
       const allNFTs = await fetchAllNFTs(apikey, token)
-      cachedAllNFTs = processNFTs(allNFTs)
+      // Deduplicate by serialId — SentX pagination can return the same NFT on multiple pages after a reindex
+      const seen = new Set()
+      const uniqueNFTs = allNFTs.filter(nft => {
+        if (seen.has(nft.serialId)) return false
+        seen.add(nft.serialId)
+        return true
+      })
+      cachedAllNFTs = processNFTs(uniqueNFTs)
       cacheTimestamp = now
     }
 
