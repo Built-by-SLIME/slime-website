@@ -295,7 +295,7 @@ export default function MarketPage() {
     setLoadingStats(true)
     try {
       const end = new Date()
-      const start = period === 0 ? new Date('2025-02-01') : new Date(end.getTime() - period * 86400000)
+      const start = period === 0 ? new Date('2022-01-01') : new Date(end.getTime() - period * 86400000)
       const fmt = (d: Date) => d.toISOString().split('T')[0]
       const base = `/api/market-stats?startDate=${fmt(start)}&endDate=${fmt(end)}`
       const first = await fetch(`${base}&page=1`).then(r => r.json())
