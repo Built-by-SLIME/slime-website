@@ -179,7 +179,7 @@ export default function MarketPage() {
   const [stats, setStats] = useState<StatRecord[]>([])
   const [loadingStats, setLoadingStats] = useState(false)
   const [statsLoaded, setStatsLoaded] = useState(false)
-  const [statsPeriod, setStatsPeriod] = useState<7 | 30 | 90 | 0>(30)
+  const [statsPeriod, setStatsPeriod] = useState<7 | 30 | 90>(30)
 
   // Transaction state
   const [txStatus, setTxStatus] = useState<TxStatus>('idle')
@@ -291,11 +291,11 @@ export default function MarketPage() {
     }
   }
 
-  const fetchStats = async (period: 7 | 30 | 90 | 0 = statsPeriod) => {
+  const fetchStats = async (period: 7 | 30 | 90 = statsPeriod) => {
     setLoadingStats(true)
     try {
       const end = new Date()
-      const start = period === 0 ? new Date('2025-02-01') : new Date(end.getTime() - period * 86400000)
+      const start = new Date(end.getTime() - period * 86400000)
       const fmt = (d: Date) => d.toISOString().split('T')[0]
       const base = `/api/market-stats?startDate=${fmt(start)}&endDate=${fmt(end)}`
       const first = await fetch(`${base}&page=1`).then(r => r.json())
@@ -1025,16 +1025,6 @@ export default function MarketPage() {
                   {p}D
                 </button>
               ))}
-              <button
-                onClick={() => setStatsPeriod(0)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-bold transition ${
-                  statsPeriod === 0
-                    ? 'bg-slime-green text-black'
-                    : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-gray-800'
-                }`}
-              >
-                ALL
-              </button>
             </div>
 
             {loadingStats && (
@@ -1086,7 +1076,7 @@ export default function MarketPage() {
 
             {!loadingStats && (
               <p className="text-xs text-gray-600 mt-6 text-center">
-                {statsPeriod === 0 ? 'All-time stats' : `Stats for the last ${statsPeriod} days`} · Powered by SentX
+                Stats for the last {statsPeriod} days · Powered by SentX
               </p>
             )}
           </>
