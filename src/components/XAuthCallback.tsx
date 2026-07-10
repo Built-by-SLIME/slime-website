@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { isInAppBrowser } from '../utils/browser'
 
 // Decode a base64url string in the browser (no Node.js Buffer needed).
 function decodeBase64url(b64url: string): string {
@@ -100,10 +101,16 @@ export default function XAuthCallback() {
 
         setStatus('success')
 
-        // Try to close this tab and return to HashPack.
-        // window.opener is null when opened from a WKWebView → Safari crossing,
-        // so we attempt close() regardless and fall back to the manual UI below.
-        setTimeout(() => { try { window.close() } catch { /* ignore */ } }, 1500)
+        if (isInAppBrowser()) {
+          // In HashPack / in-app WebView: try to close this tab and return to the wallet.
+          // window.opener is null when opened from a WKWebView → Safari crossing,
+          // so we attempt close() regardless and fall back to the manual UI below.
+          setTimeout(() => { try { window.close() } catch { /* ignore */ } }, 1500)
+        } else {
+          // Normal desktop / mobile browser: the user was redirected here from X.
+          // Send them back to the leaderboard automatically.
+          setTimeout(() => { navigate('/leaderboard') }, 2000)
+        }
       } catch {
         setErrorMsg('Network error. Please try again.')
         setStatus('error')
@@ -129,19 +136,39 @@ export default function XAuthCallback() {
           <p className="text-gray-400 text-sm leading-relaxed">
             Your X account is now connected to your Hedera wallet.
           </p>
-          <div className="bg-[#1f1f1f] border border-gray-700 rounded-xl p-4 text-left w-full">
-            <p className="text-slime-green text-xs font-bold uppercase tracking-widest mb-1">Next step</p>
-            <p className="text-white text-sm font-bold">Return to HashPack</p>
-            <p className="text-gray-400 text-xs mt-1 leading-relaxed">
-              Close this tab and go back to HashPack — your rank will appear on the leaderboard automatically.
-            </p>
-          </div>
-          <button
-            onClick={() => { try { window.close() } catch { navigate('/leaderboard') } }}
-            className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm w-full"
-          >
-            Close &amp; Return to HashPack
-          </button>
+          {isInAppBrowser() ? (
+            <>
+              <div className="bg-[#1f1f1f] border border-gray-700 rounded-xl p-4 text-left w-full">
+                <p className="text-slime-green text-xs font-bold uppercase tracking-widest mb-1">Next step</p>
+                <p className="text-white text-sm font-bold">Close this tab</p>
+                <p className="text-gray-400 text-xs mt-1 leading-relaxed">
+                  Close this tab, then return to HashPack manually — your rank will appear on the leaderboard automatically.
+                </p>
+              </div>
+              <button
+                onClick={() => { try { window.close() } catch { navigate('/leaderboard') } }}
+                className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm w-full"
+              >
+                Close
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="bg-[#1f1f1f] border border-gray-700 rounded-xl p-4 text-left w-full">
+                <p className="text-slime-green text-xs font-bold uppercase tracking-widest mb-1">Next step</p>
+                <p className="text-white text-sm font-bold">Return to Leaderboard</p>
+                <p className="text-gray-400 text-xs mt-1 leading-relaxed">
+                  You&apos;ll be redirected back to the leaderboard automatically.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/leaderboard')}
+                className="bg-slime-green text-black font-bold px-8 py-3 rounded-xl hover:bg-[#00cc33] transition text-sm w-full"
+              >
+                Return to Leaderboard
+              </button>
+            </>
+          )}
         </div>
       )}
 
