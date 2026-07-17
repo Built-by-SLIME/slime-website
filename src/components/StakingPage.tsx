@@ -30,13 +30,44 @@ interface StakingProgram {
 }
 
 interface TokenInfo { symbol: string; decimals: number }
-interface Position {
-  estimatedNextReward: number
-  holdings: { unitsHeld: number; serialsHeld?: number[]; meetsMinimum: boolean }
-  totalEarned?: number
-  nextDripAt?: string
-}
 type RegStatus = 'idle' | 'checking' | 'associating' | 'registering' | 'success' | 'already' | 'already_dripped' | 'error'
+
+function formatTierTarget(tier: TierConfigItem): string {
+  if (tier.type === 'range' && tier.range) {
+    return `serials ${tier.range.start}–${tier.range.end}`
+  }
+  return `serials ${tier.serials?.join(', ') ?? ''}`
+}
+
+function freqDays(f: string): number {
+  return ({ '1d': 1, '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '365d': 365 } as Record<string, number>)[f] ?? 7
+}
+
+function rewardPerDay(program: StakingProgram, serials: number[] | null, count: number): number {
+  const tiers = program.tier_config || []
+  const defaultRate = Number(program.reward_rate_per_day)
+
+  if (program.stake_token_type === 'NFT' && serials && serials.length > 0) {
+    let total = 0
+    for (const serial of serials) {
+      let rate = defaultRate
+      for (const tier of tiers) {
+        if (tier.type === 'specific' && tier.serials?.includes(serial)) {
+          rate = tier.reward_rate_per_day
+          break
+        }
+        if (tier.type === 'range' && tier.range && serial >= tier.range.start && serial <= tier.range.end) {
+          rate = tier.reward_rate_per_day
+          break
+        }
+      }
+      total += rate
+    }
+    return total
+  }
+
+  return count * defaultRate
+}
 
 export default function StakingPage() {
   const { isConnected, accountId, dAppConnector, connect } = useWallet()
@@ -47,15 +78,7 @@ export default function StakingPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [regStatus, setRegStatus] = useState<RegStatus>('idle')
   const [statusMsg, setStatusMsg] = useState('')
-  const [positionMap, setPositionMap] = useState<Map<string, { position: Position | null; loading: boolean }>>(new Map())
-  const [holdingsMap, setHoldingsMap] = useState<Map<string, { count: number; loading: boolean }>>(new Map())
-
-  function formatTierTarget(tier: TierConfigItem): string {
-    if (tier.type === 'range' && tier.range) {
-      return `serials ${tier.range.start}–${tier.range.end}`
-    }
-    return `serials ${tier.serials?.join(', ') ?? ''}`
-  }
+  const [holdingsMap, setHoldingsMap] = useState<Map<string, { count: number; serials: number[]; loading: boolean }>>(new Map())
 
   useEffect(() => {
     const load = async () => {
@@ -91,31 +114,21 @@ export default function StakingPage() {
     const program = programs.find(p => p.id === activeId)
     if (!program) return
 
-    setPositionMap(prev => new Map(prev).set(activeId, { position: null, loading: true }))
-    setHoldingsMap(prev => new Map(prev).set(activeId, { count: 0, loading: true }))
-
-    const fetchPosition = async () => {
-      try {
-        const res = await fetch(`/api/staking-programs/${program.id}/position/${accountId}`)
-        if (!res.ok) throw new Error('position fetch failed')
-        const data = await res.json()
-        setPositionMap(prev => new Map(prev).set(activeId, { position: data, loading: false }))
-      } catch (e) {
-        console.error(e)
-        setPositionMap(prev => new Map(prev).set(activeId, { position: null, loading: false }))
-      }
-    }
+    setHoldingsMap(prev => new Map(prev).set(activeId, { count: 0, serials: [], loading: true }))
 
     const fetchHoldings = async () => {
       try {
         let count = 0
+        const serials: number[] = []
         if (program.stake_token_type === 'NFT') {
           let url: string | null = `${MIRROR}/api/v1/accounts/${accountId}/nfts?token.id=${program.stake_token_id}&limit=100`
           while (url) {
             const r = await fetch(url)
             if (!r.ok) break
             const d = await r.json()
-            count += (d.nfts || []).length
+            const nfts = (d.nfts || []) as { serial_number: number }[]
+            count += nfts.length
+            nfts.forEach(n => serials.push(Number(n.serial_number)))
             url = d.links?.next ? `${MIRROR}${d.links.next}` : null
           }
         } else {
@@ -127,13 +140,12 @@ export default function StakingPage() {
             count = decimals > 0 ? raw / Math.pow(10, decimals) : raw
           }
         }
-        setHoldingsMap(prev => new Map(prev).set(activeId, { count, loading: false }))
+        setHoldingsMap(prev => new Map(prev).set(activeId, { count, serials, loading: false }))
       } catch {
-        setHoldingsMap(prev => new Map(prev).set(activeId, { count: 0, loading: false }))
+        setHoldingsMap(prev => new Map(prev).set(activeId, { count: 0, serials: [], loading: false }))
       }
     }
 
-    fetchPosition()
     fetchHoldings()
   }, [activeId, isConnected, accountId, programs, tokenInfo])
 
@@ -242,8 +254,7 @@ export default function StakingPage() {
               const holdingsLoading = isActive && (holdingsInfo?.loading ?? false)
               const userHoldings = holdingsInfo?.count ?? 0
               const meetsMin = userHoldings >= Number(p.min_stake_amount)
-              const pos = isActive ? positionMap.get(p.id) : undefined
-              const estPayout = pos?.position?.estimatedNextReward ?? 0
+              const estPayout = rewardPerDay(p, holdingsInfo?.serials ?? null, userHoldings) * freqDays(p.frequency)
 
               return (
                 <div key={p.id} className="bg-[#1a1a1a] rounded-2xl border border-gray-800 overflow-hidden">
