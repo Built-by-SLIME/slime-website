@@ -48,6 +48,7 @@ export default function StakingPage() {
   const [regStatus, setRegStatus] = useState<RegStatus>('idle')
   const [statusMsg, setStatusMsg] = useState('')
   const [positionMap, setPositionMap] = useState<Map<string, { position: Position | null; loading: boolean }>>(new Map())
+  const [holdingsMap, setHoldingsMap] = useState<Map<string, { count: number; loading: boolean }>>(new Map())
 
   function formatTierTarget(tier: TierConfigItem): string {
     if (tier.type === 'range' && tier.range) {
@@ -91,6 +92,7 @@ export default function StakingPage() {
     if (!program) return
 
     setPositionMap(prev => new Map(prev).set(activeId, { position: null, loading: true }))
+    setHoldingsMap(prev => new Map(prev).set(activeId, { count: 0, loading: true }))
 
     const fetchPosition = async () => {
       try {
@@ -104,8 +106,36 @@ export default function StakingPage() {
       }
     }
 
+    const fetchHoldings = async () => {
+      try {
+        let count = 0
+        if (program.stake_token_type === 'NFT') {
+          let url: string | null = `${MIRROR}/api/v1/accounts/${accountId}/nfts?token.id=${program.stake_token_id}&limit=100`
+          while (url) {
+            const r = await fetch(url)
+            if (!r.ok) break
+            const d = await r.json()
+            count += (d.nfts || []).length
+            url = d.links?.next ? `${MIRROR}${d.links.next}` : null
+          }
+        } else {
+          const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/tokens?token.id=${program.stake_token_id}&limit=1`)
+          if (r.ok) {
+            const d = await r.json()
+            const raw = d.tokens?.[0]?.balance ?? 0
+            const decimals = tokenInfo.get(program.stake_token_id)?.decimals ?? 0
+            count = decimals > 0 ? raw / Math.pow(10, decimals) : raw
+          }
+        }
+        setHoldingsMap(prev => new Map(prev).set(activeId, { count, loading: false }))
+      } catch {
+        setHoldingsMap(prev => new Map(prev).set(activeId, { count: 0, loading: false }))
+      }
+    }
+
     fetchPosition()
-  }, [activeId, isConnected, accountId, programs])
+    fetchHoldings()
+  }, [activeId, isConnected, accountId, programs, tokenInfo])
 
   const freqLabel = (f: string) =>
     ({ '1d': 'Daily', '7d': 'Weekly', '14d': 'Bi-Weekly', '30d': 'Monthly', '90d': 'Quarterly', '180d': 'Bi-Annually', '365d': 'Annually' } as Record<string, string>)[f] ?? f
@@ -208,10 +238,11 @@ export default function StakingPage() {
               const rewardSymbol = tokenInfo.get(p.reward_token_id)?.symbol ?? p.reward_token_id
               const busy = isActive && (regStatus === 'checking' || regStatus === 'associating' || regStatus === 'registering')
               const done = isActive && (regStatus === 'success' || regStatus === 'already')
+              const holdingsInfo = isActive ? holdingsMap.get(p.id) : undefined
+              const holdingsLoading = isActive && (holdingsInfo?.loading ?? false)
+              const userHoldings = holdingsInfo?.count ?? 0
+              const meetsMin = userHoldings >= Number(p.min_stake_amount)
               const pos = isActive ? positionMap.get(p.id) : undefined
-              const posLoading = isActive && (pos?.loading ?? false)
-              const userHoldings = pos?.position?.holdings?.unitsHeld ?? 0
-              const meetsMin = pos?.position?.holdings?.meetsMinimum ?? false
               const estPayout = pos?.position?.estimatedNextReward ?? 0
 
               return (
@@ -299,10 +330,10 @@ export default function StakingPage() {
                       {/* Your position */}
                       <div className="bg-black/20 rounded-xl p-4 mb-4 border border-gray-800/60">
                         <p className="text-gray-500 text-xs uppercase tracking-widest mb-3">Your Position</p>
-                        {posLoading ? (
+                        {holdingsLoading ? (
                           <div className="flex items-center gap-2 text-gray-500 text-sm">
                             <div className="animate-spin rounded-full h-3 w-3 border-b border-slime-green flex-shrink-0" />
-                            Loading position...
+                            Checking holdings...
                           </div>
                         ) : (
                           <div className="grid grid-cols-3 gap-3">
@@ -333,10 +364,10 @@ export default function StakingPage() {
 
                       <button
                         onClick={() => handleRegister(p)}
-                        disabled={busy || done || (!posLoading && !meetsMin)}
+                        disabled={busy || done || (!holdingsLoading && !meetsMin)}
                         className="w-full bg-slime-green text-black py-3 px-5 rounded-xl font-bold text-sm hover:bg-[#00cc33] transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {busy ? 'PROCESSING...' : done ? 'REGISTERED ✓' : (!posLoading && !meetsMin) ? `NEED ${p.min_stake_amount}+ ${stakeSymbol} TO QUALIFY` : 'REGISTER FOR REWARDS'}
+                        {busy ? 'PROCESSING...' : done ? 'REGISTERED ✓' : (!holdingsLoading && !meetsMin) ? `NEED ${p.min_stake_amount}+ ${stakeSymbol} TO QUALIFY` : 'REGISTER FOR REWARDS'}
                       </button>
                     </div>
                   )}
