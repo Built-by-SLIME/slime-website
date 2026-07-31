@@ -21,12 +21,21 @@ export default async function handler(req, res) {
   const rangeStart = new Date(`${startDate}T00:00:00.000Z`)
   const rangeEnd = new Date(`${endDate}T23:59:59.999Z`)
 
+  // SentX's date range semantics are unclear from the docs. We request one
+  // extra day on each side and filter client-side so the requested period is
+  // fully covered whether dateTo/dateFrom are inclusive or exclusive.
+  const fmtDate = (d) => d.toISOString().split('T')[0]
+  const queryStart = new Date(rangeStart)
+  queryStart.setUTCDate(queryStart.getUTCDate() - 1)
+  const queryEnd = new Date(rangeEnd)
+  queryEnd.setUTCDate(queryEnd.getUTCDate() + 1)
+
   try {
     const baseParams = new URLSearchParams({
       apikey,
       token: SLIME_TOKEN,
-      dateFrom: startDate,
-      dateTo: endDate,
+      dateFrom: fmtDate(queryStart),
+      dateTo: fmtDate(queryEnd),
       limit: String(UPSTREAM_LIMIT),
     })
 
@@ -80,6 +89,15 @@ export default async function handler(req, res) {
     const maxSale = totalSales > 0 ? Math.max(...amounts) : 0
     const minSale = totalSales > 0 ? Math.min(...amounts) : 0
     const avgSale = totalSales > 0 ? Math.round(totalVolume / totalSales) : 0
+
+    console.log('[market-stats]', {
+      requested: { startDate, endDate },
+      queried: { dateFrom: fmtDate(queryStart), dateTo: fmtDate(queryEnd) },
+      totalRecords,
+      fetched: allTransactions.length,
+      inRange: totalSales,
+      maxSale: Math.round(maxSale),
+    })
 
     const record = {
       token: SLIME_TOKEN,
