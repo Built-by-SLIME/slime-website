@@ -452,9 +452,9 @@ export default function InventoryPage() {
                   <div key={nft.serial_number} className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all">
                     <div className="relative aspect-square bg-[#252525] p-2">
                       {listedSerials.has(nft.serial_number) && (
-                        <span className="absolute top-2 left-2 z-10 bg-slime-green text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
+                        <div className="absolute top-0 left-0 right-0 z-10 bg-slime-green text-black text-[10px] font-black py-1 uppercase tracking-wider text-center shadow">
                           LISTED
-                        </span>
+                        </div>
                       )}
                       {nft.imageUrl ? (
                         <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-contain" crossOrigin="anonymous"
