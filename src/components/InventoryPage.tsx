@@ -451,25 +451,27 @@ export default function InventoryPage() {
                 {filteredNfts.map(nft => (
                   <div key={nft.serial_number} className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-gray-700 hover:border-slime-green transition-all">
                     <div className="relative aspect-square bg-[#252525] p-2">
-                      {listedSerials.has(nft.serial_number) && (
-                        <div className="absolute top-0 left-0 right-0 z-10 bg-slime-green text-black text-[10px] font-black py-1 uppercase tracking-wider text-center shadow">
-                          LISTED
-                        </div>
-                      )}
-                      {nft.imageUrl ? (
-                        <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-contain" crossOrigin="anonymous"
-                          onError={e => {
-                            const img = e.target as HTMLImageElement
-                            if (!img.dataset.retried) {
-                              img.dataset.retried = 'true'
-                              setTimeout(() => { img.src = `${nft.imageUrl.split('?')[0]}?r=${Date.now()}` }, 1500)
-                            } else {
-                              img.src = '/Assets/SPLAT.png'
-                            }
-                          }} />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">#{nft.serial_number}</div>
-                      )}
+                      <div className="relative w-full h-full">
+                        {listedSerials.has(nft.serial_number) && (
+                          <div className="absolute top-0 left-0 right-0 z-10 bg-slime-green text-black text-[10px] font-black py-1 uppercase tracking-wider text-center shadow">
+                            LISTED
+                          </div>
+                        )}
+                        {nft.imageUrl ? (
+                          <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-contain" crossOrigin="anonymous"
+                            onError={e => {
+                              const img = e.target as HTMLImageElement
+                              if (!img.dataset.retried) {
+                                img.dataset.retried = 'true'
+                                setTimeout(() => { img.src = `${nft.imageUrl.split('?')[0]}?r=${Date.now()}` }, 1500)
+                              } else {
+                                img.src = '/Assets/SPLAT.png'
+                              }
+                            }} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">#{nft.serial_number}</div>
+                        )}
+                      </div>
                     </div>
                     <div className="p-2.5 space-y-2">
                       <p className="text-gray-400 text-xs font-mono">#{nft.serial_number}</p>
