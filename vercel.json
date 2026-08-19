@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/slabs/claim.js": { "maxDuration": 60 },
-    "api/slabs/sync.js":  { "maxDuration": 60 }
+    "api/slabs/sync.js":  { "maxDuration": 60 },
+    "api/media-proxy.js": { "maxDuration": 60 }
   },
   "crons": [
     {

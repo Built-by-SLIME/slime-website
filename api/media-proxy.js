@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream'
+
 // GET /api/media-proxy?url=<encoded-url>
 // Proxies external media (IPFS, direct URLs, inscriptions) to bypass browser CORS.
 // The swap page routes all NFT media through here so mixed sources load reliably.
@@ -5,18 +7,16 @@
 const IPFS_GATEWAYS = [
   'https://dweb.link/ipfs/',
   'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
 ]
 
-async function fetchWithTimeout(url, timeoutMs = 6000) {
+async function fetchWithTimeout(url, timeoutMs = 4000) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetch(url, {
+    return await fetch(url, {
       signal: controller.signal,
       headers: { 'User-Agent': 'builtbyslime-media-proxy/1.0' },
     })
-    return response
   } finally {
     clearTimeout(timeout)
   }
@@ -85,8 +85,8 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Cache-Control', 'public, max-age=86400, immutable')
 
-    const buffer = Buffer.from(await upstream.arrayBuffer())
-    return res.status(200).send(buffer)
+    // Stream the response to avoid buffering large images in memory.
+    Readable.fromWeb(upstream.body).pipe(res)
   } catch (err) {
     return res.status(502).json({
       error: err instanceof Error ? err.message : 'Failed to fetch media',
