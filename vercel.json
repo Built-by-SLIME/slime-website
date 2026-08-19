@@ -11,6 +11,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/media-proxy",
+      "destination": "/api/media-proxy"
+    },
+    {
       "source": "/api/market-:path*",
       "destination": "/api/market-:path*"
     },

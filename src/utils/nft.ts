@@ -46,21 +46,18 @@ export async function decodeMetadata(base64: string): Promise<NFTMetadata | null
   }
 }
 
-// ── Swap-specific gateway ────────────────────────────────────────────────────
-// Uses VITE_SWAP_IPFS_GATEWAY so the swap page can reach Kabila-pinned CIDs
-// without affecting HotNFTs, CollectionPage, or any other part of the site.
-const SWAP_IPFS_GATEWAY = import.meta.env.VITE_SWAP_IPFS_GATEWAY || 'https://dweb.link/ipfs/'
-
+// ── Swap-specific media proxy ────────────────────────────────────────────────
+// The swap page pulls NFT metadata/images from many sources (IPFS, direct HTTP,
+// inscriptions, Pinata, etc.). Browsers block cross-origin fetches without CORS,
+// so every external URL is routed through /api/media-proxy, which fetches the
+// asset server-side and returns it with permissive CORS headers.
 function toSwapPublicUrl(url: string): string {
   if (!url) return url
-  if (url.startsWith('ipfs://')) {
-    return SWAP_IPFS_GATEWAY + url.slice(7).replace(/#/g, '%23')
+  // Data URIs, blobs, and same-origin paths already work in the browser.
+  if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('/')) {
+    return url
   }
-  const pinataIdx = url.indexOf('.mypinata.cloud/ipfs/')
-  if (pinataIdx !== -1) {
-    return SWAP_IPFS_GATEWAY + url.slice(pinataIdx + '.mypinata.cloud/ipfs/'.length)
-  }
-  return url
+  return '/api/media-proxy?url=' + encodeURIComponent(url)
 }
 
 export async function decodeSwapMetadata(base64: string): Promise<NFTMetadata | null> {
