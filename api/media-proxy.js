@@ -31,11 +31,9 @@ export default async function handler(req, res) {
   }
 
   // Resolve ipfs:// URIs through a public gateway before fetching.
-  // SWAP_IPFS_GATEWAY can be set to override this with a private gateway.
   if (targetUrl.startsWith('ipfs://')) {
-    const gateway = process.env.SWAP_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
     const cidPath = targetUrl.slice(7)
-    targetUrl = gateway.replace(/\/$/, '') + '/' + cidPath
+    targetUrl = 'https://ipfs.io/ipfs/' + cidPath
   }
 
   try {
