@@ -123,7 +123,7 @@ export default function SwapPage() {
   // Check if the user has approved the operator to spend the FROM token.
   const checkTokenAllowance = async (tokenId: string, requiredAmount: number): Promise<boolean> => {
     try {
-      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/allowances/tokens?token.id=${tokenId}&spender.id=${OPERATOR}`)
+      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/allowances/tokens?token.id=${tokenId}`)
       if (!r.ok) return false
       const data = await r.json()
       return (data.allowances || []).some(
@@ -137,7 +137,8 @@ export default function SwapPage() {
 
   const checkNftAllowance = async (tokenId: string): Promise<boolean> => {
     try {
-      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/allowances/nfts?token.id=${tokenId}&spender.id=${OPERATOR}`)
+      // Mirror node requires account.id as a query param for NFT allowances.
+      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/allowances/nfts?account.id=${accountId}&token.id=${tokenId}`)
       if (!r.ok) return false
       const data = await r.json()
       return (data.allowances || []).some(
@@ -147,6 +148,15 @@ export default function SwapPage() {
     } catch {
       return false
     }
+  }
+
+  // Poll mirror node until operator allowance is reflected, up to ~15 seconds.
+  const waitForAllowance = async (checkFn: () => Promise<boolean>): Promise<boolean> => {
+    for (let i = 0; i < 10; i++) {
+      if (await checkFn()) return true
+      await new Promise(resolve => setTimeout(resolve, 1500))
+    }
+    return false
   }
 
   // When active program changes, reset state, check association/allowance, and load NFTs if needed
@@ -293,13 +303,20 @@ export default function SwapPage() {
               AccountId.fromString(OPERATOR),
               rawAmount
             )
-          const signedApproveTx = await signer.signTransaction(approveTx)
+          const approveResponse = await approveTx.executeWithSigner(signer)
           const hederaClient = Client.forMainnet()
           try {
-            const approveResponse = await signedApproveTx.execute(hederaClient)
             await approveResponse.getReceipt(hederaClient)
           } finally {
             hederaClient.close()
+          }
+
+          // Wait for mirror node to reflect the allowance before the backend checks it.
+          const confirmed = await waitForAllowance(() => checkTokenAllowance(program.from_token_id, rawAmount))
+          if (!confirmed) {
+            setSwapStatus('error')
+            setStatusMsg('Allowance was submitted but could not be confirmed. Please try again.')
+            return
           }
         }
 
@@ -339,13 +356,20 @@ export default function SwapPage() {
               AccountId.fromString(accountId),
               AccountId.fromString(OPERATOR)
             )
-          const signedApproveTx = await signer.signTransaction(approveTx)
+          const approveResponse = await approveTx.executeWithSigner(signer)
           const hederaClient = Client.forMainnet()
           try {
-            const approveResponse = await signedApproveTx.execute(hederaClient)
             await approveResponse.getReceipt(hederaClient)
           } finally {
             hederaClient.close()
+          }
+
+          // Wait for mirror node to reflect the allowance before the backend checks it.
+          const confirmed = await waitForAllowance(() => checkNftAllowance(program.from_token_id))
+          if (!confirmed) {
+            setSwapStatus('error')
+            setStatusMsg('Allowance was submitted but could not be confirmed. Please try again.')
+            return
           }
         }
 
