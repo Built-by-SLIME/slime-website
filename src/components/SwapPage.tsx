@@ -99,6 +99,27 @@ export default function SwapPage() {
     load()
   }, [])
 
+  // Check if wallet is associated with the token they will receive
+  const checkAssociation = async (tokenId: string): Promise<boolean> => {
+    try {
+      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/tokens?token.id=${tokenId}`)
+      if (!r.ok) return false
+      const data = await r.json()
+      return (data.tokens || []).some((t: { token_id: string }) => t.token_id === tokenId)
+    } catch {
+      return false
+    }
+  }
+
+  // Poll mirror node until association is confirmed, up to ~15 seconds.
+  const waitForAssociation = async (tokenId: string): Promise<boolean> => {
+    for (let i = 0; i < 10; i++) {
+      if (await checkAssociation(tokenId)) return true
+      await new Promise(resolve => setTimeout(resolve, 1500))
+    }
+    return false
+  }
+
   // When active program changes, reset state, check association, and load NFTs if needed
   useEffect(() => {
     setInputAmount('')
@@ -112,18 +133,7 @@ export default function SwapPage() {
     const program = programs.find(p => p.id === activeId)
     if (!program || !isConnected || !accountId) return
 
-    // Check if wallet is associated with the token they will receive
-    const checkAssociation = async () => {
-      try {
-        const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/tokens?token.id=${program.to_token_id}`)
-        if (!r.ok) { setIsAssociated(false); return }
-        const data = await r.json()
-        setIsAssociated((data.tokens || []).some((t: { token_id: string }) => t.token_id === program.to_token_id))
-      } catch {
-        setIsAssociated(false)
-      }
-    }
-    checkAssociation()
+    checkAssociation(program.to_token_id).then(setIsAssociated)
 
     if (program.swap_type === 'nft') {
       loadNFTs(program.from_token_id)
@@ -181,6 +191,15 @@ export default function SwapPage() {
         .setTokenIds([TokenId.fromString(program.to_token_id)])
       await tx.freezeWithSigner(signer)
       await tx.executeWithSigner(signer)
+
+      // Wait for mirror node to reflect the association before allowing swap.
+      const confirmed = await waitForAssociation(program.to_token_id)
+      if (!confirmed) {
+        setSwapStatus('error')
+        setStatusMsg('Association was submitted but could not be confirmed. Please try again in a few seconds.')
+        setIsAssociated(false)
+        return
+      }
       setIsAssociated(true)
     } catch (err) {
       setSwapStatus('error')
@@ -208,6 +227,15 @@ export default function SwapPage() {
     if (!signer) {
       setSwapStatus('error')
       setStatusMsg('Wallet signer not available — please reconnect')
+      return
+    }
+
+    // Re-check association right before swapping to avoid stale mirror node data.
+    const currentlyAssociated = await checkAssociation(program.to_token_id)
+    if (!currentlyAssociated) {
+      setSwapStatus('error')
+      setStatusMsg(`Your wallet must be associated with ${program.to_token_id} before swapping.`)
+      setIsAssociated(false)
       return
     }
 
