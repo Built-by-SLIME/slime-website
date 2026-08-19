@@ -30,14 +30,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Unsupported URL scheme' })
   }
 
-  // Resolve ipfs:// URIs through the configured gateway before fetching.
+  // Resolve ipfs:// URIs through a public gateway before fetching.
+  // SWAP_IPFS_GATEWAY can be set to override this with a private gateway.
   if (targetUrl.startsWith('ipfs://')) {
-    const gateway = process.env.SWAP_IPFS_GATEWAY
-    if (!gateway) {
-      return res.status(500).json({
-        error: 'SWAP_IPFS_GATEWAY is not configured. IPFS media cannot be resolved.',
-      })
-    }
+    const gateway = process.env.SWAP_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
     const cidPath = targetUrl.slice(7)
     targetUrl = gateway.replace(/\/$/, '') + '/' + cidPath
   }
