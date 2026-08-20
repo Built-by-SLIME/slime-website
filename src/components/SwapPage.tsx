@@ -9,6 +9,8 @@ import Footer from './Footer'
 const MIRROR = 'https://mainnet-public.mirrornode.hedera.com'
 const OPERATOR = '0.0.9348822'
 
+// Force Vercel rebuild — swap flow fixes deployed 2026-08-20.
+
 interface SwapProgram {
   id: string
   name: string
