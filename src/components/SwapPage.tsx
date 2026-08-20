@@ -121,9 +121,11 @@ export default function SwapPage() {
   }
 
   // Check if the user has approved the operator to spend the FROM token.
+  // Fetch all allowances and filter client-side because the Mirror Node
+  // `token.id` query param is unreliable without a `spender.id` filter.
   const checkTokenAllowance = async (tokenId: string, requiredAmount: number): Promise<boolean> => {
     try {
-      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/allowances/tokens?token.id=${tokenId}`)
+      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/allowances/tokens?limit=100`)
       if (!r.ok) return false
       const data = await r.json()
       return (data.allowances || []).some(
@@ -137,8 +139,7 @@ export default function SwapPage() {
 
   const checkNftAllowance = async (tokenId: string): Promise<boolean> => {
     try {
-      // Mirror node requires account.id as a query param for NFT allowances.
-      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/allowances/nfts?account.id=${accountId}&token.id=${tokenId}`)
+      const r = await fetch(`${MIRROR}/api/v1/accounts/${accountId}/allowances/nfts?limit=100`)
       if (!r.ok) return false
       const data = await r.json()
       return (data.allowances || []).some(
