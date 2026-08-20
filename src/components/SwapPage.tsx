@@ -178,7 +178,7 @@ export default function SwapPage() {
     if (program.swap_type === 'nft') {
       loadNFTs(program.from_token_id)
     }
-  }, [activeId])
+  }, [activeId, accountId, isConnected])
 
   const loadNFTs = async (tokenId: string) => {
     setLoadingNFTs(true)
